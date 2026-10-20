@@ -1,8 +1,8 @@
-unit SqlKata.Compilers.OracleCompiler;
+unit QueryBuilder4Delphi.Compilers.OracleCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, SqlKata.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TOracleCompiler = class(TCompiler)

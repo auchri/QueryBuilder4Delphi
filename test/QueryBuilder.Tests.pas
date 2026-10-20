@@ -3,7 +3,7 @@ unit QueryBuilder.Tests;
 interface
 
 uses System.SysUtils, System.Rtti, System.JSON, System.Generics.Collections,
-  DUnitX.TestFramework, SqlKata, SqlKata.Compilers;
+  DUnitX.TestFramework, SqlKata, QueryBuilder4Delphi.Compilers;
 
 type
   [TestFixture]

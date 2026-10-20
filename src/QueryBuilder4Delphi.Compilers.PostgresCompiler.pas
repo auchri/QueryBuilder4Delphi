@@ -1,8 +1,8 @@
-unit SqlKata.Compilers.PostgresCompiler;
+unit QueryBuilder4Delphi.Compilers.PostgresCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, SqlKata.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TPostgresCompiler = class(TCompiler)

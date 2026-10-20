@@ -1,4 +1,4 @@
-unit SqlKata.Compilers.Compiler;
+unit QueryBuilder4Delphi.Compilers.Compiler;
 
 interface
 

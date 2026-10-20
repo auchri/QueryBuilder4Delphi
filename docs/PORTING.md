@@ -41,3 +41,7 @@ Completed work packages for compiler classes:
     descendants; update the test project, API documentation, and validation
     records for Win32 and Win64. The class and inheritance tests are recorded
     in `91e6a9f`; all 578 tests pass on each platform.
+
+11. Rename the compiler units and facade from `SqlKata.Compilers` to
+    `QueryBuilder4Delphi.Compilers`, updating project references, tests, and
+    current API documentation.

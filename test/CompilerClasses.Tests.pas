@@ -24,13 +24,13 @@ implementation
 
 uses
   System.SysUtils, System.Rtti, SqlKata,
-  SqlKata.Compilers.Compiler,
-  SqlKata.Compilers.SqlServerCompiler,
-  SqlKata.Compilers.PostgresCompiler,
-  SqlKata.Compilers.MySqlCompiler,
-  SqlKata.Compilers.SqliteCompiler,
-  SqlKata.Compilers.OracleCompiler,
-  SqlKata.Compilers.FirebirdCompiler;
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler,
+  QueryBuilder4Delphi.Compilers.PostgresCompiler,
+  QueryBuilder4Delphi.Compilers.MySqlCompiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.OracleCompiler,
+  QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 type
   TCompilerClass = class of TCompiler;

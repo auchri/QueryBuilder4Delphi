@@ -1,8 +1,8 @@
-unit SqlKata.Compilers.FirebirdCompiler;
+unit QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, SqlKata.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TFirebirdCompiler = class(TCompiler)

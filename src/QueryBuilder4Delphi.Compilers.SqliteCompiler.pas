@@ -1,8 +1,8 @@
-unit SqlKata.Compilers.SqliteCompiler;
+unit QueryBuilder4Delphi.Compilers.SqliteCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, SqlKata.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TSqliteCompiler = class(TCompiler)

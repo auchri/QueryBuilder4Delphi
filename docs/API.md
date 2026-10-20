@@ -10,9 +10,10 @@ and relation-loading layer.
 `ISqlResult`. `TQuery.Create` is a record factory. `TCompiler` and the six
 dialect compilers are classes; their inherited `Create` class function returns
 `ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
-Each compiler has its own `SqlKata.Compilers.<ClassName>` unit, with the Delphi
-`T` prefix omitted from the unit name. `SqlKata.Compilers` re-exports the types
-as a compatibility facade. The query model is in `SqlKata`.
+Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
+with the Delphi `T` prefix omitted from the unit name.
+`QueryBuilder4Delphi.Compilers` re-exports the types as a facade.
+The query model is in `SqlKata`.
 `EngineCodes` is named `TEngineCodes`.
 
 `object` parameters become `TValue`; `params` and `IEnumerable` parameters
@@ -40,7 +41,7 @@ Custom query implementations can derive from `TQueryObject` and override
 
 ## Compiler classes and extensions
 
-`TCompiler` in `SqlKata.Compilers.Compiler` contains shared SQL generation.
+`TCompiler` in `QueryBuilder4Delphi.Compilers.Compiler` contains shared SQL generation.
 `TSqlServerCompiler`, `TPostgresCompiler`, `TMySqlCompiler`, `TSqliteCompiler`,
 `TOracleCompiler`, and `TFirebirdCompiler` derive from it in individual Pascal
 units. Dialect-specific behavior is implemented through virtual overrides,
