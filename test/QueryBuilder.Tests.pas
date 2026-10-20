@@ -81,7 +81,7 @@ type
   end;
   TTrackedCompiler = class(TCompilerObject)
   public
-    constructor Create; override;
+    constructor CreateInstance; override;
     destructor Destroy; override;
   end;
   TTrackedResult = class(TSqlResult)
@@ -96,7 +96,7 @@ destructor TTrackedQuery.Destroy;
 begin Dec(LiveQueries); inherited; end;
 function TTrackedQuery.NewQuery: IQuery;
 begin Result := TTrackedQuery.Create; end;
-constructor TTrackedCompiler.Create;
+constructor TTrackedCompiler.CreateInstance;
 begin Inc(LiveCompilers); inherited; end;
 destructor TTrackedCompiler.Destroy;
 begin Dec(LiveCompilers); inherited; end;
