@@ -36,7 +36,8 @@ Completed work packages for compiler classes:
 9. Replace compiler include files and record factories with a `TCompiler`
    base class and six dialect subclasses in individual Pascal units. Move
    dialect behavior into virtual overrides and retain the reference-counted
-   `Create` API and `SqlKata.Compilers` compatibility facade (`883f4a2`).
+   `Create` API and the interim `SqlKata.Compilers` compatibility facade
+   (`883f4a2`), subsequently renamed in step 11.
 10. Add eight tests for class factories, direct unit imports, and custom
     descendants; update the test project, API documentation, and validation
     records for Win32 and Win64. The class and inheritance tests are recorded
@@ -44,4 +45,6 @@ Completed work packages for compiler classes:
 
 11. Rename the compiler units and facade from `SqlKata.Compilers` to
     `QueryBuilder4Delphi.Compilers`, updating project references, tests, and
-    current API documentation.
+    current API documentation. The old facade is no longer provided; use
+    `QueryBuilder4Delphi.Compilers` or its individual compiler units in all
+    compiler `uses` clauses.
