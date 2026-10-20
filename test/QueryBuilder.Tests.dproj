@@ -30,6 +30,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\src\QueryBuilder4Delphi.Query.Core.pas"/>
+        <DCCReference Include="..\src\QueryBuilder4Delphi.Query.pas"/>
         <DCCReference Include="..\src\SqlKata.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.Writes.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.DataMapper.pas"/>
@@ -43,6 +45,7 @@
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.FirebirdCompiler.pas"/>
         <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryWrites.Tests.pas"/>
+        <DCCReference Include="QueryModel.Tests.pas"/>
         <DCCReference Include="QueryBuilder.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
