@@ -1,0 +1,8 @@
+build/
+*.dcu
+*.exe
+*.map
+*.rsm
+*.identcache
+*.local
+__pycache__/
