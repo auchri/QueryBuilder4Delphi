@@ -7,10 +7,13 @@ The upstream public `Query` method names are available on `IQuery`, except for
 and relation-loading layer.
 
 `Query` maps to `IQuery`, `Compiler` to `ICompiler`, and `SqlResult` to
-`ISqlResult`. `TQuery.Create` and `T...Compiler.Create` are record factories
-that return an interface immediately. Temporary fluent chains do not require
-manual cleanup. All compilers are in `SqlKata.Compilers`; the model is in
-`SqlKata`. The six compiler factories use the Delphi `T` prefix.
+`ISqlResult`. `TQuery.Create` is a record factory. `TCompiler` and the six
+dialect compilers are classes; their inherited `Create` class function returns
+`ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
+Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
+with the Delphi `T` prefix omitted from the unit name.
+`QueryBuilder4Delphi.Compilers` re-exports the types as a facade.
+The query model is in `SqlKata`.
 `EngineCodes` is named `TEngineCodes`.
 
 `object` parameters become `TValue`; `params` and `IEnumerable` parameters
@@ -33,11 +36,32 @@ compatibility. Instead, the port exposes `TClause`, `Clauses`, `GetComponents`,
 `GetOne`, and `ClearComponent`. Components are `where`, `having`, `select`,
 `from`, `group`, `order`, `join`, `cte`, `combine`, `limit`, `offset`,
 `aggregate`, `insert`, and `update`. These internal lists belong to the query.
-Custom compilers can override protected virtual methods on `TCompilerObject`
-or the dialect-specific `T...CompilerObject` classes. Custom query
-implementations can derive from `TQueryObject` and override `NewQuery`/`Clone`.
-Always hold instances of these implementation classes through interfaces;
-the factories are the normal entry points.
+Custom query implementations can derive from `TQueryObject` and override
+`NewQuery`/`Clone`. Always hold implementation instances through interfaces.
+
+## Compiler classes and extensions
+
+`TCompiler` in `QueryBuilder4Delphi.Compilers.Compiler` contains shared SQL generation.
+`TSqlServerCompiler`, `TPostgresCompiler`, `TMySqlCompiler`, `TSqliteCompiler`,
+`TOracleCompiler`, and `TFirebirdCompiler` derive from it in individual Pascal
+units. Dialect-specific behavior is implemented through virtual overrides,
+including pagination, date expressions, random and Boolean expressions,
+identifier wrapping, ad hoc tables, multirow inserts, and joined updates.
+The compiler sources contain no include directives or engine-name dispatch.
+
+Derive custom compilers from `TCompiler` or a dialect class and override the
+relevant virtual methods. Override the protected `CreateInstance` constructor
+for initialization, calling `inherited` first. The inherited `Create` class
+function uses the receiving class and its virtual constructor, so
+`TCustomCompiler.Create` returns an `ICompiler` for the custom descendant.
+Do not replace it with an object-returning constructor or call `CreateInstance`
+from application code. `TCompilerObject` and `T...CompilerObject` remain type
+aliases for compatibility with earlier names.
+
+[CompilerClasses.Tests.pas](../test/CompilerClasses.Tests.pas) demonstrates
+custom MySQL and SQL Server descendants. It checks that inherited dialect
+behavior survives a custom `EngineCode`, and that custom overrides are called
+through `ICompiler`.
 
 ## Memory and lifetime
 

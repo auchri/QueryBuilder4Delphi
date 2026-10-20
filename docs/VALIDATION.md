@@ -13,8 +13,8 @@ Both standalone test executables were then run using
 
 | Target | DUnitX tests | Passed | Failed | Errors | Ignored |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Win32 | 570 | 570 | 0 | 0 | 0 |
-| Win64 | 570 | 570 | 0 | 0 | 0 |
+| Win32 | 578 | 578 | 0 | 0 | 0 |
+| Win64 | 578 | 578 | 0 | 0 | 0 |
 
 DUnitX reported `Tests Leaked: 0` in both runs.
 `ReportMemoryLeaksOnShutdown` is also enabled in the test program.
@@ -53,6 +53,13 @@ fluent chains during exceptions, retained callback queries, callback failures,
 queries retained by SQL results, and compiler and result release when an
 exception exits a scope. All README functions use `IQuery`; the complete
 example requires no `try..finally`.
+
+Eight compiler class tests import the individual dialect units directly.
+Six verify that the inherited factory creates the requested runtime class.
+Two check custom MySQL and SQL Server descendants, including virtual overrides,
+date expressions, offset-only pagination, joined updates, and legacy TOP
+pagination. Their custom engine names ensure that inherited dialect behavior
+does not depend on engine-name comparisons in the base compiler.
 
 ## Limitations
 

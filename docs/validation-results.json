@@ -6,28 +6,28 @@
   "referenceResults": 552,
   "directComparisons": 540,
   "correctedBehaviorCases": 12,
-  "additionalTests": 18,
+  "additionalTests": 26,
   "goldenSha256": "f6e99652a3ead2ed37d670efee94b879043d56147c2055afe31b68d7804f0cbe",
   "results": [
     {
       "platform": "Win32",
       "peMachine": "0x14c",
-      "tests": 570,
-      "passed": 570,
+      "tests": 578,
+      "passed": 578,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "029669b2811e7bab8b8f4866c4ffbdae90d40100a08b658467a32f28aca1bc63"
+      "executableSha256": "30c52e16de37253087b1a6f4ba4ab2bffb75c37529257f3619247d1fd41a09ab"
     },
     {
       "platform": "Win64",
       "peMachine": "0x8664",
-      "tests": 570,
-      "passed": 570,
+      "tests": 578,
+      "passed": 578,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "cf265c23f2c24a148a6e0fb75c085a566bd45dca8efedcf1df6a1ed695a6b448"
+      "executableSha256": "92b38555edfb2bb4f59671ac16ed72dc3dcc724555b30973113c6111282fea99"
     }
   ]
 }

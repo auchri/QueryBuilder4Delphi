@@ -1,4 +1,4 @@
-unit SqlKata.Compilers;
+unit QueryBuilder4Delphi.Compilers.Compiler;
 
 interface
 
@@ -85,11 +85,23 @@ type
     property UseLegacyPagination: Boolean read GetUseLegacyPagination write SetUseLegacyPagination;
   end;
 
-  TCompilerObject = class(TInterfacedObject, ICompiler)
+  TCompiler = class(TInterfacedObject, ICompiler)
   protected
     FEngineCode, FOpening, FClosing, FParameterPrefix, FLastId, FDummyTable: string;
     FColumnAs, FTableAs: string;
     FUserOperators: TList<string>;
+    FSupportsJoinWrites: Boolean;
+    constructor CreateInstance; virtual;
+    function CheckDatePart(const Part: string): string;
+    function DatePart(const Column, Part: string): string; virtual;
+    function CompileAdHocTable(Context: TCompileContext; Clause: TClause): string; virtual;
+    function CompileOffsetFetch(Context: TCompileContext; Query: IQuery;
+      const DefaultOrder: string): string;
+    function CompileInsertRows(Context: TCompileContext; const TableSql, Columns: string;
+      const Inserts: TArray<TClause>): string; virtual;
+    function CompileUpdateAssignments(Context: TCompileContext; Clause: TClause): string;
+    function CompileJoinedUpdate(Context: TCompileContext; Query: IQuery;
+      FromClause, UpdateClause: TClause): string; virtual;
     function CheckOperator(const Op: string): string;
     function Parameter(Context: TCompileContext; const Value: TValue): string; virtual;
     function Parameterize(Context: TCompileContext; const Values: array of TValue): string;
@@ -122,7 +134,8 @@ type
     procedure SetUseLegacyPagination(const Value: Boolean);
   public
     SupportsFilterClause, OmitSelectInsideExists, UseLegacyPagination: Boolean;
-    constructor Create; virtual;
+    // The class receiver selects the virtual instance constructor.
+    class function Create: ICompiler;
     destructor Destroy; override;
     function Compile(Query: IQuery): ISqlResult; overload; virtual;
     function Compile(const Queries: array of IQuery): ISqlResult; overload; virtual;
@@ -139,40 +152,7 @@ type
     property EngineCode: string read FEngineCode;
   end;
 
-  TSqlServerCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-  TPostgresCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-  TMySqlCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-  TSqliteCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-  TOracleCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-  TFirebirdCompilerObject = class(TCompilerObject)
-  public constructor Create; override; end;
-
-  TCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TSqlServerCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TPostgresCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TMySqlCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TSqliteCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TOracleCompiler = record
-    class function Create: ICompiler; static;
-  end;
-  TFirebirdCompiler = record
-    class function Create: ICompiler; static;
-  end;
+  TCompilerObject = TCompiler;
 
 implementation
 
@@ -194,34 +174,24 @@ function TSqlResult.GetQuery: IQuery;
 begin Result := Query; end;
 procedure TSqlResult.SetQuery(const Value: IQuery);
 begin Query := Value; end;
-function TCompilerObject.GetEngineCode: string;
+function TCompiler.GetEngineCode: string;
 begin Result := FEngineCode; end;
-function TCompilerObject.GetSupportsFilterClause: Boolean;
+function TCompiler.GetSupportsFilterClause: Boolean;
 begin Result := SupportsFilterClause; end;
-procedure TCompilerObject.SetSupportsFilterClause(const Value: Boolean);
+procedure TCompiler.SetSupportsFilterClause(const Value: Boolean);
 begin SupportsFilterClause := Value; end;
-function TCompilerObject.GetOmitSelectInsideExists: Boolean;
+function TCompiler.GetOmitSelectInsideExists: Boolean;
 begin Result := OmitSelectInsideExists; end;
-procedure TCompilerObject.SetOmitSelectInsideExists(const Value: Boolean);
+procedure TCompiler.SetOmitSelectInsideExists(const Value: Boolean);
 begin OmitSelectInsideExists := Value; end;
-function TCompilerObject.GetUseLegacyPagination: Boolean;
+function TCompiler.GetUseLegacyPagination: Boolean;
 begin Result := UseLegacyPagination; end;
-procedure TCompilerObject.SetUseLegacyPagination(const Value: Boolean);
+procedure TCompiler.SetUseLegacyPagination(const Value: Boolean);
 begin UseLegacyPagination := Value; end;
 class function TCompiler.Create: ICompiler;
-begin Result := TCompilerObject.Create; end;
-class function TSqlServerCompiler.Create: ICompiler;
-begin Result := TSqlServerCompilerObject.Create; end;
-class function TPostgresCompiler.Create: ICompiler;
-begin Result := TPostgresCompilerObject.Create; end;
-class function TMySqlCompiler.Create: ICompiler;
-begin Result := TMySqlCompilerObject.Create; end;
-class function TSqliteCompiler.Create: ICompiler;
-begin Result := TSqliteCompilerObject.Create; end;
-class function TOracleCompiler.Create: ICompiler;
-begin Result := TOracleCompilerObject.Create; end;
-class function TFirebirdCompiler.Create: ICompiler;
-begin Result := TFirebirdCompilerObject.Create; end;
+begin
+  Result := Self.CreateInstance;
+end;
 
 function SqlValue(const Value: TValue): string;
 var V: Variant; D: TDateTime;
@@ -288,20 +258,21 @@ begin
   raise EQueryException.CreateFmt('Variable ''%s'' not found', [Name]);
 end;
 
-constructor TCompilerObject.Create;
+constructor TCompiler.CreateInstance;
 begin
   inherited; FUserOperators := TList<string>.Create;
   FEngineCode := 'generic'; FOpening := '"'; FClosing := '"';
   FParameterPrefix := '@p'; FColumnAs := 'AS '; FTableAs := 'AS ';
   OmitSelectInsideExists := True;
+  FSupportsJoinWrites := True;
 end;
-destructor TCompilerObject.Destroy;
+destructor TCompiler.Destroy;
 begin FUserOperators.Free; inherited; end;
 
-function TCompilerObject.Whitelist(const Operators: array of string): ICompiler;
+function TCompiler.Whitelist(const Operators: array of string): ICompiler;
 var Op: string;
 begin for Op in Operators do FUserOperators.Add(LowerCase(Op)); Result := Self; end;
-function TCompilerObject.CheckOperator(const Op: string): string;
+function TCompiler.CheckOperator(const Op: string): string;
 begin
   Result := LowerCase(Op);
   if not MatchStr(Result, ['=','<','>','<=','>=','<>','!=','<=>','like','not like',
@@ -310,20 +281,19 @@ begin
     raise EQueryException.CreateFmt('Operator ''%s'' is not whitelisted', [Op]);
 end;
 
-procedure TCompilerObject.SplitAlias(const Value: string; out Expression, Alias: string);
+procedure TCompiler.SplitAlias(const Value: string; out Expression, Alias: string);
 var P: Integer;
 begin
   P := LowerCase(Value).LastIndexOf(' as ') + 1;
   if P = 0 then begin Expression := Value; Alias := ''; end
   else begin Expression := Copy(Value, 1, P-1); Alias := Copy(Value, P+4, MaxInt); end;
 end;
-function TCompilerObject.WrapValue(const Value: string): string;
+function TCompiler.WrapValue(const Value: string): string;
 begin
   if Value = '*' then Exit('*');
   Result := FOpening + StringReplace(Value, FClosing, FClosing+FClosing, [rfReplaceAll]) + FClosing;
-  if FEngineCode = 'firebird' then Result := UpperCase(Result);
 end;
-function TCompilerObject.Wrap(const Value: string): string;
+function TCompiler.Wrap(const Value: string): string;
 var Expr, Alias, Part: string;
 begin
   SplitAlias(Value, Expr, Alias);
@@ -331,10 +301,10 @@ begin
   for Part in Expr.Split(['.']) do begin if Result <> '' then Result := Result + '.'; Result := Result + WrapValue(Part); end;
   if Alias <> '' then Result := Result + ' '+FColumnAs+WrapValue(Alias);
 end;
-function TCompilerObject.WrapList(const Values: array of string): string;
+function TCompiler.WrapList(const Values: array of string): string;
 var S: string;
 begin Result := ''; for S in Values do begin if Result <> '' then Result := Result + ', '; Result := Result + Wrap(S); end; end;
-function TCompilerObject.WrapIdentifiers(const Value: string): string;
+function TCompiler.WrapIdentifiers(const Value: string): string;
 var I: Integer; C: Char;
 begin
   Result := ''; I := 1;
@@ -350,21 +320,21 @@ begin
     Inc(I);
   end;
 end;
-function TCompilerObject.Resolve(Context: TCompileContext; const Value: TValue): TValue;
+function TCompiler.Resolve(Context: TCompileContext; const Value: TValue): TValue;
 begin
   Result := Value;
   if Value.IsType<TVariable> then Result := Context.FindVariable(Value.AsType<TVariable>.Name)
   else if Value.IsType<TUnsafeLiteral> then Result := Value.AsType<TUnsafeLiteral>.Value;
 end;
-function TCompilerObject.Parameter(Context: TCompileContext; const Value: TValue): string;
+function TCompiler.Parameter(Context: TCompileContext; const Value: TValue): string;
 begin
   if Value.IsType<TUnsafeLiteral> then Exit(Value.AsType<TUnsafeLiteral>.Value);
   Context.Bindings.Add(Resolve(Context, Value)); Result := '?';
 end;
-function TCompilerObject.Parameterize(Context: TCompileContext; const Values: array of TValue): string;
+function TCompiler.Parameterize(Context: TCompileContext; const Values: array of TValue): string;
 var V: TValue;
 begin Result := ''; for V in Values do begin if Result <> '' then Result := Result + ', '; Result := Result + Parameter(Context, V); end; end;
-function TCompilerObject.Raw(Context: TCompileContext; const Sql: string; const Values: array of TValue): string;
+function TCompiler.Raw(Context: TCompileContext; const Sql: string; const Values: array of TValue): string;
 var I, N, J: Integer; V: TValue; S: string;
 begin
   Result := ''; N := 0;
@@ -387,9 +357,9 @@ begin
   if N <> Length(Values) then raise EQueryException.Create('Too many raw bindings');
 end;
 
-function TCompilerObject.Compile(Query: IQuery): ISqlResult;
+function TCompiler.Compile(Query: IQuery): ISqlResult;
 begin Result := Compile([Query]); Result.Query := Query; end;
-function TCompilerObject.Compile(const Queries: array of IQuery): ISqlResult;
+function TCompiler.Compile(const Queries: array of IQuery): ISqlResult;
 var Context: TCompileContext; Q: IQuery; N: Integer;
 begin
   Context := TCompileContext.Create;
@@ -407,7 +377,7 @@ begin
   finally Context.Free; end;
 end;
 
-function TCompilerObject.CompileQuery(Context: TCompileContext; Query: IQuery; WithCtes: Boolean): string;
+function TCompiler.CompileQuery(Context: TCompileContext; Query: IQuery; WithCtes: Boolean): string;
 var Q: IQuery;
 begin
   Q := Query;
@@ -423,7 +393,7 @@ begin
   end;
 end;
 
-function TCompilerObject.Column(Context: TCompileContext; Clause: TClause): string;
+function TCompiler.Column(Context: TCompileContext; Clause: TClause): string;
 var Expr, Alias, Filter: string;
 begin
   case Clause.Kind of
@@ -445,8 +415,7 @@ begin
       end;
   else Result := Wrap(Clause.Name); end;
 end;
-function TCompilerObject.Table(Context: TCompileContext; Clause: TClause): string;
-var I, J: Integer; Row: string;
+function TCompiler.Table(Context: TCompileContext; Clause: TClause): string;
 begin
   if Clause = nil then raise EQueryException.Create('No table set');
   case Clause.Kind of
@@ -455,44 +424,34 @@ begin
     ckQuery:
       begin
         Result := '('+CompileQuery(Context, Clause.Query, False)+')';
-        if Clause.Query.QueryAlias <> '' then Result := Result+' '+FTableAs+WrapValue(Clause.Query.QueryAlias);
+        if Clause.Query.QueryAlias <> '' then
+          Result := Result+' '+FTableAs+WrapValue(Clause.Query.QueryAlias);
       end;
-    ckAdHoc:
-      begin
-        if EngineCode = 'sqlsrv' then
-        begin
-          Result := 'SELECT '+WrapList(Clause.Columns)+' FROM (VALUES ';
-          for I := 0 to Length(Clause.Values) div Length(Clause.Columns)-1 do
-          begin
-            if I > 0 then Result := Result+', ';
-            Result := Result+'(';
-            for J := 0 to High(Clause.Columns) do
-            begin
-              if J > 0 then Result := Result+', ';
-              Result := Result+Parameter(Context,Clause.Values[I*Length(Clause.Columns)+J]);
-            end;
-            Result := Result+')';
-          end;
-          Exit(Result+') AS tbl ('+WrapList(Clause.Columns)+')');
-        end;
-        Result := '';
-        for I := 0 to Length(Clause.Values) div Length(Clause.Columns)-1 do
-        begin
-          Row := 'SELECT ';
-          for J := 0 to High(Clause.Columns) do
-          begin
-            if J > 0 then Row := Row+', ';
-            Row := Row+Parameter(Context,Clause.Values[I*Length(Clause.Columns)+J])+' AS '+Wrap(Clause.Columns[J]);
-          end;
-          if FDummyTable <> '' then Row := Row+' FROM '+FDummyTable;
-          if Result <> '' then Result := Result+' UNION ALL ';
-          Result := Result+Row;
-        end;
-      end;
-  else raise EQueryException.Create('Invalid table expression'); end;
+    ckAdHoc: Result := CompileAdHocTable(Context, Clause);
+  else
+    raise EQueryException.Create('Invalid table expression');
+  end;
 end;
 
-function TCompilerObject.Conditions(Context: TCompileContext; Query: IQuery; const Component: string): string;
+function TCompiler.CompileAdHocTable(Context: TCompileContext; Clause: TClause): string;
+var I, J: Integer; Row: string;
+begin
+  Result := '';
+  for I := 0 to Length(Clause.Values) div Length(Clause.Columns)-1 do
+  begin
+    Row := 'SELECT ';
+    for J := 0 to High(Clause.Columns) do
+    begin
+      if J > 0 then Row := Row+', ';
+      Row := Row+Parameter(Context,Clause.Values[I*Length(Clause.Columns)+J])+' AS '+Wrap(Clause.Columns[J]);
+    end;
+    if FDummyTable <> '' then Row := Row+' FROM '+FDummyTable;
+    if Result <> '' then Result := Result+' UNION ALL ';
+    Result := Result+Row;
+  end;
+end;
+
+function TCompiler.Conditions(Context: TCompileContext; Query: IQuery; const Component: string): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -504,7 +463,7 @@ begin
     Result := Result+S;
   end;
 end;
-function TCompilerObject.Condition(Context: TCompileContext; Clause: TClause): string;
+function TCompiler.Condition(Context: TCompileContext; Clause: TClause): string;
 var C: TClause; V: TValue; S, Op: string; Neg: Boolean; Q: IQuery;
 begin
   C := Clause; Neg := C.IsNot;
@@ -580,7 +539,7 @@ begin
   if Neg then Result := 'NOT ('+Result+')';
 end;
 
-function TCompilerObject.CompileCtes(Context: TCompileContext; Query: IQuery): string;
+function TCompiler.CompileCtes(Context: TCompileContext; Query: IQuery): string;
 var Seen: TList<string>;
   procedure Visit(Q: IQuery);
   var C: TClause; S: string;
@@ -602,7 +561,7 @@ begin
   try Visit(Query); finally Seen.Free; end;
   if Result <> '' then Result := 'WITH '+Result+#10;
 end;
-function TCompilerObject.CompileJoins(Context: TCompileContext; Query: IQuery): string;
+function TCompiler.CompileJoins(Context: TCompileContext; Query: IQuery): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -612,7 +571,7 @@ begin
     S := Conditions(Context,C.Query,'where'); if S <> '' then Result := Result+' ON '+S;
   end;
 end;
-function TCompilerObject.CompileOrders(Context: TCompileContext; Query: IQuery): string;
+function TCompiler.CompileOrders(Context: TCompileContext; Query: IQuery): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -624,7 +583,7 @@ begin
   end;
   if Result <> '' then Result := 'ORDER BY '+Result;
 end;
-function TCompilerObject.CompileSelectCore(Context: TCompileContext; Query: IQuery): string;
+function TCompiler.CompileSelectCore(Context: TCompileContext; Query: IQuery): string;
 var C, A: TClause; S, Columns: string;
 begin
   Result := SelectPrefix(Context,Query); Columns := ''; A := Query.GetOne('aggregate',EngineCode);
@@ -653,13 +612,191 @@ begin
   end;
 end;
 
-{$I SqlKata.Compiler.Writes.inc}
-{$I SqlKata.Compiler.Dialects.inc}
+function TCompiler.AggregateQuery(Query: IQuery): IQuery;
+var A, Outer: TClause; Inner: IQuery; S: string;
+begin
+  A := Query.GetOne('aggregate',EngineCode);
+  if A = nil then raise EQueryException.Create('Missing aggregate');
+  Inner := Query.Clone;
+  Inner.ClearComponent('limit').ClearComponent('order').ClearComponent('group');
+  if (Length(A.Columns) = 1) and not Query.IsDistinct then
+  begin Result := Inner; Inner := nil; Exit; end;
+  if Query.IsDistinct then
+  begin
+    Inner.ClearComponent('aggregate').ClearComponent('select').Select(A.Columns);
+    Inner.Method := 'select';
+  end
+  else
+    for S in A.Columns do Inner.WhereNotNull(S);
+  Result := TQuery.Create;
+  Result.&From(Inner,A.Op+'Query');
+  Outer := Result.Add('aggregate',ckAggregate); Outer.Op := A.Op;
+  Outer.Columns := TArray<string>.Create('*');
+end;
 
-function TCompilerObject.CompileLower(const Value: string): string;
+function TCompiler.JoinTarget(Clause: TClause): string;
+var Expr, Alias: string;
+begin
+  SplitAlias(Clause.Name,Expr,Alias);
+  if Alias <> '' then Exit(WrapValue(Alias.Trim(['[',']','"','`'])));
+  if Clause.Kind = ckRaw then Exit(WrapIdentifiers(Clause.Name));
+  Result := WrapValue(Copy(Expr,LastDelimiter('.',Expr)+1,MaxInt));
+end;
+
+function TCompiler.CompileTrue: string;
+begin Result := 'true'; end;
+
+function TCompiler.CompileFalse: string;
+begin Result := 'false'; end;
+
+function TCompiler.CompileRandom(const Seed: TValue): string;
+begin Result := 'RANDOM()'; end;
+
+function TCompiler.SelectPrefix(Context: TCompileContext; Query: IQuery): string;
+begin
+  Result := 'SELECT ';
+  if (Query.GetOne('aggregate', EngineCode) = nil) and Query.IsDistinct then
+    Result := Result+'DISTINCT ';
+end;
+
+function TCompiler.CompileSelect(Context: TCompileContext; Query: IQuery): string;
+begin Result := CompileSelectCore(Context, Query); end;
+
+function TCompiler.CompileLimit(Context: TCompileContext; Query: IQuery): string;
+var L: Integer; O: Int64;
+begin
+  Result := '';
+  L := Query.GetLimit(EngineCode);
+  O := Query.GetOffset(EngineCode);
+  if L > 0 then Result := 'LIMIT '+Parameter(Context,L);
+  if O > 0 then
+  begin
+    if Result <> '' then Result := Result+' ';
+    Result := Result+'OFFSET '+Parameter(Context,O);
+  end;
+end;
+
+function TCompiler.CompileOffsetFetch(Context: TCompileContext; Query: IQuery;
+  const DefaultOrder: string): string;
+var L: Integer; O: Int64;
+begin
+  Result := '';
+  L := Query.GetLimit(EngineCode);
+  O := Query.GetOffset(EngineCode);
+  if (L = 0) and (O = 0) then Exit;
+  if not Query.HasComponent('order',EngineCode) then Result := DefaultOrder+' ';
+  Result := Result+'OFFSET '+Parameter(Context,O)+' ROWS';
+  if L > 0 then Result := Result+' FETCH NEXT '+Parameter(Context,L)+' ROWS ONLY';
+end;
+
+function TCompiler.CheckDatePart(const Part: string): string;
+begin
+  Result := LowerCase(Part);
+  if not TRegEx.IsMatch(Result,'^[a-z_]+$') then
+    raise EQueryException.Create('Unsupported date part: '+Part);
+end;
+
+function TCompiler.DatePart(const Column, Part: string): string;
+begin Result := UpperCase(Part)+'('+Column+')'; end;
+
+function TCompiler.DateCondition(Context: TCompileContext; Clause: TClause): string;
+var Col, Part, Op, V: string;
+begin
+  Col := Wrap(Clause.Name);
+  Part := CheckDatePart(Clause.Extra);
+  Op := CheckOperator(Clause.Op);
+  V := Parameter(Context,Clause.Value);
+  Result := DatePart(Col,Part)+' '+Op+' '+V;
+end;
+
+function TCompiler.CompileInsertRows(Context: TCompileContext; const TableSql,
+  Columns: string; const Inserts: TArray<TClause>): string;
+var I: Integer;
+begin
+  Result := 'INSERT INTO '+TableSql+Columns+' VALUES ';
+  for I := 0 to High(Inserts) do
+  begin
+    if I > 0 then Result := Result+', ';
+    Result := Result+'('+Parameterize(Context,Inserts[I].Values)+')';
+  end;
+end;
+
+function TCompiler.CompileUpdateAssignments(Context: TCompileContext; Clause: TClause): string;
+var J: Integer; Sign: string;
+begin
+  Result := '';
+  if Clause.Kind = ckIncrement then
+  begin
+    if Clause.Value.AsInteger < 0 then Sign := '-' else Sign := '+';
+    Exit(Wrap(Clause.Name)+' = '+Wrap(Clause.Name)+' '+Sign+' '+
+      Parameter(Context,Int64(Abs(Int64(Clause.Value.AsInteger)))));
+  end;
+  for J := 0 to High(Clause.Columns) do
+  begin
+    if J > 0 then Result := Result+', ';
+    Result := Result+Wrap(Clause.Columns[J])+' = '+Parameter(Context,Clause.Values[J]);
+  end;
+end;
+
+function TCompiler.CompileJoinedUpdate(Context: TCompileContext; Query: IQuery;
+  FromClause, UpdateClause: TClause): string;
+var Target, Sets: string;
+begin
+  Target := JoinTarget(FromClause);
+  // SET bindings precede the raw FROM/JOIN bindings in this form.
+  Sets := CompileUpdateAssignments(Context,UpdateClause);
+  Result := 'UPDATE '+Target+' SET '+Sets+' FROM '+Table(Context,FromClause)+CompileJoins(Context,Query);
+end;
+
+function TCompiler.CompileWrite(Context: TCompileContext; Query: IQuery): string;
+var F, C: TClause; Inserts: TArray<TClause>; TableSql, Columns, S: string;
+  HasJoins: Boolean;
+begin
+  F := Query.GetOne('from',EngineCode);
+  if (F = nil) or not (F.Kind in [ckIdentifier,ckRaw]) then
+    raise EQueryException.Create('No valid table set for write');
+  HasJoins := Query.HasComponent('join',EngineCode);
+  if HasJoins and not FSupportsJoinWrites then
+    raise EQueryException.Create(EngineCode+' does not support writes with JOIN clauses');
+  if Query.Method = 'insert' then
+  begin
+    TableSql := Table(Context,F);
+    Inserts := Query.GetComponents('insert',EngineCode);
+    if Length(Inserts) = 0 then raise EQueryException.Create('No insert data');
+    C := Inserts[0];
+    Columns := '';
+    if Length(C.Columns) > 0 then Columns := ' ('+WrapList(C.Columns)+')';
+    if C.Kind = ckQuery then
+      Exit('INSERT INTO '+TableSql+Columns+' '+CompileQuery(Context,C.Query,False));
+    Result := CompileInsertRows(Context,TableSql,Columns,Inserts);
+    if (Length(Inserts) = 1) and C.ReturnId and (FLastId <> '') then
+      Result := Result+';'+FLastId;
+    Exit;
+  end;
+  if Query.Method = 'delete' then
+  begin
+    TableSql := Table(Context,F);
+    if HasJoins then Result := 'DELETE '+JoinTarget(F)+' FROM '+TableSql+CompileJoins(Context,Query)
+    else Result := 'DELETE FROM '+TableSql;
+  end
+  else
+  begin
+    C := Query.GetOne('update',EngineCode);
+    if C = nil then raise EQueryException.Create('No update data');
+    if HasJoins then Result := CompileJoinedUpdate(Context,Query,F,C)
+    else
+    begin
+      TableSql := Table(Context,F);
+      Result := 'UPDATE '+TableSql+' SET '+CompileUpdateAssignments(Context,C);
+    end;
+  end;
+  S := Conditions(Context,Query,'where');
+  if S <> '' then Result := Result+' WHERE '+S;
+end;
+
+function TCompiler.CompileLower(const Value: string): string;
 begin Result := 'LOWER('+Value+')'; end;
-function TCompilerObject.CompileUpper(const Value: string): string;
+function TCompiler.CompileUpper(const Value: string): string;
 begin Result := 'UPPER('+Value+')'; end;
 
 end.
-

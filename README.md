@@ -17,7 +17,7 @@ No package or additional runtime libraries are required.
 ```pascal
 uses
   System.SysUtils, System.Rtti,
-  SqlKata, SqlKata.Compilers;
+  SqlKata, QueryBuilder4Delphi.Compilers;
 ```
 
 Queries, compilers, and results use **reference-counted interfaces**:
@@ -36,7 +36,7 @@ program BooksSql;
 {$APPTYPE CONSOLE}
 
 uses
-  System.SysUtils, SqlKata, SqlKata.Compilers;
+  System.SysUtils, SqlKata, QueryBuilder4Delphi.Compilers;
 
 var
   Q: IQuery;
@@ -200,7 +200,7 @@ explicitly corrected C# bugs.
 
 ## SQL dialects
 
-| Factory (`Create` returns `ICompiler`) | EngineCode | Parameter |
+| Compiler class (`Create` returns `ICompiler`) | EngineCode | Parameter |
 | --- | --- | --- |
 | `TSqlServerCompiler` | `sqlsrv` | `@p0` |
 | `TPostgresCompiler` | `postgres` | `@p0` |
@@ -214,6 +214,26 @@ SQL Server and Oracle use OFFSET/FETCH by default.
 for Oracle. Firebird supports FIRST/SKIP/ROWS.
 As in the C# implementation, write queries with joins are supported only for
 SQL Server and MySQL; the other compilers reject them.
+
+Each dialect has its own class and Pascal unit under `src`:
+
+- [TCompiler](src/QueryBuilder4Delphi.Compilers.Compiler.pas): shared compilation logic.
+- [TSqlServerCompiler](src/QueryBuilder4Delphi.Compilers.SqlServerCompiler.pas).
+- [TPostgresCompiler](src/QueryBuilder4Delphi.Compilers.PostgresCompiler.pas).
+- [TMySqlCompiler](src/QueryBuilder4Delphi.Compilers.MySqlCompiler.pas).
+- [TSqliteCompiler](src/QueryBuilder4Delphi.Compilers.SqliteCompiler.pas).
+- [TOracleCompiler](src/QueryBuilder4Delphi.Compilers.OracleCompiler.pas).
+- [TFirebirdCompiler](src/QueryBuilder4Delphi.Compilers.FirebirdCompiler.pas).
+
+The dialect classes inherit from `TCompiler` and override pagination, date
+expressions, and other dialect-specific behavior. Compiler implementations
+do not use include files. `QueryBuilder4Delphi.Compilers` provides a facade
+for importing all compiler types. Alternatively, import
+`QueryBuilder4Delphi.Compilers.Compiler` and the required dialect unit directly.
+Use the `QueryBuilder4Delphi.Compilers` prefix in compiler `uses` clauses.
+Calls such as `TSqlServerCompiler.Create` remain the same.
+`Create` returns `ICompiler` and preserves automatic lifetime
+management. See [docs/API.md](docs/API.md) for subclassing details.
 
 ## Running DUnitX
 
