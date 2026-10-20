@@ -68,9 +68,6 @@ begin Result := TValue.From<TVariable>(Variable); end;
 constructor ColumnAttribute.Create(const AName: string);
 begin inherited Create; Name := AName; end;
 
-destructor TClause.Destroy;
-begin Query.Free; inherited; end;
-
 function TClause.Clone: TClause;
 begin
   Result := TClause.Create;
@@ -84,7 +81,7 @@ begin
   except Result.Free; raise; end;
 end;
 
-constructor TQuery.Create(const Table, Comment: string);
+constructor TQueryObject.Create(const Table, Comment: string);
 begin
   inherited Create;
   FClauses := TObjectList<TClause>.Create(True);
@@ -94,42 +91,40 @@ begin
   if Table <> '' then &From(Table);
 end;
 
-destructor TQuery.Destroy;
+destructor TQueryObject.Destroy;
 begin FVariables.Free; FClauses.Free; inherited; end;
 
-function TQuery.Clone: TQuery;
+function TQueryObject.Clone: IQuery;
 var Pair: TPair<string,TValue>;
 begin
   Result := NewQuery;
-  try
-    Result.CopyClausesFrom(Self); Result.EngineScope := EngineScope;
-    Result.QueryAlias := QueryAlias; Result.Method := Method;
-    Result.JoinType := JoinType; Result.IsDistinct := IsDistinct;
-    Result.FComment := FComment;
-    for Pair in FVariables do Result.FVariables.Add(Pair.Key, Pair.Value);
-  except Result.Free; raise; end;
+  Result.CopyClausesFrom(Self); Result.EngineScope := EngineScope;
+  Result.QueryAlias := QueryAlias; Result.Method := Method;
+  Result.JoinType := JoinType; Result.IsDistinct := IsDistinct;
+  Result.Comment(FComment);
+  for Pair in FVariables do Result.Variables.Add(Pair.Key, Pair.Value);
 end;
 
-function TQuery.CopyClausesFrom(Source: TQuery): TQuery;
+function TQueryObject.CopyClausesFrom(Source: IQuery): IQuery;
 var C: TClause;
 begin
-  if Source = Self then Exit(Self);
+  if Source = (Self as IQuery) then Exit(Self);
   FClauses.Clear;
   for C in Source.Clauses do FClauses.Add(C.Clone);
   Result := Self;
 end;
 
-function TQuery.NewQuery: TQuery;
+function TQueryObject.NewQuery: IQuery;
 begin Result := TQuery.Create; end;
 
-function TQuery.Add(const Component: string; Kind: TClauseKind): TClause;
+function TQueryObject.Add(const Component: string; Kind: TClauseKind): TClause;
 begin
   Result := TClause.Create; Result.Component := Component;
   Result.Kind := Kind; Result.Engine := EngineScope;
   FClauses.Add(Result);
 end;
 
-procedure TQuery.Remove(const Component, Engine: string);
+procedure TQueryObject.Remove(const Component, Engine: string);
 var I: Integer;
 begin
   for I := FClauses.Count-1 downto 0 do
@@ -137,7 +132,7 @@ begin
       FClauses.Delete(I);
 end;
 
-function TQuery.GetOne(const Component, Engine: string): TClause;
+function TQueryObject.GetOne(const Component, Engine: string): TClause;
 var C: TClause;
 begin
   Result := nil;
@@ -149,7 +144,7 @@ begin
     end;
 end;
 
-function TQuery.GetComponents(const Component, Engine: string): TArray<TClause>;
+function TQueryObject.GetComponents(const Component, Engine: string): TArray<TClause>;
 var C: TClause; List: TList<TClause>;
 begin
   List := TList<TClause>.Create;
@@ -160,10 +155,10 @@ begin
   finally List.Free; end;
 end;
 
-function TQuery.HasComponent(const Component, Engine: string): Boolean;
+function TQueryObject.HasComponent(const Component, Engine: string): Boolean;
 begin Result := Length(GetComponents(Component, Engine)) > 0; end;
 
-function TQuery.ClearComponent(const Component, Engine: string): TQuery;
+function TQueryObject.ClearComponent(const Component, Engine: string): IQuery;
 var I: Integer; E: string;
 begin
   E := Engine; if E = '' then E := EngineScope;
@@ -173,93 +168,91 @@ begin
   Result := Self;
 end;
 
-function TQuery.HasConditions(const Engine: string): Boolean;
+function TQueryObject.HasConditions(const Engine: string): Boolean;
 begin Result := HasComponent('where', Engine); end;
 
-function TQuery.Condition(const Component: string; IsOr, IsNot: Boolean; Kind: TClauseKind): TClause;
+function TQueryObject.Condition(const Component: string; IsOr, IsNot: Boolean; Kind: TClauseKind): TClause;
 begin
   Result := Add(Component, Kind); Result.IsOr := IsOr or FOrFlag;
   Result.IsNot := IsNot or FNot; FOrFlag := False; FNot := False;
 end;
 
-function TQuery.CallbackQuery(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.CallbackQuery(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   if not Assigned(Callback) then raise EArgumentNilException.Create('Callback');
   Q := NewQuery;
   Q.EngineScope := EngineScope;
-  try
-    if Callback(Q) <> Q then raise EQueryException.Create('Callback must return its supplied query');
-  except Q.Free; raise; end;
+  if Callback(Q) <> Q then raise EQueryException.Create('Callback must return its supplied query');
   Result := Q;
 end;
 
-function TQuery.SetEngineScope(const Engine: string): TQuery;
+function TQueryObject.SetEngineScope(const Engine: string): IQuery;
 begin EngineScope := Engine; Result := Self; end;
-function TQuery.&Or: TQuery;
+function TQueryObject.&Or: IQuery;
 begin FOrFlag := True; Result := Self; end;
-function TQuery.&And: TQuery;
+function TQueryObject.&And: IQuery;
 begin FOrFlag := False; Result := Self; end;
-function TQuery.&Not(Flag: Boolean): TQuery;
+function TQueryObject.&Not(Flag: Boolean): IQuery;
 begin FNot := Flag; Result := Self; end;
-function TQuery.&As(const Alias: string): TQuery;
+function TQueryObject.&As(const Alias: string): IQuery;
 begin QueryAlias := Alias; Result := Self; end;
-function TQuery.Comment(const Text: string): TQuery;
+function TQueryObject.Comment(const Text: string): IQuery;
 begin FComment := Text; Result := Self; end;
-function TQuery.GetComment: string;
+function TQueryObject.GetComment: string;
 begin Result := FComment; end;
 
-function TQuery.&For(const Engine: string; const Callback: TQueryCallback): TQuery;
+function TQueryObject.&For(const Engine: string; const Callback: TQueryCallback): IQuery;
 var Previous: string;
 begin
   Previous := EngineScope; EngineScope := Engine;
   try
     Result := Callback(Self);
-    if Result <> Self then raise EQueryException.Create('Callback must return its supplied query');
+    if Result <> (Self as IQuery) then raise EQueryException.Create('Callback must return its supplied query');
   finally EngineScope := Previous; end;
 end;
 
-function TQuery.When(Condition: Boolean; const WhenTrue, WhenFalse: TQueryCallback): TQuery;
+function TQueryObject.When(Condition: Boolean; const WhenTrue, WhenFalse: TQueryCallback): IQuery;
 begin
   Result := Self;
   if Condition and Assigned(WhenTrue) then Result := WhenTrue(Self)
   else if not Condition and Assigned(WhenFalse) then Result := WhenFalse(Self);
-  if Result <> Self then raise EQueryException.Create('Callback must return its supplied query');
+  if Result <> (Self as IQuery) then raise EQueryException.Create('Callback must return its supplied query');
 end;
-function TQuery.WhenNot(Condition: Boolean; const Callback: TQueryCallback): TQuery;
+function TQueryObject.WhenNot(Condition: Boolean; const Callback: TQueryCallback): IQuery;
 begin Result := When(not Condition, Callback); end;
-function TQuery.Define(const Name: string; const Value: TValue): TQuery;
+function TQueryObject.Define(const Name: string; const Value: TValue): IQuery;
 begin FVariables.Add(Name, Value); Result := Self; end;
-function TQuery.FindVariable(const Name: string): TValue;
+function TQueryObject.FindVariable(const Name: string): TValue;
 begin
   if not FVariables.TryGetValue(Name, Result) then raise EQueryException.CreateFmt('Variable ''%s'' not found', [Name]);
 end;
 
-function TQuery.&From(const Table: string): TQuery;
+function TQueryObject.&From(const Table: string): IQuery;
 begin Remove('from', EngineScope); Add('from', ckIdentifier).Name := Table; Result := Self; end;
-function TQuery.&From(Query: TQuery; const Alias: string): TQuery;
+function TQueryObject.&From(Query: IQuery; const Alias: string): IQuery;
 var C: TClause;
 begin
   Remove('from', EngineScope); C := Add('from', ckQuery); C.Query := Query.Clone;
   if Alias <> '' then C.Query.&As(Alias); Result := Self;
 end;
-function TQuery.&From(const Callback: TQueryCallback; const Alias: string): TQuery;
-var Q: TQuery;
-begin Q := CallbackQuery(Callback); try Result := &From(Q, Alias); finally Q.Free; end; end;
-function TQuery.Select(Query: TQuery; const Alias: string): TQuery;
+function TQueryObject.&From(const Callback: TQueryCallback; const Alias: string): IQuery;
+var Q: IQuery;
+begin Q := CallbackQuery(Callback); Result := &From(Q, Alias); end;
+function TQueryObject.Select(Query: IQuery; const Alias: string): IQuery;
 var C: TClause;
 begin C := Add('select', ckQuery); C.Query := Query.Clone.&As(Alias); Method := 'select'; Result := Self; end;
-function TQuery.Select(const Callback: TQueryCallback; const Alias: string): TQuery;
-var Q: TQuery;
-begin Q := CallbackQuery(Callback); try Result := Select(Q, Alias); finally Q.Free; end; end;
-function TQuery.SelectAggregate(const Aggregate, Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.Select(const Callback: TQueryCallback; const Alias: string): IQuery;
+var Q: IQuery;
+begin Q := CallbackQuery(Callback); Result := Select(Q, Alias); end;
+function TQueryObject.SelectAggregate(const Aggregate, Column: string; const Filter: TQueryCallback): IQuery;
 var C: TClause;
 begin
   C := Add('select', ckAggregate); C.Op := Aggregate; C.Name := Column;
   if Assigned(Filter) then C.Query := CallbackQuery(Filter);
   Method := 'select'; Result := Self;
 end;
-function TQuery.SelectAggregate(const Aggregate, Column: string; Filter: TQuery): TQuery;
+function TQueryObject.SelectAggregate(const Aggregate, Column: string; Filter: IQuery): IQuery;
 var C: TClause;
 begin
   C := Add('select',ckAggregate); C.Op := Aggregate; C.Name := Column;
@@ -267,22 +260,22 @@ begin
   Method := 'select'; Result := Self;
 end;
 
-function TQuery.&With(const Alias: string; Query: TQuery): TQuery;
+function TQueryObject.&With(const Alias: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   if Trim(Alias) = '' then raise EQueryException.Create('No alias found for CTE');
   C := Add('cte', ckQuery); C.Alias := Trim(Alias); C.Query := Query.Clone;
   C.Query.QueryAlias := ''; Result := Self;
 end;
-function TQuery.&With(Query: TQuery): TQuery;
+function TQueryObject.&With(Query: IQuery): IQuery;
 begin Result := &With(Query.QueryAlias, Query); end;
-function TQuery.&With(const Alias: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
-begin Q := CallbackQuery(Callback); try Result := &With(Alias, Q); finally Q.Free; end; end;
-function TQuery.&With(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
-begin Q := CallbackQuery(Callback); try Result := &With(Q); finally Q.Free; end; end;
-function TQuery.&With(const Alias: string; const Columns: array of string; const Rows: TRows): TQuery;
+function TQueryObject.&With(const Alias: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
+begin Q := CallbackQuery(Callback); Result := &With(Alias, Q); end;
+function TQueryObject.&With(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
+begin Q := CallbackQuery(Callback); Result := &With(Q); end;
+function TQueryObject.&With(const Alias: string; const Columns: array of string; const Rows: TRows): IQuery;
 var C: TClause; Row: TValues; V: TValue; List: TList<TValue>;
 begin
   if (Length(Columns) = 0) or (Length(Rows) = 0) then raise EQueryException.Create('Columns and rows cannot be empty');
@@ -293,107 +286,105 @@ begin
   finally List.Free; end;
   Result := Self;
 end;
-function TQuery.WithRaw(const Alias, Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.WithRaw(const Alias, Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin C := Add('cte', ckRaw); C.Alias := Alias; C.Name := Sql; C.Values := CopyValues(Bindings); Result := Self; end;
-function TQuery.WithRaw(const Alias, Sql: string): TQuery;
+function TQueryObject.WithRaw(const Alias, Sql: string): IQuery;
 begin Result := WithRaw(Alias, Sql, []); end;
 
-function TQuery.Join(const Table, First, Second, Op, JoinType: string): TQuery;
+function TQueryObject.Join(const Table, First, Second, Op, JoinType: string): IQuery;
 var C: TClause;
 begin
   C := Add('join', ckJoin); C.Query := NewQuery;
   C.Query.&From(Table).WhereColumns(First, Op, Second).AsType(JoinType); Result := Self;
 end;
-function TQuery.Join(const Table: string; const Callback: TQueryCallback; const JoinType: string): TQuery;
-var C: TClause; Q, Group: TQuery;
+function TQueryObject.Join(const Table: string; const Callback: TQueryCallback; const JoinType: string): IQuery;
+var C: TClause; Q, Group: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try
-    Group := Q.Clone; Q.ClearComponent('where');
-    C := Q.Add('where', ckNested); C.Query := Group;
-    Q.&From(Table).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
-  except Q.Free; raise; end;
+  Group := Q.Clone; Q.ClearComponent('where');
+  C := Q.Add('where', ckNested); C.Query := Group;
+  Q.&From(Table).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
+
   Result := Self;
 end;
-function TQuery.Join(Query: TQuery; const Callback: TQueryCallback; const JoinType: string): TQuery;
-var C: TClause; Q, Group: TQuery;
+function TQueryObject.Join(Query: IQuery; const Callback: TQueryCallback; const JoinType: string): IQuery;
+var C: TClause; Q, Group: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try
-    Group := Q.Clone; Q.ClearComponent('where');
-    C := Q.Add('where', ckNested); C.Query := Group;
-    Q.&From(Query).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
-  except Q.Free; raise; end;
+  Group := Q.Clone; Q.ClearComponent('where');
+  C := Q.Add('where', ckNested); C.Query := Group;
+  Q.&From(Query).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
+
   Result := Self;
 end;
-function TQuery.LeftJoin(const Table, First, Second, Op: string): TQuery;
+function TQueryObject.LeftJoin(const Table, First, Second, Op: string): IQuery;
 begin Result := Join(Table, First, Second, Op, 'left join'); end;
-function TQuery.LeftJoin(const Table: string; const Callback: TQueryCallback): TQuery;
+function TQueryObject.LeftJoin(const Table: string; const Callback: TQueryCallback): IQuery;
 begin Result := Join(Table, Callback, 'left join'); end;
-function TQuery.LeftJoin(Query: TQuery; const Callback: TQueryCallback): TQuery;
+function TQueryObject.LeftJoin(Query: IQuery; const Callback: TQueryCallback): IQuery;
 begin Result := Join(Query, Callback, 'left join'); end;
-function TQuery.RightJoin(const Table, First, Second, Op: string): TQuery;
+function TQueryObject.RightJoin(const Table, First, Second, Op: string): IQuery;
 begin Result := Join(Table, First, Second, Op, 'right join'); end;
-function TQuery.RightJoin(const Table: string; const Callback: TQueryCallback): TQuery;
+function TQueryObject.RightJoin(const Table: string; const Callback: TQueryCallback): IQuery;
 begin Result := Join(Table, Callback, 'right join'); end;
-function TQuery.RightJoin(Query: TQuery; const Callback: TQueryCallback): TQuery;
+function TQueryObject.RightJoin(Query: IQuery; const Callback: TQueryCallback): IQuery;
 begin Result := Join(Query, Callback, 'right join'); end;
-function TQuery.CrossJoin(const Table: string): TQuery;
+function TQueryObject.CrossJoin(const Table: string): IQuery;
 var C: TClause;
 begin C := Add('join', ckJoin); C.Query := NewQuery.&From(Table).AsCross; Result := Self; end;
-function TQuery.On(const First, Second, Op: string): TQuery;
+function TQueryObject.On(const First, Second, Op: string): IQuery;
 begin Result := WhereColumns(First, Op, Second); end;
-function TQuery.OrOn(const First, Second, Op: string): TQuery;
+function TQueryObject.OrOn(const First, Second, Op: string): IQuery;
 begin Result := OrWhereColumns(First, Op, Second); end;
-function TQuery.JoinWith(const Table: string): TQuery;
+function TQueryObject.JoinWith(const Table: string): IQuery;
 begin Result := &From(Table); end;
-function TQuery.JoinWith(Query: TQuery; const Alias: string): TQuery;
+function TQueryObject.JoinWith(Query: IQuery; const Alias: string): IQuery;
 begin Result := &From(Query, Alias); end;
-function TQuery.JoinWith(const Callback: TQueryCallback; const Alias: string): TQuery;
+function TQueryObject.JoinWith(const Callback: TQueryCallback; const Alias: string): IQuery;
 begin Result := &From(Callback, Alias); end;
-function TQuery.JoinWithRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.JoinWithRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 begin Result := FromRaw(Sql, Bindings); end;
-function TQuery.AsType(const Value: string): TQuery;
+function TQueryObject.AsType(const Value: string): IQuery;
 begin JoinType := UpperCase(Value); Result := Self; end;
-function TQuery.AsInner: TQuery;
+function TQueryObject.AsInner: IQuery;
 begin Result := AsType('inner join'); end;
-function TQuery.AsOuter: TQuery;
+function TQueryObject.AsOuter: IQuery;
 begin Result := AsType('outer join'); end;
-function TQuery.AsLeft: TQuery;
+function TQueryObject.AsLeft: IQuery;
 begin Result := AsType('left join'); end;
-function TQuery.AsRight: TQuery;
+function TQueryObject.AsRight: IQuery;
 begin Result := AsType('right join'); end;
-function TQuery.AsCross: TQuery;
+function TQueryObject.AsCross: IQuery;
 begin Result := AsType('cross join'); end;
 
-function TQuery.Limit(Value: Integer): TQuery;
+function TQueryObject.Limit(Value: Integer): IQuery;
 begin Remove('limit', EngineScope); Add('limit', ckLimit).Value := Value; Result := Self; end;
-function TQuery.Offset(Value: Int64): TQuery;
+function TQueryObject.Offset(Value: Int64): IQuery;
 begin Remove('offset', EngineScope); Add('offset', ckOffset).Value := Value; Result := Self; end;
-function TQuery.Take(Value: Integer): TQuery;
+function TQueryObject.Take(Value: Integer): IQuery;
 begin Result := Limit(Value); end;
-function TQuery.Skip(Value: Int64): TQuery;
+function TQueryObject.Skip(Value: Int64): IQuery;
 begin Result := Offset(Value); end;
-function TQuery.ForPage(Page, PerPage: Integer): TQuery;
+function TQueryObject.ForPage(Page, PerPage: Integer): IQuery;
 begin Result := Offset(Int64(Page-1)*PerPage).Limit(PerPage); end;
-function TQuery.GetLimit(const Engine: string): Integer;
+function TQueryObject.GetLimit(const Engine: string): Integer;
 var C: TClause;
 begin C := GetOne('limit', Engine); Result := 0; if C <> nil then Result := C.Value.AsInteger; if Result < 0 then Result := 0; end;
-function TQuery.GetOffset(const Engine: string): Int64;
+function TQueryObject.GetOffset(const Engine: string): Int64;
 var C: TClause;
 begin C := GetOne('offset', Engine); Result := 0; if C <> nil then Result := C.Value.AsInt64; if Result < 0 then Result := 0; end;
-function TQuery.HasLimit(const Engine: string): Boolean;
+function TQueryObject.HasLimit(const Engine: string): Boolean;
 begin Result := GetLimit(Engine) > 0; end;
-function TQuery.HasOffset(const Engine: string): Boolean;
+function TQueryObject.HasOffset(const Engine: string): Boolean;
 begin Result := GetOffset(Engine) > 0; end;
-function TQuery.Distinct: TQuery;
+function TQueryObject.Distinct: IQuery;
 begin IsDistinct := True; Result := Self; end;
-function TQuery.OrderByRandom: TQuery;
+function TQueryObject.OrderByRandom: IQuery;
 begin Add('order', ckRandom); Result := Self; end;
-function TQuery.OrderByRandom(Seed: Integer): TQuery;
+function TQueryObject.OrderByRandom(Seed: Integer): IQuery;
 begin Add('order', ckRandom).Value := Seed; Result := Self; end;
-function TQuery.Combine(const Operation: string; All: Boolean; Query: TQuery): TQuery;
+function TQueryObject.Combine(const Operation: string; All: Boolean; Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Method <> 'select') or (Query.Method <> 'select') then raise EQueryException.Create('Only select queries can be combined');

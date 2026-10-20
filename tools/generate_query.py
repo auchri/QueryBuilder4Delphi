@@ -10,11 +10,11 @@ decl, impl = [], []
 def method(name, params, body, locals='', overload=False):
     if name == 'Except': name = '&Except'
     body = body.replace('Result := Except(', 'Result := &Except(')
-    decl.append(f'    function {name}({params}): TQuery;'+(' overload;' if overload else ''))
+    decl.append(f'    function {name}({params}): IQuery;'+(' overload;' if overload else ''))
     # default arguments belong only in the interface
     import re
     sig = re.sub(r' = (?:nil|True|False|\d+|\x27[^\x27]*\x27)', '', params)
-    impl.append(f'function TQuery.{name}({sig}): TQuery;\n{locals}\nbegin\n{body}\nend;\n')
+    impl.append(f'function TQueryObject.{name}({sig}): IQuery;\n{locals}\nbegin\n{body}\nend;\n')
 
 for component, root in [('where','Where'), ('having','Having')]:
     for prefix, flagor in [('',False),('Or',True)]:
@@ -26,20 +26,20 @@ for component, root in [('where','Where'), ('having','Having')]:
                 method(name,params,before+f"  C := Condition({flags}, {kind});\n{assignments}\n  Result := Self;",'var C: TClause;',overload)
             cond(base,'const Column, Op: string; const Value: TValue','ckBasic','  C.Name := Column; C.Op := Op; C.Value := Value;',True)
             method(base,'const Column: string; const Value: TValue',f"  Result := {base}(Column, '=', Value);",overload=True)
-            cond(base,'Group: TQuery','ckNested','  C.Query := Group.Clone;',True)
-            method(base,'const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  try Result := {base}(Q); finally Q.Free; end;','var Q: TQuery;',True)
-            cond(base,'const Column, Op: string; Query: TQuery','ckQuery','  C.Name := Column; C.Op := Op; C.Query := Query.Clone;',True)
-            method(base,'const Column, Op: string; const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  try Result := {base}(Column, Op, Q); finally Q.Free; end;','var Q: TQuery;',True)
+            cond(base,'Group: IQuery','ckNested','  C.Query := Group.Clone;',True)
+            method(base,'const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  Result := {base}(Q);','var Q: IQuery;',True)
+            cond(base,'const Column, Op: string; Query: IQuery','ckQuery','  C.Name := Column; C.Op := Op; C.Query := Query.Clone;',True)
+            method(base,'const Column, Op: string; const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  Result := {base}(Column, Op, Q);','var Q: IQuery;',True)
             cond(base+'Null','const Column: string','ckNull','  C.Name := Column;')
             for suffix,val in [('True','True'),('False','False')]:
                 if not neg:
                     cond(base+suffix,'const Column: string','ckBoolean',f'  C.Name := Column; C.Value := {val};')
             cond(base+'Between','const Column: string; const Lower, Higher: TValue','ckBetween','  C.Name := Column; C.Value := Lower; C.Value2 := Higher;')
             cond(base+'In','const Column: string; const Values: array of TValue','ckIn','  C.Name := Column; C.Values := DistinctValues(Values);',True)
-            cond(base+'In','const Column: string; Query: TQuery','ckInQuery','  C.Name := Column; C.Query := Query.Clone;',True)
-            method(base+'In','const Column: string; const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  try Result := {base}In(Column, Q); finally Q.Free; end;','var Q: TQuery;',True)
-            cond(base+'Exists','Query: TQuery','ckExists','  C.Query := Query.Clone;',True)
-            method(base+'Exists','const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  try Result := {base}Exists(Q); finally Q.Free; end;','var Q: TQuery;',True)
+            cond(base+'In','const Column: string; Query: IQuery','ckInQuery','  C.Name := Column; C.Query := Query.Clone;',True)
+            method(base+'In','const Column: string; const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  Result := {base}In(Column, Q);','var Q: IQuery;',True)
+            cond(base+'Exists','Query: IQuery','ckExists','  C.Query := Query.Clone;',True)
+            method(base+'Exists','const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  Result := {base}Exists(Q);','var Q: IQuery;',True)
             for suffix,op in [('Like','like'),('Starts','starts'),('Ends','ends'),('Contains','contains')]:
                 cond(base+suffix,"const Column: string; const Value: TValue; const EscapeCharacter: string = ''",'ckString',f"  C.Name := Column; C.Value := Value; C.Op := '{op}'; C.Extra := EscapeCharacter;")
             for suffix,part in [('Date','date'),('Time','time')]:
@@ -54,8 +54,8 @@ for component, root in [('where','Where'), ('having','Having')]:
             method(prefix+root+suffix,params,f'  C := Condition({flags}, {kind});\n{assignments}\n  Result := Self;','var C: TClause;',suffix=='Raw')
             if suffix=='Raw':
                 method(prefix+root+suffix,'const Sql: string',f'  Result := {prefix}{root}Raw(Sql, []);',overload=True)
-        method(prefix+root+'Sub','Query: TQuery; const Op: string; const Value: TValue',f'  C := Condition({flags}, ckSubQuery);\n  C.Query := Query.Clone; C.Op := Op; C.Value := Value;\n  Result := Self;','var C: TClause;',True)
-        method(prefix+root+'Sub','Query: TQuery; const Value: TValue',f"  Result := {prefix}{root}Sub(Query, '=', Value);",overload=True)
+        method(prefix+root+'Sub','Query: IQuery; const Op: string; const Value: TValue',f'  C := Condition({flags}, ckSubQuery);\n  C.Query := Query.Clone; C.Op := Op; C.Value := Value;\n  Result := Self;','var C: TClause;',True)
+        method(prefix+root+'Sub','Query: IQuery; const Value: TValue',f"  Result := {prefix}{root}Sub(Query, '=', Value);",overload=True)
 
 for name,component in [('Select','select'),('GroupBy','group'),('OrderBy','order'),('OrderByDesc','order')]:
     method(name,'const Columns: array of string',f"  for S in Columns do\n    for E in ExpandExpression(S) do\n    begin\n      C := Add('{component}', ckIdentifier); C.Name := E; C.IsNot := {str(name=='OrderByDesc')};\n    end;\n"+("  Method := 'select';\n" if name=='Select' else '')+'  Result := Self;','var S, E: string; C: TClause;',True)
@@ -74,9 +74,9 @@ for name,agg in [('AsCount','count'),('AsSum','sum'),('AsAvg','avg'),('AsAverage
 for name,agg in [('SelectSum','sum'),('SelectCount','count'),('SelectAvg','avg'),('SelectMin','min'),('SelectMax','max')]:
     method(name,'const Column: string; const Filter: TQueryCallback = nil',f"  Result := SelectAggregate('{agg}', Column, Filter);")
 for name in ['Union','Except','Intersect']:
-    method(name,'Query: TQuery; All: Boolean = False',f"  Result := Combine('{name.lower()}', All, Query);",overload=True)
-    method(name,'const Callback: TQueryCallback; All: Boolean = False',f'  Q := CallbackQuery(Callback);\n  try Result := {name}(Q, All); finally Q.Free; end;','var Q: TQuery;',True)
-    method(name+'All','Query: TQuery',f'  Result := {name}(Query, True);',overload=True)
+    method(name,'Query: IQuery; All: Boolean = False',f"  Result := Combine('{name.lower()}', All, Query);",overload=True)
+    method(name,'const Callback: TQueryCallback; All: Boolean = False',f'  Q := CallbackQuery(Callback);\n  Result := {name}(Q, All);','var Q: IQuery;',True)
+    method(name+'All','Query: IQuery',f'  Result := {name}(Query, True);',overload=True)
     method(name+'All','const Callback: TQueryCallback',f'  Result := {name}(Callback, True);',overload=True)
 for name,engine in [('ForSqlServer','sqlsrv'),('ForPostgreSql','postgres'),('ForMySql','mysql'),('ForSqlite','sqlite'),('ForOracle','oracle'),('ForFirebird','firebird')]:
     method(name,'const Callback: TQueryCallback',f"  Result := &For('{engine}', Callback);")

@@ -11,12 +11,39 @@ type
     PostgreSql = 'postgres'; Sqlite = 'sqlite'; Oracle = 'oracle'; Firebird = 'firebird';
   end;
 
-  TSqlResult = class
+  ISqlResult = interface
+    ['{451A0775-C8EC-455D-B66A-7480EF77C28C}']
+    function GetRawSql: string;
+    procedure SetRawSql(const Value: string);
+    function GetSql: string;
+    procedure SetSql(const Value: string);
+    function GetBindings: TList<TValue>;
+    function GetNamedBindings: TDictionary<string,TValue>;
+    function GetQuery: IQuery;
+    procedure SetQuery(const Value: IQuery);
+    function ToString: string;
+    property RawSql: string read GetRawSql write SetRawSql;
+    property Sql: string read GetSql write SetSql;
+    property Bindings: TList<TValue> read GetBindings;
+    property NamedBindings: TDictionary<string,TValue> read GetNamedBindings;
+    property Query: IQuery read GetQuery write SetQuery;
+  end;
+
+  TSqlResult = class(TInterfacedObject, ISqlResult)
+  public
+    function GetRawSql: string;
+    procedure SetRawSql(const Value: string);
+    function GetSql: string;
+    procedure SetSql(const Value: string);
+    function GetBindings: TList<TValue>;
+    function GetNamedBindings: TDictionary<string,TValue>;
+    function GetQuery: IQuery;
+    procedure SetQuery(const Value: IQuery);
   public
     RawSql, Sql: string;
     Bindings: TList<TValue>;
     NamedBindings: TDictionary<string,TValue>;
-    Query: TQuery; // borrowed; never freed by the result
+    Query: IQuery; // retained by the result
     constructor Create;
     destructor Destroy; override;
     function ToString: string; override;
@@ -25,13 +52,40 @@ type
   TCompileContext = class
   public
     Bindings: TList<TValue>;
-    Queries: TList<TQuery>;
+    Queries: TList<IQuery>;
     constructor Create;
     destructor Destroy; override;
     function FindVariable(const Name: string): TValue;
   end;
 
-  TCompiler = class
+  ICompiler = interface
+    ['{B86643F2-4FE8-465C-BD67-8F8D635EF4CD}']
+    function GetEngineCode: string;
+    function GetSupportsFilterClause: Boolean;
+    procedure SetSupportsFilterClause(const Value: Boolean);
+    function GetOmitSelectInsideExists: Boolean;
+    procedure SetOmitSelectInsideExists(const Value: Boolean);
+    function GetUseLegacyPagination: Boolean;
+    procedure SetUseLegacyPagination(const Value: Boolean);
+    function Compile(Query: IQuery): ISqlResult; overload;
+    function Compile(const Queries: array of IQuery): ISqlResult; overload;
+    function Wrap(const Value: string): string;
+    function WrapValue(const Value: string): string;
+    function WrapIdentifiers(const Value: string): string;
+    procedure SplitAlias(const Value: string; out Expression, Alias: string);
+    function Whitelist(const Operators: array of string): ICompiler;
+    function CompileTrue: string;
+    function CompileFalse: string;
+    function CompileRandom(const Seed: TValue): string;
+    function CompileLower(const Value: string): string;
+    function CompileUpper(const Value: string): string;
+    property EngineCode: string read GetEngineCode;
+    property SupportsFilterClause: Boolean read GetSupportsFilterClause write SetSupportsFilterClause;
+    property OmitSelectInsideExists: Boolean read GetOmitSelectInsideExists write SetOmitSelectInsideExists;
+    property UseLegacyPagination: Boolean read GetUseLegacyPagination write SetUseLegacyPagination;
+  end;
+
+  TCompilerObject = class(TInterfacedObject, ICompiler)
   protected
     FEngineCode, FOpening, FClosing, FParameterPrefix, FLastId, FDummyTable: string;
     FColumnAs, FTableAs: string;
@@ -43,32 +97,40 @@ type
     function Resolve(Context: TCompileContext; const Value: TValue): TValue;
     function Column(Context: TCompileContext; Clause: TClause): string; virtual;
     function Table(Context: TCompileContext; Clause: TClause): string; virtual;
-    function Conditions(Context: TCompileContext; Query: TQuery; const Component: string): string;
+    function Conditions(Context: TCompileContext; Query: IQuery; const Component: string): string;
     function Condition(Context: TCompileContext; Clause: TClause): string; virtual;
     function DateCondition(Context: TCompileContext; Clause: TClause): string; virtual;
-    function CompileQuery(Context: TCompileContext; Query: TQuery; WithCtes: Boolean = True): string;
-    function CompileSelect(Context: TCompileContext; Query: TQuery): string; virtual;
-    function CompileSelectCore(Context: TCompileContext; Query: TQuery): string;
-    function CompileWrite(Context: TCompileContext; Query: TQuery): string; virtual;
-    function CompileCtes(Context: TCompileContext; Query: TQuery): string;
-    function CompileJoins(Context: TCompileContext; Query: TQuery): string;
-    function CompileOrders(Context: TCompileContext; Query: TQuery): string;
-    function SelectPrefix(Context: TCompileContext; Query: TQuery): string; virtual;
-    function CompileLimit(Context: TCompileContext; Query: TQuery): string; virtual;
-    function AggregateQuery(Query: TQuery): TQuery;
+    function CompileQuery(Context: TCompileContext; Query: IQuery; WithCtes: Boolean = True): string;
+    function CompileSelect(Context: TCompileContext; Query: IQuery): string; virtual;
+    function CompileSelectCore(Context: TCompileContext; Query: IQuery): string;
+    function CompileWrite(Context: TCompileContext; Query: IQuery): string; virtual;
+    function CompileCtes(Context: TCompileContext; Query: IQuery): string;
+    function CompileJoins(Context: TCompileContext; Query: IQuery): string;
+    function CompileOrders(Context: TCompileContext; Query: IQuery): string;
+    function SelectPrefix(Context: TCompileContext; Query: IQuery): string; virtual;
+    function CompileLimit(Context: TCompileContext; Query: IQuery): string; virtual;
+    function AggregateQuery(Query: IQuery): IQuery;
     function WrapList(const Values: array of string): string;
     function JoinTarget(Clause: TClause): string;
+  public
+    function GetEngineCode: string;
+    function GetSupportsFilterClause: Boolean;
+    procedure SetSupportsFilterClause(const Value: Boolean);
+    function GetOmitSelectInsideExists: Boolean;
+    procedure SetOmitSelectInsideExists(const Value: Boolean);
+    function GetUseLegacyPagination: Boolean;
+    procedure SetUseLegacyPagination(const Value: Boolean);
   public
     SupportsFilterClause, OmitSelectInsideExists, UseLegacyPagination: Boolean;
     constructor Create; virtual;
     destructor Destroy; override;
-    function Compile(Query: TQuery): TSqlResult; overload; virtual;
-    function Compile(const Queries: array of TQuery): TSqlResult; overload; virtual;
+    function Compile(Query: IQuery): ISqlResult; overload; virtual;
+    function Compile(const Queries: array of IQuery): ISqlResult; overload; virtual;
     function Wrap(const Value: string): string; virtual;
     function WrapValue(const Value: string): string; virtual;
     function WrapIdentifiers(const Value: string): string; virtual;
     procedure SplitAlias(const Value: string; out Expression, Alias: string);
-    function Whitelist(const Operators: array of string): TCompiler;
+    function Whitelist(const Operators: array of string): ICompiler;
     function CompileTrue: string; virtual;
     function CompileFalse: string; virtual;
     function CompileRandom(const Seed: TValue): string; virtual;
@@ -77,22 +139,89 @@ type
     property EngineCode: string read FEngineCode;
   end;
 
-  TSqlServerCompiler = class(TCompiler)
+  TSqlServerCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
-  TPostgresCompiler = class(TCompiler)
+  TPostgresCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
-  TMySqlCompiler = class(TCompiler)
+  TMySqlCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
-  TSqliteCompiler = class(TCompiler)
+  TSqliteCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
-  TOracleCompiler = class(TCompiler)
+  TOracleCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
-  TFirebirdCompiler = class(TCompiler)
+  TFirebirdCompilerObject = class(TCompilerObject)
   public constructor Create; override; end;
+
+  TCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TSqlServerCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TPostgresCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TMySqlCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TSqliteCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TOracleCompiler = record
+    class function Create: ICompiler; static;
+  end;
+  TFirebirdCompiler = record
+    class function Create: ICompiler; static;
+  end;
 
 implementation
 
 uses System.StrUtils, System.TypInfo, System.Variants, System.RegularExpressions;
+
+function TSqlResult.GetRawSql: string;
+begin Result := RawSql; end;
+procedure TSqlResult.SetRawSql(const Value: string);
+begin RawSql := Value; end;
+function TSqlResult.GetSql: string;
+begin Result := Sql; end;
+procedure TSqlResult.SetSql(const Value: string);
+begin Sql := Value; end;
+function TSqlResult.GetBindings: TList<TValue>;
+begin Result := Bindings; end;
+function TSqlResult.GetNamedBindings: TDictionary<string,TValue>;
+begin Result := NamedBindings; end;
+function TSqlResult.GetQuery: IQuery;
+begin Result := Query; end;
+procedure TSqlResult.SetQuery(const Value: IQuery);
+begin Query := Value; end;
+function TCompilerObject.GetEngineCode: string;
+begin Result := FEngineCode; end;
+function TCompilerObject.GetSupportsFilterClause: Boolean;
+begin Result := SupportsFilterClause; end;
+procedure TCompilerObject.SetSupportsFilterClause(const Value: Boolean);
+begin SupportsFilterClause := Value; end;
+function TCompilerObject.GetOmitSelectInsideExists: Boolean;
+begin Result := OmitSelectInsideExists; end;
+procedure TCompilerObject.SetOmitSelectInsideExists(const Value: Boolean);
+begin OmitSelectInsideExists := Value; end;
+function TCompilerObject.GetUseLegacyPagination: Boolean;
+begin Result := UseLegacyPagination; end;
+procedure TCompilerObject.SetUseLegacyPagination(const Value: Boolean);
+begin UseLegacyPagination := Value; end;
+class function TCompiler.Create: ICompiler;
+begin Result := TCompilerObject.Create; end;
+class function TSqlServerCompiler.Create: ICompiler;
+begin Result := TSqlServerCompilerObject.Create; end;
+class function TPostgresCompiler.Create: ICompiler;
+begin Result := TPostgresCompilerObject.Create; end;
+class function TMySqlCompiler.Create: ICompiler;
+begin Result := TMySqlCompilerObject.Create; end;
+class function TSqliteCompiler.Create: ICompiler;
+begin Result := TSqliteCompilerObject.Create; end;
+class function TOracleCompiler.Create: ICompiler;
+begin Result := TOracleCompilerObject.Create; end;
+class function TFirebirdCompiler.Create: ICompiler;
+begin Result := TFirebirdCompilerObject.Create; end;
 
 function SqlValue(const Value: TValue): string;
 var V: Variant; D: TDateTime;
@@ -148,7 +277,7 @@ begin NamedBindings.Free; Bindings.Free; inherited; end;
 function TSqlResult.ToString: string;
 begin Result := ReplaceParameters(RawSql, Bindings, '', True); end;
 constructor TCompileContext.Create;
-begin inherited; Bindings := TList<TValue>.Create; Queries := TList<TQuery>.Create; end;
+begin inherited; Bindings := TList<TValue>.Create; Queries := TList<IQuery>.Create; end;
 destructor TCompileContext.Destroy;
 begin Queries.Free; Bindings.Free; inherited; end;
 function TCompileContext.FindVariable(const Name: string): TValue;
@@ -159,20 +288,20 @@ begin
   raise EQueryException.CreateFmt('Variable ''%s'' not found', [Name]);
 end;
 
-constructor TCompiler.Create;
+constructor TCompilerObject.Create;
 begin
   inherited; FUserOperators := TList<string>.Create;
   FEngineCode := 'generic'; FOpening := '"'; FClosing := '"';
   FParameterPrefix := '@p'; FColumnAs := 'AS '; FTableAs := 'AS ';
   OmitSelectInsideExists := True;
 end;
-destructor TCompiler.Destroy;
+destructor TCompilerObject.Destroy;
 begin FUserOperators.Free; inherited; end;
 
-function TCompiler.Whitelist(const Operators: array of string): TCompiler;
+function TCompilerObject.Whitelist(const Operators: array of string): ICompiler;
 var Op: string;
 begin for Op in Operators do FUserOperators.Add(LowerCase(Op)); Result := Self; end;
-function TCompiler.CheckOperator(const Op: string): string;
+function TCompilerObject.CheckOperator(const Op: string): string;
 begin
   Result := LowerCase(Op);
   if not MatchStr(Result, ['=','<','>','<=','>=','<>','!=','<=>','like','not like',
@@ -181,20 +310,20 @@ begin
     raise EQueryException.CreateFmt('Operator ''%s'' is not whitelisted', [Op]);
 end;
 
-procedure TCompiler.SplitAlias(const Value: string; out Expression, Alias: string);
+procedure TCompilerObject.SplitAlias(const Value: string; out Expression, Alias: string);
 var P: Integer;
 begin
   P := LowerCase(Value).LastIndexOf(' as ') + 1;
   if P = 0 then begin Expression := Value; Alias := ''; end
   else begin Expression := Copy(Value, 1, P-1); Alias := Copy(Value, P+4, MaxInt); end;
 end;
-function TCompiler.WrapValue(const Value: string): string;
+function TCompilerObject.WrapValue(const Value: string): string;
 begin
   if Value = '*' then Exit('*');
   Result := FOpening + StringReplace(Value, FClosing, FClosing+FClosing, [rfReplaceAll]) + FClosing;
   if FEngineCode = 'firebird' then Result := UpperCase(Result);
 end;
-function TCompiler.Wrap(const Value: string): string;
+function TCompilerObject.Wrap(const Value: string): string;
 var Expr, Alias, Part: string;
 begin
   SplitAlias(Value, Expr, Alias);
@@ -202,10 +331,10 @@ begin
   for Part in Expr.Split(['.']) do begin if Result <> '' then Result := Result + '.'; Result := Result + WrapValue(Part); end;
   if Alias <> '' then Result := Result + ' '+FColumnAs+WrapValue(Alias);
 end;
-function TCompiler.WrapList(const Values: array of string): string;
+function TCompilerObject.WrapList(const Values: array of string): string;
 var S: string;
 begin Result := ''; for S in Values do begin if Result <> '' then Result := Result + ', '; Result := Result + Wrap(S); end; end;
-function TCompiler.WrapIdentifiers(const Value: string): string;
+function TCompilerObject.WrapIdentifiers(const Value: string): string;
 var I: Integer; C: Char;
 begin
   Result := ''; I := 1;
@@ -221,21 +350,21 @@ begin
     Inc(I);
   end;
 end;
-function TCompiler.Resolve(Context: TCompileContext; const Value: TValue): TValue;
+function TCompilerObject.Resolve(Context: TCompileContext; const Value: TValue): TValue;
 begin
   Result := Value;
   if Value.IsType<TVariable> then Result := Context.FindVariable(Value.AsType<TVariable>.Name)
   else if Value.IsType<TUnsafeLiteral> then Result := Value.AsType<TUnsafeLiteral>.Value;
 end;
-function TCompiler.Parameter(Context: TCompileContext; const Value: TValue): string;
+function TCompilerObject.Parameter(Context: TCompileContext; const Value: TValue): string;
 begin
   if Value.IsType<TUnsafeLiteral> then Exit(Value.AsType<TUnsafeLiteral>.Value);
   Context.Bindings.Add(Resolve(Context, Value)); Result := '?';
 end;
-function TCompiler.Parameterize(Context: TCompileContext; const Values: array of TValue): string;
+function TCompilerObject.Parameterize(Context: TCompileContext; const Values: array of TValue): string;
 var V: TValue;
 begin Result := ''; for V in Values do begin if Result <> '' then Result := Result + ', '; Result := Result + Parameter(Context, V); end; end;
-function TCompiler.Raw(Context: TCompileContext; const Sql: string; const Values: array of TValue): string;
+function TCompilerObject.Raw(Context: TCompileContext; const Sql: string; const Values: array of TValue): string;
 var I, N, J: Integer; V: TValue; S: string;
 begin
   Result := ''; N := 0;
@@ -258,30 +387,28 @@ begin
   if N <> Length(Values) then raise EQueryException.Create('Too many raw bindings');
 end;
 
-function TCompiler.Compile(Query: TQuery): TSqlResult;
+function TCompilerObject.Compile(Query: IQuery): ISqlResult;
 begin Result := Compile([Query]); Result.Query := Query; end;
-function TCompiler.Compile(const Queries: array of TQuery): TSqlResult;
-var Context: TCompileContext; Q: TQuery; N: Integer;
+function TCompilerObject.Compile(const Queries: array of IQuery): ISqlResult;
+var Context: TCompileContext; Q: IQuery; N: Integer;
 begin
   Context := TCompileContext.Create;
-  Result := TSqlResult.Create;
   try
-    try
-      for Q in Queries do
-      begin
-        if Q = nil then raise EArgumentNilException.Create('Query');
-        if Result.RawSql <> '' then Result.RawSql := Result.RawSql + ';'+#10;
-        Result.RawSql := Result.RawSql + CompileQuery(Context, Q);
-      end;
-      Result.Bindings.AddRange(Context.Bindings);
-      Result.Sql := ReplaceParameters(Result.RawSql, Result.Bindings, FParameterPrefix, False);
-      for N := 0 to Result.Bindings.Count-1 do Result.NamedBindings.Add(FParameterPrefix+IntToStr(N), Result.Bindings[N]);
-    except Result.Free; raise; end;
+    Result := TSqlResult.Create;
+    for Q in Queries do
+    begin
+      if Q = nil then raise EArgumentNilException.Create('Query');
+      if Result.RawSql <> '' then Result.RawSql := Result.RawSql + ';'+#10;
+      Result.RawSql := Result.RawSql + CompileQuery(Context, Q);
+    end;
+    Result.Bindings.AddRange(Context.Bindings);
+    Result.Sql := ReplaceParameters(Result.RawSql, Result.Bindings, FParameterPrefix, False);
+    for N := 0 to Result.Bindings.Count-1 do Result.NamedBindings.Add(FParameterPrefix+IntToStr(N), Result.Bindings[N]);
   finally Context.Free; end;
 end;
 
-function TCompiler.CompileQuery(Context: TCompileContext; Query: TQuery; WithCtes: Boolean): string;
-var Q: TQuery;
+function TCompilerObject.CompileQuery(Context: TCompileContext; Query: IQuery; WithCtes: Boolean): string;
+var Q: IQuery;
 begin
   Q := Query;
   if WithCtes and (Query.Method = 'aggregate') then Q := AggregateQuery(Query);
@@ -293,11 +420,10 @@ begin
     else Result := Result + CompileSelect(Context,Q);
   finally
     Context.Queries.Delete(Context.Queries.Count-1);
-    if Q <> Query then Q.Free;
   end;
 end;
 
-function TCompiler.Column(Context: TCompileContext; Clause: TClause): string;
+function TCompilerObject.Column(Context: TCompileContext; Clause: TClause): string;
 var Expr, Alias, Filter: string;
 begin
   case Clause.Kind of
@@ -319,7 +445,7 @@ begin
       end;
   else Result := Wrap(Clause.Name); end;
 end;
-function TCompiler.Table(Context: TCompileContext; Clause: TClause): string;
+function TCompilerObject.Table(Context: TCompileContext; Clause: TClause): string;
 var I, J: Integer; Row: string;
 begin
   if Clause = nil then raise EQueryException.Create('No table set');
@@ -366,7 +492,7 @@ begin
   else raise EQueryException.Create('Invalid table expression'); end;
 end;
 
-function TCompiler.Conditions(Context: TCompileContext; Query: TQuery; const Component: string): string;
+function TCompilerObject.Conditions(Context: TCompileContext; Query: IQuery; const Component: string): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -378,8 +504,8 @@ begin
     Result := Result+S;
   end;
 end;
-function TCompiler.Condition(Context: TCompileContext; Clause: TClause): string;
-var C: TClause; V: TValue; S, Op: string; Neg: Boolean; Q: TQuery;
+function TCompilerObject.Condition(Context: TCompileContext; Clause: TClause): string;
+var C: TClause; V: TValue; S, Op: string; Neg: Boolean; Q: IQuery;
 begin
   C := Clause; Neg := C.IsNot;
   case C.Kind of
@@ -443,11 +569,9 @@ begin
     ckExists:
       begin
         Q := C.Query.Clone;
-        try
-          if OmitSelectInsideExists then Q.ClearComponent('select').SelectRaw('1');
-          Result := 'EXISTS ('+CompileQuery(Context,Q,False)+')';
-          if Neg then Result := 'NOT '+Result;
-        finally Q.Free; end;
+        if OmitSelectInsideExists then Q.ClearComponent('select').SelectRaw('1');
+        Result := 'EXISTS ('+CompileQuery(Context,Q,False)+')';
+        if Neg then Result := 'NOT '+Result;
         Exit;
       end;
     ckQuery: Result := Wrap(C.Name)+' '+CheckOperator(C.Op)+' ('+CompileQuery(Context,C.Query,False)+')';
@@ -456,9 +580,9 @@ begin
   if Neg then Result := 'NOT ('+Result+')';
 end;
 
-function TCompiler.CompileCtes(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileCtes(Context: TCompileContext; Query: IQuery): string;
 var Seen: TList<string>;
-  procedure Visit(Q: TQuery);
+  procedure Visit(Q: IQuery);
   var C: TClause; S: string;
   begin
     for C in Q.GetComponents('cte',EngineCode) do
@@ -478,7 +602,7 @@ begin
   try Visit(Query); finally Seen.Free; end;
   if Result <> '' then Result := 'WITH '+Result+#10;
 end;
-function TCompiler.CompileJoins(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileJoins(Context: TCompileContext; Query: IQuery): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -488,7 +612,7 @@ begin
     S := Conditions(Context,C.Query,'where'); if S <> '' then Result := Result+' ON '+S;
   end;
 end;
-function TCompiler.CompileOrders(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileOrders(Context: TCompileContext; Query: IQuery): string;
 var C: TClause; S: string;
 begin
   Result := '';
@@ -500,7 +624,7 @@ begin
   end;
   if Result <> '' then Result := 'ORDER BY '+Result;
 end;
-function TCompiler.CompileSelectCore(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileSelectCore(Context: TCompileContext; Query: IQuery): string;
 var C, A: TClause; S, Columns: string;
 begin
   Result := SelectPrefix(Context,Query); Columns := ''; A := Query.GetOne('aggregate',EngineCode);
@@ -532,9 +656,9 @@ end;
 {$I SqlKata.Compiler.Writes.inc}
 {$I SqlKata.Compiler.Dialects.inc}
 
-function TCompiler.CompileLower(const Value: string): string;
+function TCompilerObject.CompileLower(const Value: string): string;
 begin Result := 'LOWER('+Value+')'; end;
-function TCompiler.CompileUpper(const Value: string): string;
+function TCompilerObject.CompileUpper(const Value: string): string;
 begin Result := 'UPPER('+Value+')'; end;
 
 end.

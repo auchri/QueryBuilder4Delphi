@@ -1,4 +1,4 @@
-function TQuery.Where(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.Where(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckBasic);
@@ -6,13 +6,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.Where(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.Where(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := Where(Column, '=', Value);
 end;
 
-function TQuery.Where(Group: TQuery): TQuery;
+function TQueryObject.Where(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckNested);
@@ -20,14 +20,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.Where(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.Where(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Where(Q); finally Q.Free; end;
+  Result := Where(Q);
 end;
 
-function TQuery.Where(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.Where(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckQuery);
@@ -35,14 +35,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.Where(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.Where(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Where(Column, Op, Q); finally Q.Free; end;
+  Result := Where(Column, Op, Q);
 end;
 
-function TQuery.WhereNull(const Column: string): TQuery;
+function TQueryObject.WhereNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckNull);
@@ -50,7 +50,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereTrue(const Column: string): TQuery;
+function TQueryObject.WhereTrue(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckBoolean);
@@ -58,7 +58,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereFalse(const Column: string): TQuery;
+function TQueryObject.WhereFalse(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckBoolean);
@@ -66,7 +66,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.WhereBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckBetween);
@@ -74,7 +74,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.WhereIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckIn);
@@ -82,7 +82,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.WhereIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckInQuery);
@@ -90,14 +90,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereIn(Column, Q); finally Q.Free; end;
+  Result := WhereIn(Column, Q);
 end;
 
-function TQuery.WhereExists(Query: TQuery): TQuery;
+function TQueryObject.WhereExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -106,14 +106,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereExists(Q); finally Q.Free; end;
+  Result := WhereExists(Q);
 end;
 
-function TQuery.WhereLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckString);
@@ -121,7 +121,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckString);
@@ -129,7 +129,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckString);
@@ -137,7 +137,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckString);
@@ -145,7 +145,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckDate);
@@ -153,13 +153,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereDate(Column, '=', Value);
 end;
 
-function TQuery.WhereTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckDate);
@@ -167,13 +167,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereTime(Column, '=', Value);
 end;
 
-function TQuery.WhereDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckDate);
@@ -181,13 +181,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.WhereNot(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNot(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckBasic);
@@ -195,13 +195,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNot(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNot(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereNot(Column, '=', Value);
 end;
 
-function TQuery.WhereNot(Group: TQuery): TQuery;
+function TQueryObject.WhereNot(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckNested);
@@ -209,14 +209,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNot(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereNot(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereNot(Q); finally Q.Free; end;
+  Result := WhereNot(Q);
 end;
 
-function TQuery.WhereNot(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.WhereNot(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckQuery);
@@ -224,14 +224,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNot(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereNot(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereNot(Column, Op, Q); finally Q.Free; end;
+  Result := WhereNot(Column, Op, Q);
 end;
 
-function TQuery.WhereNotNull(const Column: string): TQuery;
+function TQueryObject.WhereNotNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckNull);
@@ -239,7 +239,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.WhereNotBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckBetween);
@@ -247,7 +247,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.WhereNotIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckIn);
@@ -255,7 +255,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.WhereNotIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckInQuery);
@@ -263,14 +263,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereNotIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereNotIn(Column, Q); finally Q.Free; end;
+  Result := WhereNotIn(Column, Q);
 end;
 
-function TQuery.WhereNotExists(Query: TQuery): TQuery;
+function TQueryObject.WhereNotExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -279,14 +279,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.WhereNotExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := WhereNotExists(Q); finally Q.Free; end;
+  Result := WhereNotExists(Q);
 end;
 
-function TQuery.WhereNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckString);
@@ -294,7 +294,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckString);
@@ -302,7 +302,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckString);
@@ -310,7 +310,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.WhereNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckString);
@@ -318,7 +318,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckDate);
@@ -326,13 +326,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereNotDate(Column, '=', Value);
 end;
 
-function TQuery.WhereNotTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckDate);
@@ -340,13 +340,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereNotTime(Column, '=', Value);
 end;
 
-function TQuery.WhereNotDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, True, ckDate);
@@ -354,13 +354,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereNotDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.WhereNotDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := WhereNotDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.WhereRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.WhereRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckRaw);
@@ -368,13 +368,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereRaw(const Sql: string): TQuery;
+function TQueryObject.WhereRaw(const Sql: string): IQuery;
 
 begin
   Result := WhereRaw(Sql, []);
 end;
 
-function TQuery.WhereColumns(const First, Op, Second: string): TQuery;
+function TQueryObject.WhereColumns(const First, Op, Second: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckColumns);
@@ -382,7 +382,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereSub(Query: TQuery; const Op: string; const Value: TValue): TQuery;
+function TQueryObject.WhereSub(Query: IQuery; const Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', False, False, ckSubQuery);
@@ -390,13 +390,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.WhereSub(Query: TQuery; const Value: TValue): TQuery;
+function TQueryObject.WhereSub(Query: IQuery; const Value: TValue): IQuery;
 
 begin
   Result := WhereSub(Query, '=', Value);
 end;
 
-function TQuery.OrWhere(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhere(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckBasic);
@@ -404,13 +404,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhere(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhere(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhere(Column, '=', Value);
 end;
 
-function TQuery.OrWhere(Group: TQuery): TQuery;
+function TQueryObject.OrWhere(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckNested);
@@ -418,14 +418,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhere(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhere(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhere(Q); finally Q.Free; end;
+  Result := OrWhere(Q);
 end;
 
-function TQuery.OrWhere(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.OrWhere(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckQuery);
@@ -433,14 +433,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhere(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhere(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhere(Column, Op, Q); finally Q.Free; end;
+  Result := OrWhere(Column, Op, Q);
 end;
 
-function TQuery.OrWhereNull(const Column: string): TQuery;
+function TQueryObject.OrWhereNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckNull);
@@ -448,7 +448,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereTrue(const Column: string): TQuery;
+function TQueryObject.OrWhereTrue(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckBoolean);
@@ -456,7 +456,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereFalse(const Column: string): TQuery;
+function TQueryObject.OrWhereFalse(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckBoolean);
@@ -464,7 +464,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.OrWhereBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckBetween);
@@ -472,7 +472,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.OrWhereIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckIn);
@@ -480,7 +480,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.OrWhereIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckInQuery);
@@ -488,14 +488,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereIn(Column, Q); finally Q.Free; end;
+  Result := OrWhereIn(Column, Q);
 end;
 
-function TQuery.OrWhereExists(Query: TQuery): TQuery;
+function TQueryObject.OrWhereExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -504,14 +504,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereExists(Q); finally Q.Free; end;
+  Result := OrWhereExists(Q);
 end;
 
-function TQuery.OrWhereLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckString);
@@ -519,7 +519,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckString);
@@ -527,7 +527,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckString);
@@ -535,7 +535,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckString);
@@ -543,7 +543,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckDate);
@@ -551,13 +551,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereDate(Column, '=', Value);
 end;
 
-function TQuery.OrWhereTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckDate);
@@ -565,13 +565,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereTime(Column, '=', Value);
 end;
 
-function TQuery.OrWhereDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckDate);
@@ -579,13 +579,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.OrWhereNot(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNot(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckBasic);
@@ -593,13 +593,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNot(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNot(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereNot(Column, '=', Value);
 end;
 
-function TQuery.OrWhereNot(Group: TQuery): TQuery;
+function TQueryObject.OrWhereNot(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckNested);
@@ -607,14 +607,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNot(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereNot(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereNot(Q); finally Q.Free; end;
+  Result := OrWhereNot(Q);
 end;
 
-function TQuery.OrWhereNot(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.OrWhereNot(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckQuery);
@@ -622,14 +622,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNot(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereNot(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereNot(Column, Op, Q); finally Q.Free; end;
+  Result := OrWhereNot(Column, Op, Q);
 end;
 
-function TQuery.OrWhereNotNull(const Column: string): TQuery;
+function TQueryObject.OrWhereNotNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckNull);
@@ -637,7 +637,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.OrWhereNotBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckBetween);
@@ -645,7 +645,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.OrWhereNotIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckIn);
@@ -653,7 +653,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.OrWhereNotIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckInQuery);
@@ -661,14 +661,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereNotIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereNotIn(Column, Q); finally Q.Free; end;
+  Result := OrWhereNotIn(Column, Q);
 end;
 
-function TQuery.OrWhereNotExists(Query: TQuery): TQuery;
+function TQueryObject.OrWhereNotExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -677,14 +677,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrWhereNotExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrWhereNotExists(Q); finally Q.Free; end;
+  Result := OrWhereNotExists(Q);
 end;
 
-function TQuery.OrWhereNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckString);
@@ -692,7 +692,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckString);
@@ -700,7 +700,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckString);
@@ -708,7 +708,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrWhereNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckString);
@@ -716,7 +716,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckDate);
@@ -724,13 +724,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereNotDate(Column, '=', Value);
 end;
 
-function TQuery.OrWhereNotTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckDate);
@@ -738,13 +738,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereNotTime(Column, '=', Value);
 end;
 
-function TQuery.OrWhereNotDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, True, ckDate);
@@ -752,13 +752,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereNotDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereNotDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereNotDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.OrWhereRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.OrWhereRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckRaw);
@@ -766,13 +766,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereRaw(const Sql: string): TQuery;
+function TQueryObject.OrWhereRaw(const Sql: string): IQuery;
 
 begin
   Result := OrWhereRaw(Sql, []);
 end;
 
-function TQuery.OrWhereColumns(const First, Op, Second: string): TQuery;
+function TQueryObject.OrWhereColumns(const First, Op, Second: string): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckColumns);
@@ -780,7 +780,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereSub(Query: TQuery; const Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrWhereSub(Query: IQuery; const Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('where', True, False, ckSubQuery);
@@ -788,13 +788,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrWhereSub(Query: TQuery; const Value: TValue): TQuery;
+function TQueryObject.OrWhereSub(Query: IQuery; const Value: TValue): IQuery;
 
 begin
   Result := OrWhereSub(Query, '=', Value);
 end;
 
-function TQuery.Having(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.Having(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckBasic);
@@ -802,13 +802,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.Having(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.Having(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := Having(Column, '=', Value);
 end;
 
-function TQuery.Having(Group: TQuery): TQuery;
+function TQueryObject.Having(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckNested);
@@ -816,14 +816,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.Having(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.Having(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Having(Q); finally Q.Free; end;
+  Result := Having(Q);
 end;
 
-function TQuery.Having(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.Having(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckQuery);
@@ -831,14 +831,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.Having(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.Having(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Having(Column, Op, Q); finally Q.Free; end;
+  Result := Having(Column, Op, Q);
 end;
 
-function TQuery.HavingNull(const Column: string): TQuery;
+function TQueryObject.HavingNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckNull);
@@ -846,7 +846,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingTrue(const Column: string): TQuery;
+function TQueryObject.HavingTrue(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckBoolean);
@@ -854,7 +854,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingFalse(const Column: string): TQuery;
+function TQueryObject.HavingFalse(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckBoolean);
@@ -862,7 +862,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.HavingBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckBetween);
@@ -870,7 +870,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.HavingIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckIn);
@@ -878,7 +878,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.HavingIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckInQuery);
@@ -886,14 +886,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingIn(Column, Q); finally Q.Free; end;
+  Result := HavingIn(Column, Q);
 end;
 
-function TQuery.HavingExists(Query: TQuery): TQuery;
+function TQueryObject.HavingExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -902,14 +902,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingExists(Q); finally Q.Free; end;
+  Result := HavingExists(Q);
 end;
 
-function TQuery.HavingLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckString);
@@ -917,7 +917,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckString);
@@ -925,7 +925,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckString);
@@ -933,7 +933,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckString);
@@ -941,7 +941,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckDate);
@@ -949,13 +949,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingDate(Column, '=', Value);
 end;
 
-function TQuery.HavingTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckDate);
@@ -963,13 +963,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingTime(Column, '=', Value);
 end;
 
-function TQuery.HavingDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckDate);
@@ -977,13 +977,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.HavingNot(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNot(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckBasic);
@@ -991,13 +991,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNot(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNot(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingNot(Column, '=', Value);
 end;
 
-function TQuery.HavingNot(Group: TQuery): TQuery;
+function TQueryObject.HavingNot(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckNested);
@@ -1005,14 +1005,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNot(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingNot(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingNot(Q); finally Q.Free; end;
+  Result := HavingNot(Q);
 end;
 
-function TQuery.HavingNot(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.HavingNot(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckQuery);
@@ -1020,14 +1020,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNot(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingNot(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingNot(Column, Op, Q); finally Q.Free; end;
+  Result := HavingNot(Column, Op, Q);
 end;
 
-function TQuery.HavingNotNull(const Column: string): TQuery;
+function TQueryObject.HavingNotNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckNull);
@@ -1035,7 +1035,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.HavingNotBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckBetween);
@@ -1043,7 +1043,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.HavingNotIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckIn);
@@ -1051,7 +1051,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.HavingNotIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckInQuery);
@@ -1059,14 +1059,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingNotIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingNotIn(Column, Q); finally Q.Free; end;
+  Result := HavingNotIn(Column, Q);
 end;
 
-function TQuery.HavingNotExists(Query: TQuery): TQuery;
+function TQueryObject.HavingNotExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -1075,14 +1075,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.HavingNotExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := HavingNotExists(Q); finally Q.Free; end;
+  Result := HavingNotExists(Q);
 end;
 
-function TQuery.HavingNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckString);
@@ -1090,7 +1090,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckString);
@@ -1098,7 +1098,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckString);
@@ -1106,7 +1106,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.HavingNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckString);
@@ -1114,7 +1114,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckDate);
@@ -1122,13 +1122,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingNotDate(Column, '=', Value);
 end;
 
-function TQuery.HavingNotTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckDate);
@@ -1136,13 +1136,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingNotTime(Column, '=', Value);
 end;
 
-function TQuery.HavingNotDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, True, ckDate);
@@ -1150,13 +1150,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingNotDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.HavingNotDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := HavingNotDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.HavingRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.HavingRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckRaw);
@@ -1164,13 +1164,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingRaw(const Sql: string): TQuery;
+function TQueryObject.HavingRaw(const Sql: string): IQuery;
 
 begin
   Result := HavingRaw(Sql, []);
 end;
 
-function TQuery.HavingColumns(const First, Op, Second: string): TQuery;
+function TQueryObject.HavingColumns(const First, Op, Second: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckColumns);
@@ -1178,7 +1178,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingSub(Query: TQuery; const Op: string; const Value: TValue): TQuery;
+function TQueryObject.HavingSub(Query: IQuery; const Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', False, False, ckSubQuery);
@@ -1186,13 +1186,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.HavingSub(Query: TQuery; const Value: TValue): TQuery;
+function TQueryObject.HavingSub(Query: IQuery; const Value: TValue): IQuery;
 
 begin
   Result := HavingSub(Query, '=', Value);
 end;
 
-function TQuery.OrHaving(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHaving(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckBasic);
@@ -1200,13 +1200,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHaving(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHaving(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHaving(Column, '=', Value);
 end;
 
-function TQuery.OrHaving(Group: TQuery): TQuery;
+function TQueryObject.OrHaving(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckNested);
@@ -1214,14 +1214,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHaving(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHaving(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHaving(Q); finally Q.Free; end;
+  Result := OrHaving(Q);
 end;
 
-function TQuery.OrHaving(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.OrHaving(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckQuery);
@@ -1229,14 +1229,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHaving(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHaving(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHaving(Column, Op, Q); finally Q.Free; end;
+  Result := OrHaving(Column, Op, Q);
 end;
 
-function TQuery.OrHavingNull(const Column: string): TQuery;
+function TQueryObject.OrHavingNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckNull);
@@ -1244,7 +1244,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingTrue(const Column: string): TQuery;
+function TQueryObject.OrHavingTrue(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckBoolean);
@@ -1252,7 +1252,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingFalse(const Column: string): TQuery;
+function TQueryObject.OrHavingFalse(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckBoolean);
@@ -1260,7 +1260,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.OrHavingBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckBetween);
@@ -1268,7 +1268,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.OrHavingIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckIn);
@@ -1276,7 +1276,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.OrHavingIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckInQuery);
@@ -1284,14 +1284,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingIn(Column, Q); finally Q.Free; end;
+  Result := OrHavingIn(Column, Q);
 end;
 
-function TQuery.OrHavingExists(Query: TQuery): TQuery;
+function TQueryObject.OrHavingExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -1300,14 +1300,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingExists(Q); finally Q.Free; end;
+  Result := OrHavingExists(Q);
 end;
 
-function TQuery.OrHavingLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckString);
@@ -1315,7 +1315,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckString);
@@ -1323,7 +1323,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckString);
@@ -1331,7 +1331,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckString);
@@ -1339,7 +1339,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckDate);
@@ -1347,13 +1347,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingDate(Column, '=', Value);
 end;
 
-function TQuery.OrHavingTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckDate);
@@ -1361,13 +1361,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingTime(Column, '=', Value);
 end;
 
-function TQuery.OrHavingDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckDate);
@@ -1375,13 +1375,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.OrHavingNot(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNot(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckBasic);
@@ -1389,13 +1389,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNot(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNot(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingNot(Column, '=', Value);
 end;
 
-function TQuery.OrHavingNot(Group: TQuery): TQuery;
+function TQueryObject.OrHavingNot(Group: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckNested);
@@ -1403,14 +1403,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNot(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingNot(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingNot(Q); finally Q.Free; end;
+  Result := OrHavingNot(Q);
 end;
 
-function TQuery.OrHavingNot(const Column, Op: string; Query: TQuery): TQuery;
+function TQueryObject.OrHavingNot(const Column, Op: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckQuery);
@@ -1418,14 +1418,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNot(const Column, Op: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingNot(const Column, Op: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingNot(Column, Op, Q); finally Q.Free; end;
+  Result := OrHavingNot(Column, Op, Q);
 end;
 
-function TQuery.OrHavingNotNull(const Column: string): TQuery;
+function TQueryObject.OrHavingNotNull(const Column: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckNull);
@@ -1433,7 +1433,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotBetween(const Column: string; const Lower, Higher: TValue): TQuery;
+function TQueryObject.OrHavingNotBetween(const Column: string; const Lower, Higher: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckBetween);
@@ -1441,7 +1441,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotIn(const Column: string; const Values: array of TValue): TQuery;
+function TQueryObject.OrHavingNotIn(const Column: string; const Values: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckIn);
@@ -1449,7 +1449,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotIn(const Column: string; Query: TQuery): TQuery;
+function TQueryObject.OrHavingNotIn(const Column: string; Query: IQuery): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckInQuery);
@@ -1457,14 +1457,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotIn(const Column: string; const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingNotIn(const Column: string; const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingNotIn(Column, Q); finally Q.Free; end;
+  Result := OrHavingNotIn(Column, Q);
 end;
 
-function TQuery.OrHavingNotExists(Query: TQuery): TQuery;
+function TQueryObject.OrHavingNotExists(Query: IQuery): IQuery;
 var C: TClause;
 begin
   if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
@@ -1473,14 +1473,14 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotExists(const Callback: TQueryCallback): TQuery;
-var Q: TQuery;
+function TQueryObject.OrHavingNotExists(const Callback: TQueryCallback): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := OrHavingNotExists(Q); finally Q.Free; end;
+  Result := OrHavingNotExists(Q);
 end;
 
-function TQuery.OrHavingNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingNotLike(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckString);
@@ -1488,7 +1488,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingNotStarts(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckString);
@@ -1496,7 +1496,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingNotEnds(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckString);
@@ -1504,7 +1504,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): TQuery;
+function TQueryObject.OrHavingNotContains(const Column: string; const Value: TValue; const EscapeCharacter: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckString);
@@ -1512,7 +1512,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotDate(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotDate(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckDate);
@@ -1520,13 +1520,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotDate(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotDate(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingNotDate(Column, '=', Value);
 end;
 
-function TQuery.OrHavingNotTime(const Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotTime(const Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckDate);
@@ -1534,13 +1534,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotTime(const Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotTime(const Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingNotTime(Column, '=', Value);
 end;
 
-function TQuery.OrHavingNotDatePart(const Part, Column, Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotDatePart(const Part, Column, Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, True, ckDate);
@@ -1548,13 +1548,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingNotDatePart(const Part, Column: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingNotDatePart(const Part, Column: string; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingNotDatePart(Part, Column, '=', Value);
 end;
 
-function TQuery.OrHavingRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.OrHavingRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckRaw);
@@ -1562,13 +1562,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingRaw(const Sql: string): TQuery;
+function TQueryObject.OrHavingRaw(const Sql: string): IQuery;
 
 begin
   Result := OrHavingRaw(Sql, []);
 end;
 
-function TQuery.OrHavingColumns(const First, Op, Second: string): TQuery;
+function TQueryObject.OrHavingColumns(const First, Op, Second: string): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckColumns);
@@ -1576,7 +1576,7 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingSub(Query: TQuery; const Op: string; const Value: TValue): TQuery;
+function TQueryObject.OrHavingSub(Query: IQuery; const Op: string; const Value: TValue): IQuery;
 var C: TClause;
 begin
   C := Condition('having', True, False, ckSubQuery);
@@ -1584,13 +1584,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrHavingSub(Query: TQuery; const Value: TValue): TQuery;
+function TQueryObject.OrHavingSub(Query: IQuery; const Value: TValue): IQuery;
 
 begin
   Result := OrHavingSub(Query, '=', Value);
 end;
 
-function TQuery.Select(const Columns: array of string): TQuery;
+function TQueryObject.Select(const Columns: array of string): IQuery;
 var S, E: string; C: TClause;
 begin
   for S in Columns do
@@ -1602,13 +1602,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.Select(const Column: string): TQuery;
+function TQueryObject.Select(const Column: string): IQuery;
 
 begin
   Result := Select([Column]);
 end;
 
-function TQuery.GroupBy(const Columns: array of string): TQuery;
+function TQueryObject.GroupBy(const Columns: array of string): IQuery;
 var S, E: string; C: TClause;
 begin
   for S in Columns do
@@ -1619,13 +1619,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.GroupBy(const Column: string): TQuery;
+function TQueryObject.GroupBy(const Column: string): IQuery;
 
 begin
   Result := GroupBy([Column]);
 end;
 
-function TQuery.OrderBy(const Columns: array of string): TQuery;
+function TQueryObject.OrderBy(const Columns: array of string): IQuery;
 var S, E: string; C: TClause;
 begin
   for S in Columns do
@@ -1636,13 +1636,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrderBy(const Column: string): TQuery;
+function TQueryObject.OrderBy(const Column: string): IQuery;
 
 begin
   Result := OrderBy([Column]);
 end;
 
-function TQuery.OrderByDesc(const Columns: array of string): TQuery;
+function TQueryObject.OrderByDesc(const Columns: array of string): IQuery;
 var S, E: string; C: TClause;
 begin
   for S in Columns do
@@ -1653,13 +1653,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.OrderByDesc(const Column: string): TQuery;
+function TQueryObject.OrderByDesc(const Column: string): IQuery;
 
 begin
   Result := OrderByDesc([Column]);
 end;
 
-function TQuery.SelectRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.SelectRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   Method := 'select';
@@ -1667,13 +1667,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.SelectRaw(const Sql: string): TQuery;
+function TQueryObject.SelectRaw(const Sql: string): IQuery;
 
 begin
   Result := SelectRaw(Sql, []);
 end;
 
-function TQuery.FromRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.FromRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   Remove('from', EngineScope);
@@ -1681,39 +1681,39 @@ begin
   Result := Self;
 end;
 
-function TQuery.FromRaw(const Sql: string): TQuery;
+function TQueryObject.FromRaw(const Sql: string): IQuery;
 
 begin
   Result := FromRaw(Sql, []);
 end;
 
-function TQuery.OrderByRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.OrderByRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Add('order', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
 
-function TQuery.OrderByRaw(const Sql: string): TQuery;
+function TQueryObject.OrderByRaw(const Sql: string): IQuery;
 
 begin
   Result := OrderByRaw(Sql, []);
 end;
 
-function TQuery.GroupByRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.GroupByRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   C := Add('group', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
 
-function TQuery.GroupByRaw(const Sql: string): TQuery;
+function TQueryObject.GroupByRaw(const Sql: string): IQuery;
 
 begin
   Result := GroupByRaw(Sql, []);
 end;
 
-function TQuery.CombineRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.CombineRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
@@ -1721,13 +1721,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.CombineRaw(const Sql: string): TQuery;
+function TQueryObject.CombineRaw(const Sql: string): IQuery;
 
 begin
   Result := CombineRaw(Sql, []);
 end;
 
-function TQuery.UnionRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.UnionRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
@@ -1735,13 +1735,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.UnionRaw(const Sql: string): TQuery;
+function TQueryObject.UnionRaw(const Sql: string): IQuery;
 
 begin
   Result := UnionRaw(Sql, []);
 end;
 
-function TQuery.ExceptRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.ExceptRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
@@ -1749,13 +1749,13 @@ begin
   Result := Self;
 end;
 
-function TQuery.ExceptRaw(const Sql: string): TQuery;
+function TQueryObject.ExceptRaw(const Sql: string): IQuery;
 
 begin
   Result := ExceptRaw(Sql, []);
 end;
 
-function TQuery.IntersectRaw(const Sql: string; const Bindings: array of TValue): TQuery;
+function TQueryObject.IntersectRaw(const Sql: string; const Bindings: array of TValue): IQuery;
 var C: TClause;
 begin
   if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
@@ -1763,191 +1763,191 @@ begin
   Result := Self;
 end;
 
-function TQuery.IntersectRaw(const Sql: string): TQuery;
+function TQueryObject.IntersectRaw(const Sql: string): IQuery;
 
 begin
   Result := IntersectRaw(Sql, []);
 end;
 
-function TQuery.AsCount(const Columns: array of string): TQuery;
+function TQueryObject.AsCount(const Columns: array of string): IQuery;
 
 begin
   if Length(Columns) = 0 then Result := AsAggregate('count', ['*'])
   else Result := AsAggregate('count', Columns);
 end;
 
-function TQuery.AsCount(): TQuery;
+function TQueryObject.AsCount(): IQuery;
 
 begin
   Result := AsCount([]);
 end;
 
-function TQuery.AsSum(const Column: string): TQuery;
+function TQueryObject.AsSum(const Column: string): IQuery;
 
 begin
   Result := AsAggregate('sum', [Column]);
 end;
 
-function TQuery.AsAvg(const Column: string): TQuery;
+function TQueryObject.AsAvg(const Column: string): IQuery;
 
 begin
   Result := AsAggregate('avg', [Column]);
 end;
 
-function TQuery.AsAverage(const Column: string): TQuery;
+function TQueryObject.AsAverage(const Column: string): IQuery;
 
 begin
   Result := AsAggregate('avg', [Column]);
 end;
 
-function TQuery.AsMin(const Column: string): TQuery;
+function TQueryObject.AsMin(const Column: string): IQuery;
 
 begin
   Result := AsAggregate('min', [Column]);
 end;
 
-function TQuery.AsMax(const Column: string): TQuery;
+function TQueryObject.AsMax(const Column: string): IQuery;
 
 begin
   Result := AsAggregate('max', [Column]);
 end;
 
-function TQuery.SelectSum(const Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.SelectSum(const Column: string; const Filter: TQueryCallback): IQuery;
 
 begin
   Result := SelectAggregate('sum', Column, Filter);
 end;
 
-function TQuery.SelectCount(const Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.SelectCount(const Column: string; const Filter: TQueryCallback): IQuery;
 
 begin
   Result := SelectAggregate('count', Column, Filter);
 end;
 
-function TQuery.SelectAvg(const Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.SelectAvg(const Column: string; const Filter: TQueryCallback): IQuery;
 
 begin
   Result := SelectAggregate('avg', Column, Filter);
 end;
 
-function TQuery.SelectMin(const Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.SelectMin(const Column: string; const Filter: TQueryCallback): IQuery;
 
 begin
   Result := SelectAggregate('min', Column, Filter);
 end;
 
-function TQuery.SelectMax(const Column: string; const Filter: TQueryCallback): TQuery;
+function TQueryObject.SelectMax(const Column: string; const Filter: TQueryCallback): IQuery;
 
 begin
   Result := SelectAggregate('max', Column, Filter);
 end;
 
-function TQuery.Union(Query: TQuery; All: Boolean): TQuery;
+function TQueryObject.Union(Query: IQuery; All: Boolean): IQuery;
 
 begin
   Result := Combine('union', All, Query);
 end;
 
-function TQuery.Union(const Callback: TQueryCallback; All: Boolean): TQuery;
-var Q: TQuery;
+function TQueryObject.Union(const Callback: TQueryCallback; All: Boolean): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Union(Q, All); finally Q.Free; end;
+  Result := Union(Q, All);
 end;
 
-function TQuery.UnionAll(Query: TQuery): TQuery;
+function TQueryObject.UnionAll(Query: IQuery): IQuery;
 
 begin
   Result := Union(Query, True);
 end;
 
-function TQuery.UnionAll(const Callback: TQueryCallback): TQuery;
+function TQueryObject.UnionAll(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := Union(Callback, True);
 end;
 
-function TQuery.&Except(Query: TQuery; All: Boolean): TQuery;
+function TQueryObject.&Except(Query: IQuery; All: Boolean): IQuery;
 
 begin
   Result := Combine('except', All, Query);
 end;
 
-function TQuery.&Except(const Callback: TQueryCallback; All: Boolean): TQuery;
-var Q: TQuery;
+function TQueryObject.&Except(const Callback: TQueryCallback; All: Boolean): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := &Except(Q, All); finally Q.Free; end;
+  Result := &Except(Q, All);
 end;
 
-function TQuery.ExceptAll(Query: TQuery): TQuery;
+function TQueryObject.ExceptAll(Query: IQuery): IQuery;
 
 begin
   Result := &Except(Query, True);
 end;
 
-function TQuery.ExceptAll(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ExceptAll(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &Except(Callback, True);
 end;
 
-function TQuery.Intersect(Query: TQuery; All: Boolean): TQuery;
+function TQueryObject.Intersect(Query: IQuery; All: Boolean): IQuery;
 
 begin
   Result := Combine('intersect', All, Query);
 end;
 
-function TQuery.Intersect(const Callback: TQueryCallback; All: Boolean): TQuery;
-var Q: TQuery;
+function TQueryObject.Intersect(const Callback: TQueryCallback; All: Boolean): IQuery;
+var Q: IQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Result := Intersect(Q, All); finally Q.Free; end;
+  Result := Intersect(Q, All);
 end;
 
-function TQuery.IntersectAll(Query: TQuery): TQuery;
+function TQueryObject.IntersectAll(Query: IQuery): IQuery;
 
 begin
   Result := Intersect(Query, True);
 end;
 
-function TQuery.IntersectAll(const Callback: TQueryCallback): TQuery;
+function TQueryObject.IntersectAll(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := Intersect(Callback, True);
 end;
 
-function TQuery.ForSqlServer(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForSqlServer(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('sqlsrv', Callback);
 end;
 
-function TQuery.ForPostgreSql(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForPostgreSql(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('postgres', Callback);
 end;
 
-function TQuery.ForMySql(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForMySql(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('mysql', Callback);
 end;
 
-function TQuery.ForSqlite(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForSqlite(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('sqlite', Callback);
 end;
 
-function TQuery.ForOracle(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForOracle(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('oracle', Callback);
 end;
 
-function TQuery.ForFirebird(const Callback: TQueryCallback): TQuery;
+function TQueryObject.ForFirebird(const Callback: TQueryCallback): IQuery;
 
 begin
   Result := &For('firebird', Callback);

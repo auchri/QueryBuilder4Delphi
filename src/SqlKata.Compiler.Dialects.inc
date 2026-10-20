@@ -1,26 +1,26 @@
-constructor TSqlServerCompiler.Create;
+constructor TSqlServerCompilerObject.Create;
 begin inherited; FEngineCode := 'sqlsrv'; FOpening := '['; FClosing := ']'; FLastId := 'SELECT scope_identity() as Id'; end;
-constructor TPostgresCompiler.Create;
+constructor TPostgresCompilerObject.Create;
 begin inherited; FEngineCode := 'postgres'; SupportsFilterClause := True; FLastId := 'SELECT lastval() AS id'; end;
-constructor TMySqlCompiler.Create;
+constructor TMySqlCompilerObject.Create;
 begin inherited; FEngineCode := 'mysql'; FOpening := '`'; FClosing := '`'; FLastId := 'SELECT last_insert_id() as Id'; end;
-constructor TSqliteCompiler.Create;
+constructor TSqliteCompilerObject.Create;
 begin inherited; FEngineCode := 'sqlite'; SupportsFilterClause := True; FLastId := 'select last_insert_rowid() as id'; end;
-constructor TOracleCompiler.Create;
+constructor TOracleCompilerObject.Create;
 begin inherited; FEngineCode := 'oracle'; FParameterPrefix := ':p'; FColumnAs := ''; FTableAs := ''; FDummyTable := 'DUAL'; end;
-constructor TFirebirdCompiler.Create;
+constructor TFirebirdCompilerObject.Create;
 begin inherited; FEngineCode := 'firebird'; FDummyTable := 'RDB$DATABASE'; end;
-function TCompiler.CompileTrue: string;
+function TCompilerObject.CompileTrue: string;
 begin
   if FEngineCode = 'sqlsrv' then Result := 'cast(1 as bit)'
   else if MatchStr(FEngineCode,['sqlite','firebird']) then Result := '1' else Result := 'true';
 end;
-function TCompiler.CompileFalse: string;
+function TCompilerObject.CompileFalse: string;
 begin
   if FEngineCode = 'sqlsrv' then Result := 'cast(0 as bit)'
   else if MatchStr(FEngineCode,['sqlite','firebird']) then Result := '0' else Result := 'false';
 end;
-function TCompiler.CompileRandom(const Seed: TValue): string;
+function TCompilerObject.CompileRandom(const Seed: TValue): string;
 begin
   if FEngineCode = 'sqlsrv' then Result := 'NEWID()'
   else if FEngineCode = 'oracle' then Result := 'DBMS_RANDOM.VALUE'
@@ -30,7 +30,7 @@ begin
   else Result := 'RANDOM()';
 end;
 
-function TCompiler.SelectPrefix(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.SelectPrefix(Context: TCompileContext; Query: IQuery): string;
 var L: Integer; O: Int64; D: string;
 begin
   D := ''; if Query.IsDistinct then D := 'DISTINCT ';
@@ -46,7 +46,7 @@ begin
   Result := 'SELECT '+D;
 end;
 
-function TCompiler.CompileLimit(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileLimit(Context: TCompileContext; Query: IQuery): string;
 var L: Integer; O: Int64;
 begin
   Result := ''; L := Query.GetLimit(EngineCode); O := Query.GetOffset(EngineCode);
@@ -76,27 +76,25 @@ begin
   end;
 end;
 
-function TCompiler.CompileSelect(Context: TCompileContext; Query: TQuery): string;
-var L, I, N: Integer; O: Int64; Q: TQuery; Order: string; Values: TValues;
+function TCompilerObject.CompileSelect(Context: TCompileContext; Query: IQuery): string;
+var L, I, N: Integer; O: Int64; Q: IQuery; Order: string; Values: TValues;
 begin
   L := Query.GetLimit(EngineCode); O := Query.GetOffset(EngineCode);
   if UseLegacyPagination and (EngineCode = 'sqlsrv') and (O > 0) then
   begin
     Q := Query.Clone;
-    try
-      if not Q.HasComponent('select',EngineCode) then Q.Select('*');
-      N := Context.Bindings.Count;
-      Order := CompileOrders(Context,Q);
-      if Order = '' then Order := 'ORDER BY (SELECT 0)';
-      SetLength(Values,Context.Bindings.Count-N);
-      for I := 0 to High(Values) do Values[I] := Context.Bindings[N+I];
-      while Context.Bindings.Count > N do Context.Bindings.Delete(Context.Bindings.Count-1);
-      Q.SelectRaw('ROW_NUMBER() OVER ('+Order+') AS [row_num]',Values);
-      Q.ClearComponent('order').ClearComponent('limit').ClearComponent('offset');
-      Result := 'SELECT * FROM ('+CompileSelectCore(Context,Q)+') AS [results_wrapper] WHERE [row_num] ';
-      if L = 0 then Result := Result+'>= '+Parameter(Context,O+1)
-      else Result := Result+'BETWEEN '+Parameter(Context,O+1)+' AND '+Parameter(Context,O+L);
-    finally Q.Free; end;
+    if not Q.HasComponent('select',EngineCode) then Q.Select('*');
+    N := Context.Bindings.Count;
+    Order := CompileOrders(Context,Q);
+    if Order = '' then Order := 'ORDER BY (SELECT 0)';
+    SetLength(Values,Context.Bindings.Count-N);
+    for I := 0 to High(Values) do Values[I] := Context.Bindings[N+I];
+    while Context.Bindings.Count > N do Context.Bindings.Delete(Context.Bindings.Count-1);
+    Q.SelectRaw('ROW_NUMBER() OVER ('+Order+') AS [row_num]',Values);
+    Q.ClearComponent('order').ClearComponent('limit').ClearComponent('offset');
+    Result := 'SELECT * FROM ('+CompileSelectCore(Context,Q)+') AS [results_wrapper] WHERE [row_num] ';
+    if L = 0 then Result := Result+'>= '+Parameter(Context,O+1)
+    else Result := Result+'BETWEEN '+Parameter(Context,O+1)+' AND '+Parameter(Context,O+L);
     Exit;
   end;
   Result := CompileSelectCore(Context,Query);
@@ -109,7 +107,7 @@ begin
   end;
 end;
 
-function TCompiler.DateCondition(Context: TCompileContext; Clause: TClause): string;
+function TCompilerObject.DateCondition(Context: TCompileContext; Clause: TClause): string;
 var Col, Part, Op, V, Fmt, ValueFmt: string;
 begin
   Col := Wrap(Clause.Name); Part := LowerCase(Clause.Extra);

@@ -1,30 +1,26 @@
-function TCompiler.AggregateQuery(Query: TQuery): TQuery;
-var A, Outer: TClause; Inner: TQuery; S: string;
+function TCompilerObject.AggregateQuery(Query: IQuery): IQuery;
+var A, Outer: TClause; Inner: IQuery; S: string;
 begin
   A := Query.GetOne('aggregate',EngineCode);
   if A = nil then raise EQueryException.Create('Missing aggregate');
   Inner := Query.Clone;
-  try
-    Inner.ClearComponent('limit').ClearComponent('order').ClearComponent('group');
-    if (Length(A.Columns) = 1) and not Query.IsDistinct then
-    begin Result := Inner; Inner := nil; Exit; end;
-    if Query.IsDistinct then
-    begin
-      Inner.ClearComponent('aggregate').ClearComponent('select').Select(A.Columns);
-      Inner.Method := 'select';
-    end
-    else
-      for S in A.Columns do Inner.WhereNotNull(S);
-    Result := TQuery.Create;
-    try
-      Result.&From(Inner,A.Op+'Query');
-      Outer := Result.Add('aggregate',ckAggregate); Outer.Op := A.Op;
-      Outer.Columns := TArray<string>.Create('*');
-    except Result.Free; raise; end;
-  finally Inner.Free; end;
+  Inner.ClearComponent('limit').ClearComponent('order').ClearComponent('group');
+  if (Length(A.Columns) = 1) and not Query.IsDistinct then
+  begin Result := Inner; Inner := nil; Exit; end;
+  if Query.IsDistinct then
+  begin
+    Inner.ClearComponent('aggregate').ClearComponent('select').Select(A.Columns);
+    Inner.Method := 'select';
+  end
+  else
+    for S in A.Columns do Inner.WhereNotNull(S);
+  Result := TQuery.Create;
+  Result.&From(Inner,A.Op+'Query');
+  Outer := Result.Add('aggregate',ckAggregate); Outer.Op := A.Op;
+  Outer.Columns := TArray<string>.Create('*');
 end;
 
-function TCompiler.JoinTarget(Clause: TClause): string;
+function TCompilerObject.JoinTarget(Clause: TClause): string;
 var Expr, Alias: string;
 begin
   SplitAlias(Clause.Name,Expr,Alias);
@@ -33,7 +29,7 @@ begin
   Result := WrapValue(Copy(Expr,LastDelimiter('.',Expr)+1,MaxInt));
 end;
 
-function TCompiler.CompileWrite(Context: TCompileContext; Query: TQuery): string;
+function TCompilerObject.CompileWrite(Context: TCompileContext; Query: IQuery): string;
 var F, C: TClause; Inserts: TArray<TClause>; TableSql, Target, Columns, Sets, S, Sign: string;
   I, J: Integer; HasJoins: Boolean;
 begin
