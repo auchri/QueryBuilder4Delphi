@@ -1,6 +1,6 @@
 """Generate repetitive Delphi fluent wrappers. Run from the repository root.
 
-The semantic implementations live in src/SqlKata.Query.inc. This generator only
+The semantic implementations live in src/QueryBuilder4Delphi.Query.pas and QueryBuilder4Delphi.Query.Core.pas. This generator only
 produces declarations and forwarding methods, keeping Where/Having symmetric.
 """
 from pathlib import Path

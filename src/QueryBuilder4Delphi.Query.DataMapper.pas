@@ -15,7 +15,7 @@ type
 implementation
 
 uses
-  SqlKata;
+  QueryBuilder4Delphi.Query.Core;
 
 class function TQueryDataMapper.GetPairs(Data: TObject;
   const OnKey: TProc<string, TValue>): TArray<TPair<string, TValue>>;

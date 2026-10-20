@@ -3,7 +3,7 @@ unit QueryBuilder4Delphi.Query.Writes;
 interface
 
 uses
-  System.Rtti, System.Generics.Collections, SqlKata;
+  System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core;
 
 type
   // Stateless implementation shared by the public fluent write overloads.
