@@ -1,31 +1,32 @@
-# Portierungsplan
+# Porting plan
 
-Vorlage: SqlKata, lokaler Commit df4a2377750d34fc057c81886b481e7309ef975e.
-Ziel: Delphi 12 und neuer, Windows Win32/Win64. Keine Execution-Schicht.
-Referenzgezählte Interfaces für Query, Compiler und SqlResult.
-Die anfängliche Klassen-API wurde auf ausdrücklichen Wunsch umgestellt.
-Übergebene Unterabfragen werden kopiert. Callback-Abfragen werden intern freigegeben.
+Source: SqlKata, local commit df4a2377750d34fc057c81886b481e7309ef975e.
+Target: Delphi 12 or later, Windows Win32/Win64. No execution layer.
+Queries, compilers, and SQL results use reference-counted interfaces.
+The initial class-based API was migrated at the user's explicit request.
+Supplied subqueries are copied. Callback queries are released internally.
 
-Abgeschlossene Arbeitspakete:
-1. Projektstruktur, Lizenz und Portierungsplan (`5eac4fa`).
-2. Abfragemodell und Fluent API mit Bedingungen und Besitzverwaltung (`802ed35`).
-3. SQL-Compiler für SELECT, Joins, Unterabfragen, CTEs, Mengenoperationen,
-   Schreiboperationen und Aggregate einschließlich aller sechs Dialekte (`3955bc5`).
-4. DUnitX-Projekt, C#-Referenzdaten und Buildskript; 563 erfolgreiche Tests
-   je Plattform unter Win32 und Win64, beide Builds ohne Warnungen.
-5. README mit geprüften Beispielen, API-Zuordnung und dokumentiertem Prüfstand.
+Completed work packages:
 
-Sprachbedingte API-Unterschiede und Grenzen stehen in [API.md](API.md).
-Der tatsächliche Prüfstand steht in [VALIDATION.md](VALIDATION.md).
-Die vom Auftraggeber freigegebenen Korrekturen an HAVING-Callbacks und
-Oracle-Aggregat-Aliasen sind dort getrennt von der C#-Parität dokumentiert.
+1. Project structure, license, and porting plan (`5eac4fa`).
+2. Query model and fluent API with conditions and ownership management (`802ed35`).
+3. SQL compilers for SELECT, joins, subqueries, CTEs, set operations, writes,
+   and aggregates across all six dialects (`3955bc5`).
+4. DUnitX project, C# reference data, and build script; 563 passing tests per
+   platform on Win32 and Win64, with no build warnings.
+5. README with tested examples, API mapping, and validation documentation.
 
-Abgeschlossene Arbeitspakete zur Interface-Umstellung:
+Language-specific API differences and limitations are documented in
+[API.md](API.md). Actual validation results are recorded in
+[VALIDATION.md](VALIDATION.md). The approved corrections to HAVING callbacks
+and Oracle aggregate aliases are documented separately from C# parity.
 
-6. `IQuery`, `ICompiler`, `ISqlResult` und Interface-Factories bei gleichen
-   Fluent-Methodennamen; automatische Lebensdauer auch für temporäre Ketten
+Completed work packages for the interface migration:
+
+6. `IQuery`, `ICompiler`, `ISqlResult`, and interface factories with the same
+   fluent method names; automatic lifetime management for temporary chains
    (`9d62252`).
-7. Tests auf Interfaces umstellen und sieben Lebensdauer-Regressionstests
-   mit Destruktorzählern ergänzt; je 570 Tests unter Win32 und Win64 bestanden,
-   beide Builds ohne Warnungen (`d65686d`).
-8. README-Beispiele, API-Zuordnung und Prüfnachweise aktualisieren.
+7. Tests migrated to interfaces, plus seven lifetime regression tests using
+   destructor counters; 570 tests passed on each of Win32 and Win64, with no
+   build warnings (`d65686d`).
+8. Updated README examples, API mapping, and validation records (`ff425ed`).

@@ -1,70 +1,67 @@
-# Prüfstand vom 20. Oktober 2026
+# Validation results: October 20, 2026
 
-## Tatsächlich ausgeführt
+## Checks performed
 
-Delphi 12 Community Edition, RAD Studio-Verzeichnis `23.0`, Windows.
-Die Suite wurde über **Projekt → Erzeugen** jeweils vollständig neu gebaut.
-Beide endgültigen Builds meldeten **0 Fehler und 0 Warnungen**.
-Das Kommandozeilen-Buildangebot der installierten Community Edition ist nicht
-verfügbar; die Builds wurden deshalb in der IDE vorgenommen.
+Delphi 12 Community Edition, RAD Studio directory `23.0`, Windows.
+The suite was fully rebuilt for each platform using **Project > Build**.
+Both final builds reported **0 errors and 0 warnings**.
+Command-line compilation is unavailable in the installed Community Edition,
+so the builds were performed in the IDE.
 
-Anschließend wurden die beiden eigenständigen Testprogramme mit
-`tools/build.ps1 -TestsOnly` ausgeführt.
+Both standalone test executables were then run using
+`tools/build.ps1 -TestsOnly`.
 
-| Ziel | DUnitX-Tests | Bestanden | Fehlgeschlagen | Fehler | Ignoriert |
+| Target | DUnitX tests | Passed | Failed | Errors | Ignored |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Win32 | 570 | 570 | 0 | 0 | 0 |
 | Win64 | 570 | 570 | 0 | 0 | 0 |
 
-DUnitX meldete in beiden Läufen `Tests Leaked: 0`.
-Zusätzlich ist `ReportMemoryLeaksOnShutdown` im Testprogramm aktiviert.
-Die PE-Header der Testprogramme wurden als x86 (`0x14c`) bzw. x64 (`0x8664`)
-geprüft. Die maschinenlesbare Zusammenfassung einschließlich SHA-256-Werten
-steht in [validation-results.json](validation-results.json).
-`tools/record_validation.py` kann diese Zusammenfassung aus neuen erfolgreichen
-Testläufen erneut erstellen; das Prüfdatum im Skript ist bei einem neuen
-Prüfstand entsprechend anzupassen.
+DUnitX reported `Tests Leaked: 0` in both runs.
+`ReportMemoryLeaksOnShutdown` is also enabled in the test program.
+The executables' PE headers were verified as x86 (`0x14c`) and x64 (`0x8664`).
+The machine-readable summary, including SHA-256 hashes, is available in
+[validation-results.json](validation-results.json).
+`tools/record_validation.py` can regenerate this summary from new successful
+test runs; update the validation date in the script for a new validation run.
 
-## Referenzvergleich
+## Reference comparison
 
-Die C#-Ausgaben stammen unmittelbar aus der lokalen Vorlage mit Commit
+The C# outputs come directly from local source commit
 `df4a2377750d34fc057c81886b481e7309ef975e`.
-`tools/oracle` referenziert deren `QueryBuilder.csproj`; es enthält keinen
-nachgebauten C#-Compiler. 69 gepaarte Abfragen werden für sechs Dialekte sowie
-die beiden SQL-Server-/Oracle-Legacy-Varianten kompiliert: 552 Referenzergebnisse.
-Ein erneuter C#-Lauf reproduzierte `test/golden.json` bytegleich.
+`tools/oracle` references its `QueryBuilder.csproj`; it does not contain a
+reimplementation of the C# compiler. It compiles 69 paired queries for six
+dialects and the SQL Server and Oracle legacy variants: 552 reference results.
+A repeat C# run reproduced `test/golden.json` byte for byte.
 
-540 Engine-/Szenariokombinationen prüfen das benannte SQL, RawSql sowie Anzahl,
-Werte und Reihenfolge der Bindings gegen diese C#-Daten. Bei den in der Vorlage
-abgelehnten JOIN-Schreiboperationen wird die Ablehnung geprüft.
-Leerraum im SQL wird normalisiert.
+540 engine/scenario combinations compare named SQL, RawSql, and binding counts,
+values, and order against this C# data. For JOIN write operations rejected by
+the C# implementation, the tests verify rejection. SQL whitespace is normalized.
 
-Die zwölf ausdrücklich freigegebenen Abweichungen für HAVING-Callbacks und
-Oracle-Aggregataliase haben eigene Tests mit explizit erwarteter korrigierter
-Ausgabe; die ursprünglichen C#-Referenzen bleiben erhalten. Siehe [API.md](API.md).
+The twelve explicitly approved differences for HAVING callbacks and Oracle
+aggregate aliases have separate tests with explicit corrected expectations;
+the original C# references are preserved. See [API.md](API.md).
 
-Elf bestehende Zusatztests prüfen Besitzverhältnisse beim Klonen/Freigeben von
-Unterabfragen, Exceptions in Callbacks und EngineScope-Wiederherstellung,
-Datentypen und kulturunabhängiges Diagnose-SQL, Operatorprüfung,
-ungültige Schreibdaten, Batch-Parameter, Variablen in Unterabfragen,
-Raw-Arrayparameter, typisierte Arrays, RTTI-Attribute und README-Beispiele.
+Eleven existing additional tests check ownership when cloning and releasing
+subqueries, callback exceptions and EngineScope restoration, data types and
+culture-independent diagnostic SQL, operator validation, invalid write data,
+batch parameters, nested variables, raw array parameters, typed arrays,
+RTTI attributes, and README examples.
 
-Sieben weitere Tests prüfen die referenzgezählte API mit Destruktorzählern:
-geteilte Interfaces, automatische Freigabe von Query-Bäumen und Klonen,
-temporäre Fluent-Ketten bei Exceptions, aufbewahrte Callback-Queries,
-Callback-Fehler, vom SQL-Ergebnis gehaltene Queries sowie Compiler- und
-Ergebnisfreigabe beim Verlassen eines Scopes durch eine Exception.
-Alle README-Funktionen verwenden `IQuery`; das vollständige Beispiel kommt
-ohne `try..finally` aus.
+Seven further tests use destructor counters to check the reference-counted API:
+shared interfaces, automatic release of query trees and clones, temporary
+fluent chains during exceptions, retained callback queries, callback failures,
+queries retained by SQL results, and compiler and result release when an
+exception exits a scope. All README functions use `IQuery`; the complete
+example requires no `try..finally`.
 
-## Grenzen der Aussage
+## Limitations
 
-Geprüft wurden die SQL-Erzeugung und das Laufzeitverhalten der Bibliothek mit
-Delphi 12 für Win32/Win64. Es wurden keine Datenbankserver angesprochen und
-keine SqlKata.Execution-Funktionen portiert. Neuere Delphi-Versionen wurden
-nicht lokal ausgeführt. Die Suite ist kein vollständiger Nachweis jedes
-möglichen SQL-Fragments oder jeder Kombination von Fluent-Overloads.
+Validation covers SQL generation and library runtime behavior with Delphi 12
+on Win32/Win64. No database servers were contacted, and no SqlKata.Execution
+features were ported. Newer Delphi versions were not run locally. The suite
+does not prove the validity of every possible SQL fragment or every
+combination of fluent overloads.
 
-Die ursprünglichen temporären Modell-Smoke-Projekte wurden durch das DUnitX-
-Projekt ersetzt. Buildprodukte und ausführliche NUnit-Protokolle bleiben unter
-`build/Win32` und `build/Win64` und werden nicht eingecheckt.
+The original temporary model smoke-test projects were replaced by the DUnitX
+project. Build outputs and detailed NUnit logs remain in `build/Win32` and
+`build/Win64` and are not checked in.

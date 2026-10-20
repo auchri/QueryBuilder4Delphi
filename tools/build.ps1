@@ -27,13 +27,13 @@ try {
                 Tee-Object -FilePath (Join-Path $outDir 'build.log')
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $exe) -or
                 (Get-Item -LiteralPath $exe).LastWriteTime -lt $started) {
-                throw "Kein erfolgreicher $target-Build. Community Edition: test\QueryBuilder.Tests.dproj in der IDE kompilieren; danach tools\build.ps1 -TestsOnly verwenden."
+                throw "No successful $target build. Community Edition: build test\QueryBuilder.Tests.dproj in the IDE, then use tools\build.ps1 -TestsOnly."
             }
         }
-        if (-not (Test-Path -LiteralPath $exe)) { throw "Testprogramm fehlt: $exe" }
+        if (-not (Test-Path -LiteralPath $exe)) { throw "Test executable not found: $exe" }
         & $exe *> (Join-Path $outDir 'tests.log')
         $testExit = $LASTEXITCODE
         Get-Content (Join-Path $outDir 'tests.log') -Tail 8
-        if ($testExit -ne 0) { throw "DUnitX für $target fehlgeschlagen (Exitcode $testExit)." }
+        if ($testExit -ne 0) { throw "DUnitX failed for $target (exit code $testExit)." }
     }
 } finally { Pop-Location }

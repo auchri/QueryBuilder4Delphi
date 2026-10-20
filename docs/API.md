@@ -1,111 +1,106 @@
-# API-Zuordnung und Grenzen
+# API mapping and limitations
 
-## Öffentliche Fluent API
+## Public fluent API
 
-Die öffentlichen `Query`-Methodennamen der Vorlage sind auf `IQuery` vorhanden,
-außer `Include` und `IncludeMany`: diese dienen der hier ausdrücklich
-ausgeschlossenen Execution-/Relation-Loading-Schicht.
+The upstream public `Query` method names are available on `IQuery`, except for
+`Include` and `IncludeMany`, which belong to the explicitly excluded execution
+and relation-loading layer.
 
-`Query` → `IQuery`, `Compiler` → `ICompiler`, `SqlResult` → `ISqlResult`.
-`TQuery.Create` und `T…Compiler.Create` sind Record-Factories, die sofort ein
-Interface liefern. Auch temporäre Fluent-Ketten benötigen kein manuelles Free.
-Alle Compiler befinden sich in der Unit `SqlKata.Compilers`; das Modell in
-`SqlKata`. Die sechs Compiler-Factories tragen jeweils das Delphi-Präfix `T`.
-`EngineCodes` heißt `TEngineCodes`.
+`Query` maps to `IQuery`, `Compiler` to `ICompiler`, and `SqlResult` to
+`ISqlResult`. `TQuery.Create` and `T...Compiler.Create` are record factories
+that return an interface immediately. Temporary fluent chains do not require
+manual cleanup. All compilers are in `SqlKata.Compilers`; the model is in
+`SqlKata`. The six compiler factories use the Delphi `T` prefix.
+`EngineCodes` is named `TEngineCodes`.
 
-`object`-Parameter werden durch `TValue` ersetzt, `params`-/`IEnumerable`-
-Parameter durch offene Arrays bzw. `TArray`. Für IN-Werte aus typisierten Arrays
-wandelt `TSqlValues.&Of<T>` in `TValues` um. Mehrfachzeilen sind `TRows` mit
-`TValues` pro Zeile. Wörterbücher sind `TDictionary<string,TValue>` bzw.
-Arrays von `TPair<string,TValue>`. Es gibt keine C#-anonymen Datentypen;
-Objektdaten verwenden RTTI-lesbare Delphi-Properties.
+`object` parameters become `TValue`; `params` and `IEnumerable` parameters
+become open arrays or `TArray`. For IN values from typed arrays,
+`TSqlValues.&Of<T>` converts to `TValues`. Multiple rows use `TRows`, with
+`TValues` for each row. Dictionaries use `TDictionary<string,TValue>` or arrays
+of `TPair<string,TValue>`. Delphi has no C# anonymous data types; object data
+uses RTTI-accessible Delphi properties.
 
-`TUnsafeLiteral` und `TVariable` sind Wertrecords mit impliziter Umwandlung in
-`TValue`; sie brauchen kein `Free`. `TUnsafeLiteral.Create(SQL, False)` lässt
-den SQL-Text unverändert. Die Hilfsklasse `Expressions` ist durch diese
-Record-Konstruktoren ersetzt.
+`TUnsafeLiteral` and `TVariable` are value records with implicit conversion to
+`TValue`; they do not need `Free`. `TUnsafeLiteral.Create(SQL, False)` leaves
+the SQL text unchanged. These record constructors replace the `Expressions`
+helper class.
 
-`TConditionGroup` und `TJoin` sind Aliase des gemeinsamen Fluent-Modells
-`IQuery` (auch als `IConditionGroup` und `IJoin`). Die C#-internen
-Clause-Unterklassen, Interfaces, getrennten
-`Wheres`-/`Havings`-/Clause-Properties und die Visitor-/CompileContext-
-Erweiterungsschnittstelle werden nicht binär oder typgleich nachgebildet.
-Stattdessen existieren `TClause`, `Clauses`, `GetComponents`, `GetOne` und
-`ClearComponent`; Komponenten sind `where`, `having`, `select`, `from`, `group`,
-`order`, `join`, `cte`, `combine`, `limit`, `offset`, `aggregate`, `insert`,
-`update`. Diese internen Listen gehören der Abfrage. Eigene Compiler können
-die geschützten virtuellen Methoden von `TCompilerObject` bzw. den
-dialektspezifischen
-`T…CompilerObject`-Klassen überschreiben. Eigene Query-Implementierungen können
-von `TQueryObject` ableiten und `NewQuery`/`Clone` überschreiben. Instanzen dieser
-Implementierungsklassen immer als Interface halten; die Factories sind die
-regulären Einstiegspunkte.
+`TConditionGroup` and `TJoin` are aliases of the shared fluent model `IQuery`,
+also named `IConditionGroup` and `IJoin`. The C# internal clause subclasses,
+interfaces, separate `Wheres`/`Havings`/clause properties, and visitor and
+CompileContext extension interfaces are not reproduced with binary or type
+compatibility. Instead, the port exposes `TClause`, `Clauses`, `GetComponents`,
+`GetOne`, and `ClearComponent`. Components are `where`, `having`, `select`,
+`from`, `group`, `order`, `join`, `cte`, `combine`, `limit`, `offset`,
+`aggregate`, `insert`, and `update`. These internal lists belong to the query.
+Custom compilers can override protected virtual methods on `TCompilerObject`
+or the dialect-specific `T...CompilerObject` classes. Custom query
+implementations can derive from `TQueryObject` and override `NewQuery`/`Clone`.
+Always hold instances of these implementation classes through interfaces;
+the factories are the normal entry points.
 
-## Speicher und Lebensdauer
+## Memory and lifetime
 
-- `IQuery`, `ICompiler` und `ISqlResult` sind über `TInterfacedObject`
-  referenzgezählt. Zuweisungen teilen dieselbe Instanz; `Clone` erzeugt eine
-  unabhängige Abfrage. Scope-Ende oder `Q := nil` gibt eine Referenz frei.
-  Niemals `Free`/`FreeAndNil` auf die Implementierungsobjekte anwenden.
-- `ISqlResult.Query` hält beim Einzelaufruf von `Compile` die ursprüngliche
-  Abfrage am Leben. Bei Batch-Ergebnissen ist `Query` wie bisher `nil`.
-- `Clauses`, `Variables`, `Bindings` und `NamedBindings` sind geliehene
-  RTL-Listen. Sie gehören ihrem Query bzw. Ergebnis und dürfen nicht separat
-  freigegeben werden. Das zugehörige Interface muss bei ihrer Verwendung leben.
-- Eingehende Query-Objekte werden kopiert. Der Aufrufer darf das Original
-  nach dem Methodenaufruf verändern oder freigeben.
-- Callback-Hilfsqueries werden intern erzeugt und kopiert; ihre Lebensdauer
-  ist ebenfalls referenzgezählt. Ein gespeichertes Callback-Interface bleibt
-  nach dem Callback gültig. Callbacks werden nicht im Query gespeichert.
-  Callbacks müssen ihren übergebenen Query zurückgeben; fremde oder `nil`
-  Rückgaben lösen eine Exception aus. `When` und `For` arbeiten direkt auf dem
-  ursprünglichen Query und verlangen ebenfalls dessen Rückgabe.
-- `TValue` hält skalare Werte, Records und referenzgezählte Daten gemäß RTL.
-  Als Parameter eingepackte beliebige `TObject`-Instanzen werden nicht besessen.
-- Query-Klone besitzen unabhängige Clauses und Unterabfragen. Vom Aufrufer
-  eingebettete Referenzobjekte innerhalb eigener `TValue`-Daten werden nicht
-  tief geklont.
-- Wie bei allen referenzgezählten Interfaces müssen eigene Erweiterungen
-  zyklische starke Referenzen vermeiden. Die eingebauten Query-Bäume besitzen
-  keine Rückverweise; Unterabfragen werden geklont.
-- Query-Instanzen und konfigurierbare Compiler sind keine synchronisierten
-  gemeinsam veränderbaren Objekte. Separate Instanzen pro Thread verwenden.
+- `IQuery`, `ICompiler`, and `ISqlResult` use reference counting through
+  `TInterfacedObject`. Assignments share the same instance; `Clone` creates an
+  independent query. Leaving scope or assigning `Q := nil` releases a reference.
+  Never call `Free`/`FreeAndNil` on the implementation objects.
+- For single-query `Compile` calls, `ISqlResult.Query` keeps the original query
+  alive. For batch results, `Query` remains `nil`, as before.
+- `Clauses`, `Variables`, `Bindings`, and `NamedBindings` are borrowed RTL
+  collections. They belong to their query or result and must not be freed
+  separately. Keep the owning interface alive while using them.
+- Supplied query objects are copied. The caller may modify or release the
+  original after the method returns.
+- Callback helper queries are created and copied internally; their lifetimes
+  are also reference-counted. A retained callback query interface remains valid
+  after the callback returns. Callbacks are not stored in the query. Callbacks
+  must return the query they receive; returning another query or `nil` raises
+  an exception. `When` and `For` operate directly on the original query and
+  likewise require that query to be returned.
+- `TValue` holds scalar values, records, and reference-counted data according
+  to RTL rules. Arbitrary `TObject` instances wrapped as parameters are not owned.
+- Query clones own independent clauses and subqueries. Reference objects
+  embedded in custom `TValue` data are not deeply cloned.
+- As with all reference-counted interfaces, custom extensions must avoid strong
+  reference cycles. Built-in query trees have no back references; subqueries
+  are cloned.
+- Query instances and configurable compilers do not synchronize shared mutable
+  state. Use separate instances per thread.
 
-## Bewusst korrigierte Vorlagefehler
+## Intentionally corrected upstream bugs
 
-Vom Auftraggeber ausdrücklich freigegeben:
+The following corrections were explicitly approved:
 
-1. `Having(function(Q: IQuery): IQuery begin Result := Q.Where(...); end)` erzeugt
-   tatsächlich eine HAVING-Gruppe. Die C#-Vorlage prüft bei diesem Overload nur
-   `query.Havings` und verwirft Bedingungen aus `query.Wheres`. Auch ein Callback
-   mit `Q.Having(...)` funktioniert. Bei beiden Komponenten verwendet Delphi
-   vorrangig die Where-Gruppe und bei deren Abwesenheit die Having-Gruppe.
+1. `Having(function(Q: IQuery): IQuery begin Result := Q.Where(...); end)`
+   produces a HAVING group. The C# overload checks only `query.Havings` and
+   discards conditions from `query.Wheres`. A callback using `Q.Having(...)`
+   also works. For both components, Delphi prefers the Where group and falls
+   back to the Having group when no Where group exists.
 2. `TOracleCompiler.Create.Compile(TQuery.Create.SelectCount('Id as Total'))`
-   erzeugt `COUNT("Id") "Total"`. Die C#-Vorlage verliert bei der Aliaszerlegung das
-   Schlüsselwort AS und setzt den Alias in den Aggregatausdruck:
-   `COUNT("Id" "Total")`. Die Delphi-Korrektur gilt auch für gefilterte
-   Aggregate und für den Oracle-Legacy-Modus.
+   produces `COUNT("Id") "Total"`. The C# implementation loses the AS keyword
+   while splitting the alias and places the alias inside the aggregate:
+   `COUNT("Id" "Total")`. The Delphi correction also applies to filtered
+   aggregates and Oracle legacy mode.
 
-Die unveränderten C#-Referenzen dieser Fälle bleiben in `test/golden.json`.
-Die zwölf betroffenen Engine-/Szenariokombinationen werden durch explizite
-Korrekturtests ersetzt, nicht stillschweigend an neue Referenzdaten angepasst.
+The unmodified C# reference outputs for these cases remain in `test/golden.json`.
+The twelve affected engine/scenario combinations have explicit correction tests;
+the reference data is not silently changed to match the corrected output.
 
-## Weitere Unterschiede durch Delphi und Lebensdauer
+## Other differences due to Delphi and lifetime management
 
-- `For` stellt einen vorherigen EngineScope auch bei Exceptions wieder her.
-- `Clone` erhält den Kommentar. Die aktuelle C#-Vorlage kopiert ihn nicht.
-- Batch-Kompilierung leerer Arrays liefert ein leeres Ergebnis.
-- Raw-Bindings müssen zur Anzahl ungeschützter `?` passen; Abweichungen werden
-  frühzeitig mit `EQueryException` gemeldet.
-- Operatoren werden gegen die Whitelist geprüft. Aggregatnamen und Datumsteile
-  müssen einfache SQL-Funktions-/Teilnamen sein. Dialektspezifische Namen wie
-  `quarter` sind möglich; Raw-Ausdrücke sind für freie SQL-Fragmente vorhanden.
-- Die kompakte Modellimplementierung gibt keine Zusage zur Reihenfolge von
-  RTTI-Properties oder Dictionary-Einträgen. Explizite Spalten-/Wertearrays
-  legen die Reihenfolge fest.
-- Im kompilierten SQL kann sich die Formatierung des Leerraums unterscheiden.
-  Im Paritätsvergleich werden ausschließlich diese Leerraumunterschiede
-  normalisiert. Es werden keine Datenbankserver angesprochen.
+- `For` restores the previous EngineScope even when an exception occurs.
+- `Clone` preserves the comment. The current C# implementation does not copy it.
+- Batch compilation of an empty array returns an empty result.
+- Raw binding counts must match unescaped `?` placeholders; mismatches raise
+  `EQueryException` early.
+- Operators are checked against a whitelist. Aggregate names and date parts
+  must be simple SQL function or part names. Dialect-specific names such as
+  `quarter` are allowed; raw expressions support arbitrary SQL fragments.
+- The compact model does not guarantee RTTI property or dictionary entry order.
+  Use explicit column/value arrays when order matters.
+- Whitespace formatting in compiled SQL may differ. Parity comparisons
+  normalize only these whitespace differences. No database servers are contacted.
 
-`Comment`/`GetComment` dienen wie in der lokalen C#-Compilerfassung der
-Modellmetadatenverwaltung; der Kommentar wird nicht in SQL eingefügt.
+As in the local C# compiler implementation, `Comment`/`GetComment` manage model
+metadata; comments are not inserted into SQL.

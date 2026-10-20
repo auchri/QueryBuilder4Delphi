@@ -1,18 +1,18 @@
 # QueryBuilder4Delphi
 
-Delphi-Portierung des SqlKata-QueryBuilders aus dem lokalen C#-Stand
+A Delphi port of the SqlKata query builder, based on local C# commit
 `df4a2377750d34fc057c81886b481e7309ef975e`.
-Ziel ist **Delphi 12 oder neuer unter Windows, Win32 und Win64**.
+Targets **Delphi 12 or later on Windows, Win32 and Win64**.
 
-Die Bibliothek baut SQL und Parameterlisten. `SqlKata.Execution`, FireDAC,
-Datenbankverbindungen, Ergebnismapping, `Get`, `First` und `Paginate` sind nicht
-Bestandteil dieses Piloten. `ForPage` erzeugt dagegen LIMIT/OFFSET bzw. die
-entsprechende SQL-Dialektvariante und ist vorhanden.
+The library builds SQL and parameter lists. `SqlKata.Execution`, FireDAC,
+database connections, result mapping, `Get`, `First`, and `Paginate` are outside
+the scope of this pilot. `ForPage` is supported: it generates LIMIT/OFFSET or
+the equivalent SQL for the selected dialect.
 
-## Einbinden
+## Installation
 
-`src` zum Delphi-Suchpfad hinzufügen. Die Bibliothek benötigt nur die Delphi-RTL.
-Ein Package oder weitere Laufzeitbibliotheken sind nicht erforderlich.
+Add `src` to the Delphi search path. The library requires only the Delphi RTL.
+No package or additional runtime libraries are required.
 
 ```pascal
 uses
@@ -20,16 +20,15 @@ uses
   SqlKata, SqlKata.Compilers;
 ```
 
-Abfragen, Compiler und Ergebnisse verwenden **referenzgezählte Interfaces**:
-`IQuery`, `ICompiler` und `ISqlResult`. Sie werden beim Verlassen des Scopes
-automatisch freigegeben, auch bei Exceptions. `Free` und `try..finally` sind
-dafür nicht nötig. `TQuery.Create` und die Compiler-Factories liefern direkt
-Interfaces; die vertrauten Fluent-Aufrufe bleiben erhalten.
-Übergebene Unterabfragen, Joins, Filter und ConditionGroups werden weiterhin
-kopiert. Ein Callback erhält und liefert `IQuery` und muss die ihm übergebene
-Abfrage zurückgeben.
+Queries, compilers, and results use **reference-counted interfaces**:
+`IQuery`, `ICompiler`, and `ISqlResult`. They are released automatically when
+they leave scope, including during exceptions. No `Free` or `try..finally`
+is needed for these objects. `TQuery.Create` and the compiler factories return
+interfaces directly, preserving the familiar fluent calls.
+Supplied subqueries, joins, filters, and condition groups are still copied.
+Callbacks accept and return `IQuery` and must return the query they receive.
 
-## Vollständiges Beispiel
+## Complete example
 
 ```pascal
 program BooksSql;
@@ -67,22 +66,22 @@ ORDER BY [PublishedAt] DESC
 OFFSET @p1 ROWS FETCH NEXT @p2 ROWS ONLY
 ```
 
-Bindings in dieser Reihenfolge: `de`, `0` (Offset), `10` (Limit).
+Bindings, in order: `de`, `0` (offset), `10` (limit).
 
-`Sql` enthält benannte Parameter; `RawSql` enthält `?`-Platzhalter.
-`Bindings` enthält `TValue`-Werte in SQL-Reihenfolge und `NamedBindings` dieselben
-Werte unter `@p0`, `@p1`, … bzw. bei Oracle `:p0`, `:p1`, ….
-`ToString` ersetzt Parameter für die Diagnose; zum Ausführen sind SQL und Bindings
-getrennt zu verwenden. `ISqlResult.Query` hält die ursprüngliche Abfrage am
-Leben. Die Abfrage wird beim Kompilieren nicht verändert.
+`Sql` contains named parameters; `RawSql` contains `?` placeholders.
+`Bindings` contains `TValue` values in SQL order, and `NamedBindings` contains
+the same values under `@p0`, `@p1`, etc., or `:p0`, `:p1`, etc. for Oracle.
+`ToString` substitutes parameters for diagnostic output; use SQL and bindings
+separately when executing a statement. `ISqlResult.Query` keeps the original
+query alive. Compilation does not modify the query.
 
-## Weitere geprüfte Beispiele
+## More tested examples
 
-Die folgenden Funktionen stehen auch in `test/ReadmeExamples.pas`. DUnitX
-kompiliert sie und prüft das erzeugte SQL und die Parameteranzahl.
-Die zurückgegebenen Interfaces verwalten ihre Lebensdauer automatisch.
+The following functions are also available in `test/ReadmeExamples.pas`.
+DUnitX compiles them and checks the generated SQL and parameter counts.
+The returned interfaces manage their lifetimes automatically.
 
-### Join mit Alias
+### Join with an alias
 
 ```pascal
 function BooksWithAuthors: IQuery;
@@ -99,7 +98,7 @@ FROM [Books]
 INNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]
 ```
 
-### Verschachtelte Bedingungen
+### Nested conditions
 
 ```pascal
 function NestedConditions: IQuery;
@@ -139,7 +138,7 @@ WITH [published] AS (
 SELECT [Title] FROM [published]
 ```
 
-### INSERT, UPDATE und DELETE
+### INSERT, UPDATE, and DELETE
 
 ```pascal
 function InsertUser: IQuery;
@@ -167,41 +166,41 @@ UPDATE [Users] SET [Name] = @p0, [CountryId] = @p1 WHERE [Id] = @p2
 DELETE FROM [Users] WHERE [Id] = @p0
 ```
 
-Diese Methoden erzeugen Anweisungen; sie liefern keine betroffenen Datensätze
-oder zurückgegebenen IDs. `AsInsert` mit `ReturnId=True` ergänzt bei den
-Dialekten SQL Server, MySQL, PostgreSQL und SQLite die Anweisung aus der C#-Vorlage.
+These methods generate statements; they do not return affected rows or IDs.
+For SQL Server, MySQL, PostgreSQL, and SQLite, `AsInsert` with `ReturnId=True`
+appends the identity retrieval statement used by the C# implementation.
 
-## API und Datentypen
+## API and data types
 
-Methodennamen orientieren sich an C#. Delphi-Schlüsselwörter erhalten ein `&`:
+Method names follow the C# API. Delphi keywords receive an `&` prefix:
 `&From`, `&As`, `&With`, `&For`, `&Or`, `&And`, `&Not`, `&Except`.
-Mehrere Spalten oder Werte werden als Array übergeben, z. B.
-`Select(['Id', 'Title'])` oder `WhereIn('Id', [1, 2, 3])`.
-Für typisierte Arrays gibt es `TSqlValues.&Of<Integer>(Ids)`.
+Pass multiple columns or values as an array, for example
+`Select(['Id', 'Title'])` or `WhereIn('Id', [1, 2, 3])`.
+Use `TSqlValues.&Of<Integer>(Ids)` for typed arrays.
 
-Parameter verwenden `TValue`. Zahlen, Strings und Boolean werden implizit
-übernommen. SQL-NULL wird mit `TValue.Empty` oder `WhereNull` ausgedrückt.
-Datumswerte lassen sich explizit mit `TValue.From<TDateTime>(Datum)` übergeben.
-`TBytes` bleiben ein einzelner Binärparameter. Raw-Arrayparameter werden eine
-Ebene aufgefaltet. `\?` schützt ein Fragezeichen in einem Raw-Ausdruck.
+Parameters use `TValue`. Numbers, strings, and Boolean values are converted
+implicitly. Use `TValue.Empty` or `WhereNull` for SQL NULL. Pass dates explicitly
+with `TValue.From<TDateTime>(DateValue)`. `TBytes` remains a single binary
+parameter. Raw array parameters are expanded by one level.
+Use `\?` to escape a question mark in a raw expression.
 
-Vorhanden sind u. a. WHERE/HAVING mit OR/NOT, NULL, Boolean, IN, BETWEEN,
-LIKE/Starts/Ends/Contains, Datumsteilen, verschachtelten Gruppen, Unterabfragen
-und EXISTS; SELECT-Aggregate einschließlich Filter, GROUP BY, ORDER BY,
-Joins, CTEs einschließlich Wertetabellen, UNION/EXCEPT/INTERSECT, Schreibabfragen,
-Klonen, Variablen, `When` und enginebezogene `For…`-Callbacks.
+Supported features include WHERE/HAVING with OR/NOT, NULL, Boolean, IN, BETWEEN,
+LIKE/Starts/Ends/Contains, date parts, nested groups, subqueries, and EXISTS;
+SELECT aggregates with filters, GROUP BY, ORDER BY, joins, CTEs including value
+tables, UNION/EXCEPT/INTERSECT, write queries, cloning, variables, `When`, and
+engine-specific `For...` callbacks.
 
-Objektdaten werden über RTTI-lesbare Properties eingelesen. `[Column('Name')]`,
-`[Key('Id')]` und `[Ignore]` entsprechen der C#-Vorlage; bei `AsUpdate` erzeugt
-ein Key zusätzlich die WHERE-Bedingung. Dictionaries verwenden
-`TDictionary<string,TValue>`; explizite Spaltenarrays geben die Reihenfolge vor.
+Object data is read through RTTI-accessible properties. `[Column('Name')]`,
+`[Key('Id')]`, and `[Ignore]` correspond to the C# attributes; with `AsUpdate`,
+a key also adds a WHERE condition. Dictionaries use
+`TDictionary<string,TValue>`; explicit column arrays determine the order.
 
-Details zu Besitzverhältnissen, API-Grenzen und den ausdrücklich korrigierten
-C#-Fehlern stehen in [docs/API.md](docs/API.md).
+See [docs/API.md](docs/API.md) for ownership rules, API limitations, and the
+explicitly corrected C# bugs.
 
-## SQL-Dialekte
+## SQL dialects
 
-| Factory (`Create` liefert `ICompiler`) | EngineCode | Parameter |
+| Factory (`Create` returns `ICompiler`) | EngineCode | Parameter |
 | --- | --- | --- |
 | `TSqlServerCompiler` | `sqlsrv` | `@p0` |
 | `TPostgresCompiler` | `postgres` | `@p0` |
@@ -210,53 +209,52 @@ C#-Fehlern stehen in [docs/API.md](docs/API.md).
 | `TOracleCompiler` | `oracle` | `:p0` |
 | `TFirebirdCompiler` | `firebird` | `@p0` |
 
-SQL Server und Oracle verwenden standardmäßig OFFSET/FETCH.
-`UseLegacyPagination := True` aktiviert für SQL Server TOP/ROW_NUMBER bzw.
-für Oracle ROWNUM. Firebird unterstützt FIRST/SKIP/ROWS.
-Schreibabfragen mit Joins werden entsprechend der C#-Vorlage nur für
-SQL Server und MySQL unterstützt; die übrigen Compiler weisen sie zurück.
+SQL Server and Oracle use OFFSET/FETCH by default.
+`UseLegacyPagination := True` enables TOP/ROW_NUMBER for SQL Server and ROWNUM
+for Oracle. Firebird supports FIRST/SKIP/ROWS.
+As in the C# implementation, write queries with joins are supported only for
+SQL Server and MySQL; the other compilers reject them.
 
-## DUnitX ausführen
+## Running DUnitX
 
-DUnitX wird nur für die Tests benötigt. Das Testprojekt verwendet die mit
-Delphi gelieferte Quelle unter `$(BDS)\source\DUnitX`.
+DUnitX is required only for tests. The test project uses the sources bundled
+with Delphi under `$(BDS)\source\DUnitX`.
 
-**IDE, einschließlich Community Edition:**
+**IDE, including Community Edition:**
 
-1. `test/QueryBuilder.Tests.dproj` öffnen.
-2. Windows 32 Bit wählen und **Projekt → Erzeugen** (`Umschalt+F9`) ausführen.
-3. Windows 64 Bit wählen und ebenfalls **Erzeugen** ausführen.
-4. Im Repository `./tools/build.ps1 -TestsOnly` ausführen.
+1. Open `test/QueryBuilder.Tests.dproj`.
+2. Select Windows 32-bit and run **Project > Build** (`Shift+F9`).
+3. Select Windows 64-bit and run **Build** again.
+4. Run `./tools/build.ps1 -TestsOnly` from the repository.
 
-**Delphi-Ausgaben mit Kommandozeilen-Compiler:**
+**Delphi editions with a command-line compiler:**
 
 ```powershell
 ./tools/build.ps1 -BdsRoot 'C:\Program Files (x86)\Embarcadero\Studio\23.0'
 ```
 
-Einzelplattform: zusätzlich `-Platform Win32` oder `-Platform Win64`.
-Ergebnisse liegen unter `build/Win32` und `build/Win64`:
-Testprogramm, `tests.log` und NUnit-XML `results.xml`.
-Der Testprozess liefert bei Fehlern einen von null verschiedenen Exitcode.
+For a single platform, add `-Platform Win32` or `-Platform Win64`.
+Outputs are written to `build/Win32` and `build/Win64`:
+the test executable, `tests.log`, and the NUnit XML report `results.xml`.
+The test process returns a nonzero exit code on failure.
 
-Die eingecheckte `test/golden.json` enthält Ausgaben der tatsächlichen
-C#-Vorlage. Der SQL-Vergleich normalisiert Leerraum; Bindings werden in ihrer
-Reihenfolge verglichen. Bekannte, bewusst korrigierte Vorlagefehler werden
-separat gegen die korrigierte Ausgabe geprüft. Die Tests benötigen weder .NET
-noch eine Datenbank. Details zum Prüfstand: [docs/VALIDATION.md](docs/VALIDATION.md).
+The checked-in `test/golden.json` contains output from the actual C# source.
+SQL comparisons normalize whitespace; bindings are compared in order.
+Known, intentionally corrected upstream bugs are tested separately against
+the corrected output. Running the tests requires neither .NET nor a database.
+See [docs/VALIDATION.md](docs/VALIDATION.md) for validation details.
 
-Nur zum **Neuerzeugen** der Referenzdaten werden Python und ein .NET-SDK mit
-.NET-8-Unterstützung benötigt:
+Python and a .NET SDK with .NET 8 support are needed only to **regenerate**
+the reference data:
 
 ```powershell
 python tools/generate_oracle.py ../querybuilder
 dotnet run --project tools/oracle/Oracle.csproj -- test/golden.json
 ```
 
-Die generierten Fluent-Weiterleitungen lassen sich mit
-`python tools/generate_query.py` erneut erzeugen. Semantikänderungen gehören in
-die Pascal-Units und die zugehörigen Tests.
+Regenerate the fluent forwarding methods with `python tools/generate_query.py`.
+Make semantic changes in the Pascal units and their corresponding tests.
 
-## Lizenz
+## License
 
-MIT, einschließlich des Copyright-Hinweises der C#-Vorlage; siehe [LICENSE](LICENSE).
+MIT, including the upstream C# copyright notice; see [LICENSE](LICENSE).
