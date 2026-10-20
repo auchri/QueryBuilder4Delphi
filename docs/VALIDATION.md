@@ -13,8 +13,8 @@ Anschließend wurden die beiden eigenständigen Testprogramme mit
 
 | Ziel | DUnitX-Tests | Bestanden | Fehlgeschlagen | Fehler | Ignoriert |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Win32 | 563 | 563 | 0 | 0 | 0 |
-| Win64 | 563 | 563 | 0 | 0 | 0 |
+| Win32 | 570 | 570 | 0 | 0 | 0 |
+| Win64 | 570 | 570 | 0 | 0 | 0 |
 
 DUnitX meldete in beiden Läufen `Tests Leaked: 0`.
 Zusätzlich ist `ReportMemoryLeaksOnShutdown` im Testprogramm aktiviert.
@@ -43,11 +43,19 @@ Die zwölf ausdrücklich freigegebenen Abweichungen für HAVING-Callbacks und
 Oracle-Aggregataliase haben eigene Tests mit explizit erwarteter korrigierter
 Ausgabe; die ursprünglichen C#-Referenzen bleiben erhalten. Siehe [API.md](API.md).
 
-Elf zusätzliche Tests prüfen Besitzverhältnisse beim Klonen/Freigeben von
+Elf bestehende Zusatztests prüfen Besitzverhältnisse beim Klonen/Freigeben von
 Unterabfragen, Exceptions in Callbacks und EngineScope-Wiederherstellung,
 Datentypen und kulturunabhängiges Diagnose-SQL, Operatorprüfung,
 ungültige Schreibdaten, Batch-Parameter, Variablen in Unterabfragen,
 Raw-Arrayparameter, typisierte Arrays, RTTI-Attribute und README-Beispiele.
+
+Sieben weitere Tests prüfen die referenzgezählte API mit Destruktorzählern:
+geteilte Interfaces, automatische Freigabe von Query-Bäumen und Klonen,
+temporäre Fluent-Ketten bei Exceptions, aufbewahrte Callback-Queries,
+Callback-Fehler, vom SQL-Ergebnis gehaltene Queries sowie Compiler- und
+Ergebnisfreigabe beim Verlassen eines Scopes durch eine Exception.
+Alle README-Funktionen verwenden `IQuery`; das vollständige Beispiel kommt
+ohne `try..finally` aus.
 
 ## Grenzen der Aussage
 

@@ -20,11 +20,14 @@ uses
   SqlKata, SqlKata.Compilers;
 ```
 
-`TQuery`, `TCompiler` und `TSqlResult` sind klassische Klassen. Der Aufrufer
-gibt sie mit `Free` oder `FreeAndNil` frei. Übergebene Unterabfragen, Joins,
-Filter und ConditionGroups werden kopiert; ihre ursprünglichen Instanzen bleiben
-beim Aufrufer. Callback-Hilfsabfragen gehören der Bibliothek. Ein Callback muss
-die ihm übergebene Abfrage zurückgeben und darf sie nicht freigeben.
+Abfragen, Compiler und Ergebnisse verwenden **referenzgezählte Interfaces**:
+`IQuery`, `ICompiler` und `ISqlResult`. Sie werden beim Verlassen des Scopes
+automatisch freigegeben, auch bei Exceptions. `Free` und `try..finally` sind
+dafür nicht nötig. `TQuery.Create` und die Compiler-Factories liefern direkt
+Interfaces; die vertrauten Fluent-Aufrufe bleiben erhalten.
+Übergebene Unterabfragen, Joins, Filter und ConditionGroups werden weiterhin
+kopiert. Ein Callback erhält und liefert `IQuery` und muss die ihm übergebene
+Abfrage zurückgeben.
 
 ## Vollständiges Beispiel
 
@@ -37,33 +40,21 @@ uses
   System.SysUtils, SqlKata, SqlKata.Compilers;
 
 var
-  Q: TQuery;
-  Compiler: TSqlServerCompiler;
-  Compiled: TSqlResult;
+  Q: IQuery;
+  Compiler: ICompiler;
+  Compiled: ISqlResult;
 begin
-  Q := TQuery.Create('Books');
-  try
-    Q.Select(['Id', 'Title'])
-      .WhereTrue('IsPublished')
-      .Where('Lang', 'de')
-      .OrderByDesc('PublishedAt')
-      .Limit(10);
+  Q := TQuery.Create('Books')
+    .Select(['Id', 'Title'])
+    .WhereTrue('IsPublished')
+    .Where('Lang', 'de')
+    .OrderByDesc('PublishedAt')
+    .Limit(10);
 
-    Compiler := TSqlServerCompiler.Create;
-    try
-      Compiled := Compiler.Compile(Q);
-      try
-        Writeln(Compiled.Sql);
-        Writeln(Compiled.Bindings[0].AsString); // de
-      finally
-        FreeAndNil(Compiled);
-      end;
-    finally
-      FreeAndNil(Compiler);
-    end;
-  finally
-    FreeAndNil(Q);
-  end;
+  Compiler := TSqlServerCompiler.Create;
+  Compiled := Compiler.Compile(Q);
+  Writeln(Compiled.Sql);
+  Writeln(Compiled.Bindings[0].AsString); // de
 end.
 ```
 
@@ -82,19 +73,19 @@ Bindings in dieser Reihenfolge: `de`, `0` (Offset), `10` (Limit).
 `Bindings` enthält `TValue`-Werte in SQL-Reihenfolge und `NamedBindings` dieselben
 Werte unter `@p0`, `@p1`, … bzw. bei Oracle `:p0`, `:p1`, ….
 `ToString` ersetzt Parameter für die Diagnose; zum Ausführen sind SQL und Bindings
-getrennt zu verwenden. `TSqlResult.Query` ist eine nicht besitzende Referenz auf
-die ursprüngliche Abfrage. Die Abfrage wird beim Kompilieren nicht verändert.
+getrennt zu verwenden. `ISqlResult.Query` hält die ursprüngliche Abfrage am
+Leben. Die Abfrage wird beim Kompilieren nicht verändert.
 
 ## Weitere geprüfte Beispiele
 
 Die folgenden Funktionen stehen auch in `test/ReadmeExamples.pas`. DUnitX
 kompiliert sie und prüft das erzeugte SQL und die Parameteranzahl.
-Die zurückgegebene Abfrage gehört jeweils dem Aufrufer.
+Die zurückgegebenen Interfaces verwalten ihre Lebensdauer automatisch.
 
 ### Join mit Alias
 
 ```pascal
-function BooksWithAuthors: TQuery;
+function BooksWithAuthors: IQuery;
 begin
   Result := TQuery.Create('Books');
   Result.Join('Authors', 'Authors.Id', 'Books.AuthorId')
@@ -111,11 +102,11 @@ INNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]
 ### Verschachtelte Bedingungen
 
 ```pascal
-function NestedConditions: TQuery;
+function NestedConditions: IQuery;
 begin
   Result := TQuery.Create('Books');
   Result.Where(
-    function(Q: TQuery): TQuery
+    function(Q: IQuery): IQuery
     begin
       Result := Q.Where('Lang', 'de').OrWhere('Lang', 'en');
     end).WhereNotNull('PublishedAt');
@@ -130,11 +121,11 @@ WHERE ([Lang] = @p0 OR [Lang] = @p1) AND [PublishedAt] IS NOT NULL
 ### CTE
 
 ```pascal
-function PublishedCte: TQuery;
+function PublishedCte: IQuery;
 begin
   Result := TQuery.Create('published');
   Result.&With('published',
-    function(Q: TQuery): TQuery
+    function(Q: IQuery): IQuery
     begin
       Result := Q.&From('Books').WhereTrue('IsPublished');
     end).Select('Title');
@@ -151,19 +142,19 @@ SELECT [Title] FROM [published]
 ### INSERT, UPDATE und DELETE
 
 ```pascal
-function InsertUser: TQuery;
+function InsertUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.AsInsert(['Name', 'CountryId'], ['Jane', 1]);
 end;
 
-function UpdateUser: TQuery;
+function UpdateUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.Where('Id', 1).AsUpdate(['Name', 'CountryId'], ['Jane', 2]);
 end;
 
-function DeleteUser: TQuery;
+function DeleteUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.Where('Id', 1).AsDelete;
@@ -210,7 +201,7 @@ C#-Fehlern stehen in [docs/API.md](docs/API.md).
 
 ## SQL-Dialekte
 
-| Klasse | EngineCode | Parameter |
+| Factory (`Create` liefert `ICompiler`) | EngineCode | Parameter |
 | --- | --- | --- |
 | `TSqlServerCompiler` | `sqlsrv` | `@p0` |
 | `TPostgresCompiler` | `postgres` | `@p0` |

@@ -2,7 +2,8 @@
 
 Vorlage: SqlKata, lokaler Commit df4a2377750d34fc057c81886b481e7309ef975e.
 Ziel: Delphi 12 und neuer, Windows Win32/Win64. Keine Execution-Schicht.
-Klassische Klassen; der Aufrufer gibt Query, Compiler und SqlResult frei.
+Referenzgezählte Interfaces für Query, Compiler und SqlResult.
+Die anfängliche Klassen-API wurde auf ausdrücklichen Wunsch umgestellt.
 Übergebene Unterabfragen werden kopiert. Callback-Abfragen werden intern freigegeben.
 
 Abgeschlossene Arbeitspakete:
@@ -18,3 +19,13 @@ Sprachbedingte API-Unterschiede und Grenzen stehen in [API.md](API.md).
 Der tatsächliche Prüfstand steht in [VALIDATION.md](VALIDATION.md).
 Die vom Auftraggeber freigegebenen Korrekturen an HAVING-Callbacks und
 Oracle-Aggregat-Aliasen sind dort getrennt von der C#-Parität dokumentiert.
+
+Abgeschlossene Arbeitspakete zur Interface-Umstellung:
+
+6. `IQuery`, `ICompiler`, `ISqlResult` und Interface-Factories bei gleichen
+   Fluent-Methodennamen; automatische Lebensdauer auch für temporäre Ketten
+   (`9d62252`).
+7. Tests auf Interfaces umstellen und sieben Lebensdauer-Regressionstests
+   mit Destruktorzählern ergänzt; je 570 Tests unter Win32 und Win64 bestanden,
+   beide Builds ohne Warnungen (`d65686d`).
+8. README-Beispiele, API-Zuordnung und Prüfnachweise aktualisieren.
