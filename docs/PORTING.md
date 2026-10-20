@@ -48,3 +48,13 @@ Completed work packages for compiler classes:
     current API documentation. The old facade is no longer provided; use
     `QueryBuilder4Delphi.Compilers` or its individual compiler units in all
     compiler `uses` clauses.
+
+Completed work packages for query writes:
+
+12. Start `codex/refactor-query-writes` from the freshly fetched `origin/main`
+    at `1a39f8d`, before modifying any files. Replace `SqlKata.Writes.inc` with
+    the stateless `TQueryWrites` class in `QueryBuilder4Delphi.Query.Writes`
+    and `TQueryDataMapper` in `QueryBuilder4Delphi.Query.DataMapper`.
+    Keep the public fluent API and reference-counted return values unchanged.
+13. Add eight write and RTTI mapping regression cases; rebuild and run all
+    586 tests on both Win32 and Win64. Update the API and validation records.
