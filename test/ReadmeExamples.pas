@@ -4,17 +4,17 @@ interface
 
 uses SqlKata;
 
-function PublishedBooks: TQuery;
-function BooksWithAuthors: TQuery;
-function NestedConditions: TQuery;
-function PublishedCte: TQuery;
-function InsertUser: TQuery;
-function UpdateUser: TQuery;
-function DeleteUser: TQuery;
+function PublishedBooks: IQuery;
+function BooksWithAuthors: IQuery;
+function NestedConditions: IQuery;
+function PublishedCte: IQuery;
+function InsertUser: IQuery;
+function UpdateUser: IQuery;
+function DeleteUser: IQuery;
 
 implementation
 
-function PublishedBooks: TQuery;
+function PublishedBooks: IQuery;
 begin
   Result := TQuery.Create('Books');
   Result.Select(['Id', 'Title'])
@@ -24,46 +24,46 @@ begin
     .Limit(10);
 end;
 
-function BooksWithAuthors: TQuery;
+function BooksWithAuthors: IQuery;
 begin
   Result := TQuery.Create('Books');
   Result.Join('Authors', 'Authors.Id', 'Books.AuthorId')
     .Select(['Books.*', 'Authors.Name as AuthorName']);
 end;
 
-function NestedConditions: TQuery;
+function NestedConditions: IQuery;
 begin
   Result := TQuery.Create('Books');
   Result.Where(
-    function(Q: TQuery): TQuery
+    function(Q: IQuery): IQuery
     begin
       Result := Q.Where('Lang', 'de').OrWhere('Lang', 'en');
     end).WhereNotNull('PublishedAt');
 end;
 
-function PublishedCte: TQuery;
+function PublishedCte: IQuery;
 begin
   Result := TQuery.Create('published');
   Result.&With('published',
-    function(Q: TQuery): TQuery
+    function(Q: IQuery): IQuery
     begin
       Result := Q.&From('Books').WhereTrue('IsPublished');
     end).Select('Title');
 end;
 
-function InsertUser: TQuery;
+function InsertUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.AsInsert(['Name', 'CountryId'], ['Jane', 1]);
 end;
 
-function UpdateUser: TQuery;
+function UpdateUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.Where('Id', 1).AsUpdate(['Name', 'CountryId'], ['Jane', 2]);
 end;
 
-function DeleteUser: TQuery;
+function DeleteUser: IQuery;
 begin
   Result := TQuery.Create('Users');
   Result.Where('Id', 1).AsDelete;
