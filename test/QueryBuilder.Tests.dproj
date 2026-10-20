@@ -32,6 +32,14 @@
         </DelphiCompile>
         <DCCReference Include="..\src\SqlKata.pas"/>
         <DCCReference Include="..\src\SqlKata.Compilers.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.Compiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.SqlServerCompiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.PostgresCompiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.MySqlCompiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.SqliteCompiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.OracleCompiler.pas"/>
+        <DCCReference Include="..\src\SqlKata.Compilers.FirebirdCompiler.pas"/>
+        <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryBuilder.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
