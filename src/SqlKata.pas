@@ -93,7 +93,8 @@ type
     function &From(const Callback: TQueryCallback; const Alias: string = ''): TQuery; overload;
     function Select(Query: TQuery; const Alias: string): TQuery; overload;
     function Select(const Callback: TQueryCallback; const Alias: string): TQuery; overload;
-    function SelectAggregate(const Aggregate, Column: string; const Filter: TQueryCallback = nil): TQuery;
+    function SelectAggregate(const Aggregate, Column: string; const Filter: TQueryCallback = nil): TQuery; overload;
+    function SelectAggregate(const Aggregate, Column: string; Filter: TQuery): TQuery; overload;
     function &With(const Alias: string; Query: TQuery): TQuery; overload;
     function &With(Query: TQuery): TQuery; overload;
     function &With(const Alias: string; const Callback: TQueryCallback): TQuery; overload;
@@ -118,6 +119,7 @@ type
     function OrOn(const First, Second: string; const Op: string = '='): TQuery;
     function JoinWith(const Table: string): TQuery; overload;
     function JoinWith(Query: TQuery; const Alias: string = ''): TQuery; overload;
+    function JoinWith(const Callback: TQueryCallback; const Alias: string = ''): TQuery; overload;
     function JoinWithRaw(const Sql: string; const Bindings: array of TValue): TQuery;
     function AsType(const Value: string): TQuery;
     function AsInner: TQuery;
@@ -144,14 +146,20 @@ type
     function AsInsert(const Columns: array of string; Query: TQuery): TQuery; overload;
     function AsInsert(const Values: array of TPair<string,TValue>; ReturnId: Boolean = False): TQuery; overload;
     function AsInsert(Data: TObject; ReturnId: Boolean = False): TQuery; overload;
+    function AsInsert(Data: TDictionary<string,TValue>; ReturnId: Boolean = False): TQuery; overload;
     function AsUpdate(const Columns: array of string; const Values: array of TValue): TQuery; overload;
     function AsUpdate(const Values: array of TPair<string,TValue>): TQuery; overload;
     function AsUpdate(Data: TObject): TQuery; overload;
+    function AsUpdate(Data: TDictionary<string,TValue>): TQuery; overload;
     function AsDelete: TQuery;
     function AsIncrement(const Column: string; Value: Integer = 1): TQuery;
     function AsDecrement(const Column: string; Value: Integer = 1): TQuery;
     function Where(const Values: array of TPair<string,TValue>): TQuery; overload;
     function Where(Data: TObject): TQuery; overload;
+    function Where(Data: TDictionary<string,TValue>): TQuery; overload;
+    function Having(const Values: array of TPair<string,TValue>): TQuery; overload;
+    function Having(Data: TObject): TQuery; overload;
+    function Having(Data: TDictionary<string,TValue>): TQuery; overload;
     {$I SqlKata.Fluent.Declarations.inc}
     property Clauses: TObjectList<TClause> read FClauses;
     property Variables: TDictionary<string,TValue> read FVariables;
@@ -161,13 +169,24 @@ type
   TConditionGroup = TQuery;
   TJoin = TQuery;
 
+  TSqlValues = record
+    class function &Of<T>(const Values: array of T): TValues; static;
+  end;
+
 function CopyValues(const Values: array of TValue): TValues;
 function CopyStrings(const Values: array of string): TArray<string>;
 function ExpandExpression(const Expression: string): TArray<string>;
 
 implementation
 
-uses System.StrUtils;
+uses System.StrUtils, System.Variants, System.RegularExpressions;
+
+class function TSqlValues.&Of<T>(const Values: array of T): TValues;
+var I: Integer;
+begin
+  SetLength(Result,Length(Values));
+  for I := 0 to High(Values) do Result[I] := TValue.From<T>(Values[I]);
+end;
 
 {$I SqlKata.Query.inc}
 {$I SqlKata.Fluent.Implementation.inc}

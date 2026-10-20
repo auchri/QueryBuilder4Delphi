@@ -22,7 +22,8 @@ for component, root in [('where','Where'), ('having','Having')]:
             base = prefix+root+('Not' if neg else '')
             flags=f"'{component}', {str(flagor)}, {str(neg)}"
             def cond(name, params, kind, assignments, overload=False):
-                method(name,params,f"  C := Condition({flags}, {kind});\n{assignments}\n  Result := Self;",'var C: TClause;',overload)
+                before = "  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');\n" if kind == 'ckExists' else ''
+                method(name,params,before+f"  C := Condition({flags}, {kind});\n{assignments}\n  Result := Self;",'var C: TClause;',overload)
             cond(base,'const Column, Op: string; const Value: TValue','ckBasic','  C.Name := Column; C.Op := Op; C.Value := Value;',True)
             method(base,'const Column: string; const Value: TValue',f"  Result := {base}(Column, '=', Value);",overload=True)
             cond(base,'Group: TQuery','ckNested','  C.Query := Group.Clone;',True)
@@ -34,7 +35,7 @@ for component, root in [('where','Where'), ('having','Having')]:
                 if not neg:
                     cond(base+suffix,'const Column: string','ckBoolean',f'  C.Name := Column; C.Value := {val};')
             cond(base+'Between','const Column: string; const Lower, Higher: TValue','ckBetween','  C.Name := Column; C.Value := Lower; C.Value2 := Higher;')
-            cond(base+'In','const Column: string; const Values: array of TValue','ckIn','  C.Name := Column; C.Values := CopyValues(Values);',True)
+            cond(base+'In','const Column: string; const Values: array of TValue','ckIn','  C.Name := Column; C.Values := DistinctValues(Values);',True)
             cond(base+'In','const Column: string; Query: TQuery','ckInQuery','  C.Name := Column; C.Query := Query.Clone;',True)
             method(base+'In','const Column: string; const Callback: TQueryCallback',f'  Q := CallbackQuery(Callback);\n  try Result := {base}In(Column, Q); finally Q.Free; end;','var Q: TQuery;',True)
             cond(base+'Exists','Query: TQuery','ckExists','  C.Query := Query.Clone;',True)
@@ -60,7 +61,10 @@ for name,component in [('Select','select'),('GroupBy','group'),('OrderBy','order
     method(name,'const Columns: array of string',f"  for S in Columns do\n    for E in ExpandExpression(S) do\n    begin\n      C := Add('{component}', ckIdentifier); C.Name := E; C.IsNot := {str(name=='OrderByDesc')};\n    end;\n"+("  Method := 'select';\n" if name=='Select' else '')+'  Result := Self;','var S, E: string; C: TClause;',True)
     method(name,'const Column: string',f'  Result := {name}([Column]);',overload=True)
 for name,component in [('SelectRaw','select'),('FromRaw','from'),('OrderByRaw','order'),('GroupByRaw','group'),('CombineRaw','combine'),('UnionRaw','combine'),('ExceptRaw','combine'),('IntersectRaw','combine')]:
-    method(name,'const Sql: string; const Bindings: array of TValue',("  Remove('from', EngineScope);\n" if component=='from' else '')+f"  C := Add('{component}', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);\n  Result := Self;",'var C: TClause;',True)
+    before = "  Remove('from', EngineScope);\n" if component=='from' else ''
+    if component == 'select': before += "  Method := 'select';\n"
+    if component == 'combine': before += "  if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');\n"
+    method(name,'const Sql: string; const Bindings: array of TValue',before+f"  C := Add('{component}', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);\n  Result := Self;",'var C: TClause;',True)
     method(name,'const Sql: string',f'  Result := {name}(Sql, []);',overload=True)
 for name,agg in [('AsCount','count'),('AsSum','sum'),('AsAvg','avg'),('AsAverage','avg'),('AsMin','min'),('AsMax','max')]:
     if name=='AsCount':
@@ -77,6 +81,6 @@ for name in ['Union','Except','Intersect']:
 for name,engine in [('ForSqlServer','sqlsrv'),('ForPostgreSql','postgres'),('ForMySql','mysql'),('ForSqlite','sqlite'),('ForOracle','oracle'),('ForFirebird','firebird')]:
     method(name,'const Callback: TQueryCallback',f"  Result := &For('{engine}', Callback);")
 
-Path('src/SqlKata.Fluent.Declarations.inc').write_text('\n'.join(decl)+'\n',encoding='utf-8')
-Path('src/SqlKata.Fluent.Implementation.inc').write_text('\n'.join(impl),encoding='utf-8')
+Path('src/SqlKata.Fluent.Declarations.inc').write_text('\n'.join(decl)+'\n',encoding='utf-8',newline='\r\n')
+Path('src/SqlKata.Fluent.Implementation.inc').write_text('\n'.join(impl),encoding='utf-8',newline='\r\n')
 

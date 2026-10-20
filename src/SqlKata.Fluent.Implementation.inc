@@ -78,7 +78,7 @@ function TQuery.WhereIn(const Column: string; const Values: array of TValue): TQ
 var C: TClause;
 begin
   C := Condition('where', False, False, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -100,6 +100,7 @@ end;
 function TQuery.WhereExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('where', False, False, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -250,7 +251,7 @@ function TQuery.WhereNotIn(const Column: string; const Values: array of TValue):
 var C: TClause;
 begin
   C := Condition('where', False, True, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -272,6 +273,7 @@ end;
 function TQuery.WhereNotExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('where', False, True, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -474,7 +476,7 @@ function TQuery.OrWhereIn(const Column: string; const Values: array of TValue): 
 var C: TClause;
 begin
   C := Condition('where', True, False, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -496,6 +498,7 @@ end;
 function TQuery.OrWhereExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('where', True, False, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -646,7 +649,7 @@ function TQuery.OrWhereNotIn(const Column: string; const Values: array of TValue
 var C: TClause;
 begin
   C := Condition('where', True, True, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -668,6 +671,7 @@ end;
 function TQuery.OrWhereNotExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('where', True, True, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -870,7 +874,7 @@ function TQuery.HavingIn(const Column: string; const Values: array of TValue): T
 var C: TClause;
 begin
   C := Condition('having', False, False, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -892,6 +896,7 @@ end;
 function TQuery.HavingExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('having', False, False, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -1042,7 +1047,7 @@ function TQuery.HavingNotIn(const Column: string; const Values: array of TValue)
 var C: TClause;
 begin
   C := Condition('having', False, True, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -1064,6 +1069,7 @@ end;
 function TQuery.HavingNotExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('having', False, True, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -1266,7 +1272,7 @@ function TQuery.OrHavingIn(const Column: string; const Values: array of TValue):
 var C: TClause;
 begin
   C := Condition('having', True, False, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -1288,6 +1294,7 @@ end;
 function TQuery.OrHavingExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('having', True, False, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -1438,7 +1445,7 @@ function TQuery.OrHavingNotIn(const Column: string; const Values: array of TValu
 var C: TClause;
 begin
   C := Condition('having', True, True, ckIn);
-  C.Name := Column; C.Values := CopyValues(Values);
+  C.Name := Column; C.Values := DistinctValues(Values);
   Result := Self;
 end;
 
@@ -1460,6 +1467,7 @@ end;
 function TQuery.OrHavingNotExists(Query: TQuery): TQuery;
 var C: TClause;
 begin
+  if (Query = nil) or not Query.HasComponent('from') then raise EQueryException.Create('EXISTS requires a FROM clause');
   C := Condition('having', True, True, ckExists);
   C.Query := Query.Clone;
   Result := Self;
@@ -1654,6 +1662,7 @@ end;
 function TQuery.SelectRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 var C: TClause;
 begin
+  Method := 'select';
   C := Add('select', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
@@ -1707,6 +1716,7 @@ end;
 function TQuery.CombineRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 var C: TClause;
 begin
+  if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
   C := Add('combine', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
@@ -1720,6 +1730,7 @@ end;
 function TQuery.UnionRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 var C: TClause;
 begin
+  if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
   C := Add('combine', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
@@ -1733,6 +1744,7 @@ end;
 function TQuery.ExceptRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 var C: TClause;
 begin
+  if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
   C := Add('combine', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;
@@ -1746,6 +1758,7 @@ end;
 function TQuery.IntersectRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 var C: TClause;
 begin
+  if Method <> 'select' then raise EQueryException.Create('Only select queries can be combined');
   C := Add('combine', ckRaw); C.Name := Sql; C.Values := CopyValues(Bindings);
   Result := Self;
 end;

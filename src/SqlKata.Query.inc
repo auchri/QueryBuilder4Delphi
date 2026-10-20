@@ -5,6 +5,34 @@ begin
   for I := 0 to High(Values) do Result[I] := Values[I];
 end;
 
+function EqualValues(const A, B: TValue): Boolean;
+begin
+  if A.TypeInfo <> B.TypeInfo then Exit(False);
+  if A.IsEmpty then Exit(True);
+  case A.Kind of
+    tkInteger, tkInt64, tkEnumeration: Result := A.AsOrdinal = B.AsOrdinal;
+    tkFloat: Result := A.AsExtended = B.AsExtended;
+    tkString, tkLString, tkWString, tkUString: Result := A.AsString = B.AsString;
+    tkVariant: Result := VarSameValue(A.AsVariant,B.AsVariant);
+    tkClass: Result := A.AsObject = B.AsObject;
+  else Result := False; end;
+end;
+
+function DistinctValues(const Values: array of TValue): TValues;
+var List: TList<TValue>; V, Other: TValue; Found: Boolean;
+begin
+  List := TList<TValue>.Create;
+  try
+    for V in Values do
+    begin
+      Found := False;
+      for Other in List do if EqualValues(V, Other) then begin Found := True; Break; end;
+      if not Found then List.Add(V);
+    end;
+    Result := List.ToArray;
+  finally List.Free; end;
+end;
+
 function CopyStrings(const Values: array of string): TArray<string>;
 var I: Integer;
 begin
@@ -231,6 +259,13 @@ begin
   if Assigned(Filter) then C.Query := CallbackQuery(Filter);
   Method := 'select'; Result := Self;
 end;
+function TQuery.SelectAggregate(const Aggregate, Column: string; Filter: TQuery): TQuery;
+var C: TClause;
+begin
+  C := Add('select',ckAggregate); C.Op := Aggregate; C.Name := Column;
+  if Filter <> nil then C.Query := Filter.Clone;
+  Method := 'select'; Result := Self;
+end;
 
 function TQuery.&With(const Alias: string; Query: TQuery): TQuery;
 var C: TClause;
@@ -271,17 +306,25 @@ begin
   C.Query.&From(Table).WhereColumns(First, Op, Second).AsType(JoinType); Result := Self;
 end;
 function TQuery.Join(const Table: string; const Callback: TQueryCallback; const JoinType: string): TQuery;
-var C: TClause; Q: TQuery;
+var C: TClause; Q, Group: TQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Q.&From(Table).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q; except Q.Free; raise; end;
+  try
+    Group := Q.Clone; Q.ClearComponent('where');
+    C := Q.Add('where', ckNested); C.Query := Group;
+    Q.&From(Table).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
+  except Q.Free; raise; end;
   Result := Self;
 end;
 function TQuery.Join(Query: TQuery; const Callback: TQueryCallback; const JoinType: string): TQuery;
-var C: TClause; Q: TQuery;
+var C: TClause; Q, Group: TQuery;
 begin
   Q := CallbackQuery(Callback);
-  try Q.&From(Query).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q; except Q.Free; raise; end;
+  try
+    Group := Q.Clone; Q.ClearComponent('where');
+    C := Q.Add('where', ckNested); C.Query := Group;
+    Q.&From(Query).AsType(JoinType); C := Add('join', ckJoin); C.Query := Q;
+  except Q.Free; raise; end;
   Result := Self;
 end;
 function TQuery.LeftJoin(const Table, First, Second, Op: string): TQuery;
@@ -307,6 +350,8 @@ function TQuery.JoinWith(const Table: string): TQuery;
 begin Result := &From(Table); end;
 function TQuery.JoinWith(Query: TQuery; const Alias: string): TQuery;
 begin Result := &From(Query, Alias); end;
+function TQuery.JoinWith(const Callback: TQueryCallback; const Alias: string): TQuery;
+begin Result := &From(Callback, Alias); end;
 function TQuery.JoinWithRaw(const Sql: string; const Bindings: array of TValue): TQuery;
 begin Result := FromRaw(Sql, Bindings); end;
 function TQuery.AsType(const Value: string): TQuery;
@@ -357,5 +402,6 @@ begin
 end;
 
 {$I SqlKata.Writes.inc}
+
 
 

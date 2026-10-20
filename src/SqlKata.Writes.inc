@@ -1,7 +1,7 @@
 function TQuery.AsAggregate(const Aggregate: string; const Columns: array of string): TQuery;
 var C: TClause;
 begin
-  if not MatchText(Aggregate, ['count','sum','avg','min','max']) then
+  if not TRegEx.IsMatch(Aggregate, '^[A-Za-z_][A-Za-z_0-9]*$') then
     raise EQueryException.Create('Invalid aggregate');
   ClearComponent('aggregate'); C := Add('aggregate', ckAggregate);
   C.Op := Aggregate; C.Columns := CopyStrings(Columns); Method := 'aggregate'; Result := Self;
@@ -110,4 +110,33 @@ begin
 end;
 function TQuery.Where(Data: TObject): TQuery;
 begin Result := Where(DataPairs(Data, False)); end;
+function TQuery.Having(const Values: array of TPair<string,TValue>): TQuery;
+var Pair: TPair<string,TValue>; OrFlag, NotFlag: Boolean;
+begin
+  OrFlag := FOrFlag; NotFlag := FNot;
+  for Pair in Values do begin FOrFlag := OrFlag; FNot := NotFlag; Having(Pair.Key, Pair.Value); end;
+  Result := Self;
+end;
+function TQuery.Having(Data: TObject): TQuery;
+begin Result := Having(DataPairs(Data, False)); end;
+function TQuery.AsInsert(Data: TDictionary<string,TValue>; ReturnId: Boolean): TQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := AsInsert(Data.ToArray,ReturnId);
+end;
+function TQuery.AsUpdate(Data: TDictionary<string,TValue>): TQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := AsUpdate(Data.ToArray);
+end;
+function TQuery.Where(Data: TDictionary<string,TValue>): TQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := Where(Data.ToArray);
+end;
+function TQuery.Having(Data: TDictionary<string,TValue>): TQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := Having(Data.ToArray);
+end;
 
