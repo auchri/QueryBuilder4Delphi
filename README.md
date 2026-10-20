@@ -278,6 +278,14 @@ by `TQueryDataMapper` in `src/QueryBuilder4Delphi.Query.DataMapper.pas`.
 The public `IQuery` methods delegate to these classes; callers continue to
 use the same fluent API.
 
+The query class `TQueryObject` and the `TQuery` factory are implemented in
+[QueryBuilder4Delphi.Query](src/QueryBuilder4Delphi.Query.pas). Shared interfaces,
+clauses, attributes, and value helpers live in
+[QueryBuilder4Delphi.Query.Core](src/QueryBuilder4Delphi.Query.Core.pas).
+The existing `SqlKata` unit remains a compatibility facade, so the examples
+above keep their existing imports. To import the implementation directly, use
+both `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query`.
+
 Regenerate the fluent forwarding methods with `python tools/generate_query.py`.
 Make semantic changes in the Pascal units and their corresponding tests.
 

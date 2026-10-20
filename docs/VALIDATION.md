@@ -13,8 +13,8 @@ Both standalone test executables were then run using
 
 | Target | DUnitX tests | Passed | Failed | Errors | Ignored |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Win32 | 586 | 586 | 0 | 0 | 0 |
-| Win64 | 586 | 586 | 0 | 0 | 0 |
+| Win32 | 594 | 594 | 0 | 0 | 0 |
+| Win64 | 594 | 594 | 0 | 0 | 0 |
 
 DUnitX reported `Tests Leaked: 0` in both runs.
 `ReportMemoryLeaksOnShutdown` is also enabled in the test program.
@@ -66,6 +66,13 @@ before multirow insert mutation, independent INSERT-SELECT source clones,
 engine-scoped write replacement, OR/NOT flags for WHERE/HAVING pairs,
 ignored and unreadable RTTI properties, mapper callback failures, and key
 predicates for object updates.
+
+Eight query-model tests cover direct unit imports and facade type identity,
+subclass cloning with independent state, engine-scoped fallback and removal,
+callback return validation and scope restoration, snapshots of subqueries,
+independent JOIN condition groups, Int64 pagination and negative limits,
+and value helper copying and type preservation. Both the write and query-model
+fixtures are included after rebasing onto the merged PR #2.
 
 ## Limitations
 

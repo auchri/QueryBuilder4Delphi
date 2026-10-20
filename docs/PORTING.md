@@ -58,3 +58,18 @@ Completed work packages for query writes:
     Keep the public fluent API and reference-counted return values unchanged.
 13. Add eight write and RTTI mapping regression cases; rebuild and run all
     586 tests on both Win32 and Win64. Update the API and validation records.
+
+Completed work packages for the query unit:
+
+14. Start `codex/refactor-query-unit` independently from `origin/main` at
+    `1a39f8d`, then rebase onto `58dca75` after PR #2 was merged. Move the
+    write forwarding methods into the extracted query class. Remove
+    `SqlKata.Query.inc` and move
+    `TQueryObject` and the `TQuery` factory into `QueryBuilder4Delphi.Query`.
+    Move shared interfaces, clauses, attributes, and value helpers into
+    `QueryBuilder4Delphi.Query.Core`. Keep `SqlKata` as a compatibility facade.
+15. Add eight query-model regression tests for direct imports, facade type
+    identity, subclass cloning, scopes, callbacks, subqueries, joins,
+    pagination, and value helpers. Update project references and documentation.
+    All 594 tests pass on both Win32 and Win64 after full Delphi 12 builds
+    with zero errors and warnings.
