@@ -16,6 +16,13 @@ with the Delphi `T` prefix omitted from the unit name.
 The query model is in `SqlKata`.
 `EngineCodes` is named `TEngineCodes`.
 
+Write operations delegate to the stateless `TQueryWrites` class in
+`QueryBuilder4Delphi.Query.Writes`. RTTI property mapping delegates to
+`TQueryDataMapper` in `QueryBuilder4Delphi.Query.DataMapper`. These are
+implementation helpers; applications continue to call `IQuery.AsInsert`,
+`AsUpdate`, `AsDelete`, `AsIncrement`, `AsDecrement`, and `AsAggregate`.
+The former `SqlKata.Writes.inc` is no longer used or provided.
+
 `object` parameters become `TValue`; `params` and `IEnumerable` parameters
 become open arrays or `TArray`. For IN values from typed arrays,
 `TSqlValues.&Of<T>` converts to `TValues`. Multiple rows use `TRows`, with

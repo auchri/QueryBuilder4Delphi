@@ -320,7 +320,8 @@ function ExpandExpression(const Expression: string): TArray<string>;
 
 implementation
 
-uses System.StrUtils, System.Variants, System.RegularExpressions;
+uses System.StrUtils, System.Variants,
+  QueryBuilder4Delphi.Query.Writes, QueryBuilder4Delphi.Query.DataMapper;
 
 class function TSqlValues.&Of<T>(const Values: array of T): TValues;
 var I: Integer;
@@ -356,6 +357,120 @@ function TQueryObject.GetClauses: TObjectList<TClause>;
 begin Result := FClauses; end;
 function TQueryObject.GetVariables: TDictionary<string,TValue>;
 begin Result := FVariables; end;
+
+function TQueryObject.AsAggregate(const Aggregate: string; const Columns: array of string): IQuery;
+begin
+  Result := TQueryWrites.AsAggregate(Self, Aggregate, Columns);
+end;
+
+function TQueryObject.AsInsert(const Columns: array of string; const Values: array of TValue): IQuery;
+begin
+  Result := TQueryWrites.AsInsert(Self, Columns, Values);
+end;
+
+function TQueryObject.AsInsert(const Columns: array of string; const Rows: TRows): IQuery;
+begin
+  Result := TQueryWrites.AsInsert(Self, Columns, Rows);
+end;
+
+function TQueryObject.AsInsert(const Columns: array of string; Query: IQuery): IQuery;
+begin
+  Result := TQueryWrites.AsInsert(Self, Columns, Query);
+end;
+
+function TQueryObject.AsInsert(const Values: array of TPair<string,TValue>; ReturnId: Boolean): IQuery;
+begin
+  Result := TQueryWrites.AsInsert(Self, Values, ReturnId);
+end;
+
+function TQueryObject.AsUpdate(const Columns: array of string; const Values: array of TValue): IQuery;
+begin
+  Result := TQueryWrites.AsUpdate(Self, Columns, Values);
+end;
+
+function TQueryObject.AsUpdate(const Values: array of TPair<string,TValue>): IQuery;
+begin
+  Result := TQueryWrites.AsUpdate(Self, Values);
+end;
+
+function TQueryObject.AsDelete: IQuery;
+begin
+  Result := TQueryWrites.AsDelete(Self);
+end;
+
+function TQueryObject.AsIncrement(const Column: string; Value: Integer): IQuery;
+begin
+  Result := TQueryWrites.AsIncrement(Self, Column, Value);
+end;
+
+function TQueryObject.AsDecrement(const Column: string; Value: Integer): IQuery;
+begin
+  Result := TQueryWrites.AsDecrement(Self, Column, Value);
+end;
+
+function TQueryObject.DataPairs(Data: TObject; ConsiderKeys: Boolean): TArray<TPair<string,TValue>>;
+begin
+  if ConsiderKeys then
+    Result := TQueryDataMapper.GetPairs(Data,
+      procedure(Name: string; Value: TValue)
+      begin
+        Where(Name, Value);
+      end)
+  else
+    Result := TQueryDataMapper.GetPairs(Data);
+end;
+
+function TQueryObject.AsInsert(Data: TObject; ReturnId: Boolean): IQuery;
+begin Result := AsInsert(DataPairs(Data, False), ReturnId); end;
+
+function TQueryObject.AsUpdate(Data: TObject): IQuery;
+begin Result := AsUpdate(DataPairs(Data, True)); end;
+
+function TQueryObject.Where(const Values: array of TPair<string,TValue>): IQuery;
+var Pair: TPair<string,TValue>; OrFlag, NotFlag: Boolean;
+begin
+  OrFlag := FOrFlag; NotFlag := FNot;
+  for Pair in Values do begin FOrFlag := OrFlag; FNot := NotFlag; Where(Pair.Key, Pair.Value); end;
+  Result := Self;
+end;
+
+function TQueryObject.Where(Data: TObject): IQuery;
+begin Result := Where(DataPairs(Data, False)); end;
+
+function TQueryObject.Having(const Values: array of TPair<string,TValue>): IQuery;
+var Pair: TPair<string,TValue>; OrFlag, NotFlag: Boolean;
+begin
+  OrFlag := FOrFlag; NotFlag := FNot;
+  for Pair in Values do begin FOrFlag := OrFlag; FNot := NotFlag; Having(Pair.Key, Pair.Value); end;
+  Result := Self;
+end;
+
+function TQueryObject.Having(Data: TObject): IQuery;
+begin Result := Having(DataPairs(Data, False)); end;
+
+function TQueryObject.AsInsert(Data: TDictionary<string,TValue>; ReturnId: Boolean): IQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := AsInsert(Data.ToArray,ReturnId);
+end;
+
+function TQueryObject.AsUpdate(Data: TDictionary<string,TValue>): IQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := AsUpdate(Data.ToArray);
+end;
+
+function TQueryObject.Where(Data: TDictionary<string,TValue>): IQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := Where(Data.ToArray);
+end;
+
+function TQueryObject.Having(Data: TDictionary<string,TValue>): IQuery;
+begin
+  if Data = nil then raise EArgumentNilException.Create('Data');
+  Result := Having(Data.ToArray);
+end;
 
 {$I SqlKata.Query.inc}
 {$I SqlKata.Fluent.Implementation.inc}

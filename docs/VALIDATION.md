@@ -13,8 +13,8 @@ Both standalone test executables were then run using
 
 | Target | DUnitX tests | Passed | Failed | Errors | Ignored |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Win32 | 578 | 578 | 0 | 0 | 0 |
-| Win64 | 578 | 578 | 0 | 0 | 0 |
+| Win32 | 586 | 586 | 0 | 0 | 0 |
+| Win64 | 586 | 586 | 0 | 0 | 0 |
 
 DUnitX reported `Tests Leaked: 0` in both runs.
 `ReportMemoryLeaksOnShutdown` is also enabled in the test program.
@@ -60,6 +60,12 @@ Two check custom MySQL and SQL Server descendants, including virtual overrides,
 date expressions, offset-only pagination, joined updates, and legacy TOP
 pagination. Their custom engine names ensure that inherited dialect behavior
 does not depend on engine-name comparisons in the base compiler.
+
+Eight write and mapping regression cases cover fluent identity, validation
+before multirow insert mutation, independent INSERT-SELECT source clones,
+engine-scoped write replacement, OR/NOT flags for WHERE/HAVING pairs,
+ignored and unreadable RTTI properties, mapper callback failures, and key
+predicates for object updates.
 
 ## Limitations
 

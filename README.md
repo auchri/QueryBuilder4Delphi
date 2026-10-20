@@ -272,6 +272,12 @@ python tools/generate_oracle.py ../querybuilder
 dotnet run --project tools/oracle/Oracle.csproj -- test/golden.json
 ```
 
+Write operations are implemented by `TQueryWrites` in
+`src/QueryBuilder4Delphi.Query.Writes.pas`. Object property mapping is handled
+by `TQueryDataMapper` in `src/QueryBuilder4Delphi.Query.DataMapper.pas`.
+The public `IQuery` methods delegate to these classes; callers continue to
+use the same fluent API.
+
 Regenerate the fluent forwarding methods with `python tools/generate_query.py`.
 Make semantic changes in the Pascal units and their corresponding tests.
 

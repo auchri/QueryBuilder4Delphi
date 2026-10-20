@@ -4,6 +4,8 @@ uses
   System.SysUtils, System.IOUtils,
   DUnitX.TestFramework, DUnitX.Loggers.Console, DUnitX.Loggers.XML.NUnit,
   SqlKata in '..\src\SqlKata.pas',
+  QueryBuilder4Delphi.Query.Writes in '..\src\QueryBuilder4Delphi.Query.Writes.pas',
+  QueryBuilder4Delphi.Query.DataMapper in '..\src\QueryBuilder4Delphi.Query.DataMapper.pas',
   QueryBuilder4Delphi.Compilers in '..\src\QueryBuilder4Delphi.Compilers.pas',
   QueryBuilder4Delphi.Compilers.Compiler in '..\src\QueryBuilder4Delphi.Compilers.Compiler.pas',
   QueryBuilder4Delphi.Compilers.SqlServerCompiler in '..\src\QueryBuilder4Delphi.Compilers.SqlServerCompiler.pas',
@@ -13,6 +15,7 @@ uses
   QueryBuilder4Delphi.Compilers.OracleCompiler in '..\src\QueryBuilder4Delphi.Compilers.OracleCompiler.pas',
   QueryBuilder4Delphi.Compilers.FirebirdCompiler in '..\src\QueryBuilder4Delphi.Compilers.FirebirdCompiler.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
+  QueryWrites.Tests in 'QueryWrites.Tests.pas',
   QueryBuilder.Tests in 'QueryBuilder.Tests.pas';
 var Runner: ITestRunner; Results: IRunResults;
 begin

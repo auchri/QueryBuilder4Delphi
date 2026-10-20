@@ -391,8 +391,3 @@ begin
   if not MatchText(Operation, ['union','except','intersect']) then raise EQueryException.Create('Invalid combine operation');
   C := Add('combine', ckCombine); C.Op := Operation; C.IsNot := All; C.Query := Query.Clone; Result := Self;
 end;
-
-{$I SqlKata.Writes.inc}
-
-
-
