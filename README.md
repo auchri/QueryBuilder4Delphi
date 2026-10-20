@@ -200,7 +200,7 @@ explicitly corrected C# bugs.
 
 ## SQL dialects
 
-| Factory (`Create` returns `ICompiler`) | EngineCode | Parameter |
+| Compiler class (`Create` returns `ICompiler`) | EngineCode | Parameter |
 | --- | --- | --- |
 | `TSqlServerCompiler` | `sqlsrv` | `@p0` |
 | `TPostgresCompiler` | `postgres` | `@p0` |
@@ -214,6 +214,24 @@ SQL Server and Oracle use OFFSET/FETCH by default.
 for Oracle. Firebird supports FIRST/SKIP/ROWS.
 As in the C# implementation, write queries with joins are supported only for
 SQL Server and MySQL; the other compilers reject them.
+
+Each dialect has its own class and Pascal unit under `src`:
+
+- [TCompiler](src/SqlKata.Compilers.Compiler.pas): shared compilation logic.
+- [TSqlServerCompiler](src/SqlKata.Compilers.SqlServerCompiler.pas).
+- [TPostgresCompiler](src/SqlKata.Compilers.PostgresCompiler.pas).
+- [TMySqlCompiler](src/SqlKata.Compilers.MySqlCompiler.pas).
+- [TSqliteCompiler](src/SqlKata.Compilers.SqliteCompiler.pas).
+- [TOracleCompiler](src/SqlKata.Compilers.OracleCompiler.pas).
+- [TFirebirdCompiler](src/SqlKata.Compilers.FirebirdCompiler.pas).
+
+The dialect classes inherit from `TCompiler` and override pagination, date
+expressions, and other dialect-specific behavior. Compiler implementations
+do not use include files. `SqlKata.Compilers` remains a compatibility facade,
+so existing `uses` clauses and `TSqlServerCompiler.Create` calls still work.
+Alternatively, import `SqlKata.Compilers.Compiler` and the required dialect
+unit directly. `Create` returns `ICompiler` and preserves automatic lifetime
+management. See [docs/API.md](docs/API.md) for subclassing details.
 
 ## Running DUnitX
 

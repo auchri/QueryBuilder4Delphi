@@ -27,7 +27,7 @@ summary = dict(date='2026-10-20', compiler='Delphi 12 Community Edition, RAD Stu
                sourceCommit='df4a2377750d34fc057c81886b481e7309ef975e',
                buildMethod='IDE: Project / Build, Base configuration, zero warnings',
                referenceResults=552, directComparisons=540, correctedBehaviorCases=12,
-               additionalTests=18,
+               additionalTests=26,
                goldenSha256=hashlib.sha256((root / 'test/golden.json').read_bytes()).hexdigest(),
                results=results)
 (root / 'docs/validation-results.json').write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8', newline='\n')
