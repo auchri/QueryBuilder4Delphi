@@ -6,3 +6,8 @@ build/
 *.identcache
 *.local
 __pycache__/
+
+*.res
+*.delphilsp.json
+tools/oracle/bin/
+tools/oracle/obj/

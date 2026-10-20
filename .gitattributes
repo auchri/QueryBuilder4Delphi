@@ -1,0 +1,8 @@
+*.pas text eol=crlf
+*.inc text eol=crlf
+*.dpr text eol=crlf
+*.dproj text eol=crlf
+*.ps1 text eol=crlf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf

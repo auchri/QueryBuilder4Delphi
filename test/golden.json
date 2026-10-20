@@ -1,0 +1,4790 @@
+[
+  {
+    "engine": "sqlsrv",
+    "name": "all",
+    "sql": "SELECT * FROM [Books]",
+    "raw": "SELECT * FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "columns",
+    "sql": "SELECT [b].[Id], [b].[Title], [b].[AuthorId] AS [Writer] FROM [Books] AS [b]",
+    "raw": "SELECT [b].[Id], [b].[Title], [b].[AuthorId] AS [Writer] FROM [Books] AS [b]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "basic",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0 AND [Lang] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ? AND [Lang] = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "bool",
+    "sql": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) OR [Hidden] = cast(0 as bit)",
+    "raw": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) OR [Hidden] = cast(0 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) AND [Hidden] != cast(0 as bit)",
+    "raw": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) AND [Hidden] != cast(0 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "null",
+    "sql": "SELECT * FROM [Books] WHERE [Deleted] IS NULL OR [AuthorId] IS NOT NULL",
+    "raw": "SELECT * FROM [Books] WHERE [Deleted] IS NULL OR [AuthorId] IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "not",
+    "sql": "SELECT * FROM [Books] WHERE NOT ([Id] = @p0) OR NOT ([Lang] = @p1)",
+    "raw": "SELECT * FROM [Books] WHERE NOT ([Id] = ?) OR NOT ([Lang] = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "between",
+    "sql": "SELECT * FROM [Books] WHERE [Id] BETWEEN @p0 AND @p1 OR [Price] NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM [Books] WHERE [Id] BETWEEN ? AND ? OR [Price] NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "in",
+    "sql": "SELECT * FROM [Books] WHERE [Lang] IN (@p0, @p1) AND [Id] NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM [Books] WHERE [Lang] IN (?, ?) AND [Id] NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "induplicate",
+    "sql": "SELECT * FROM [Books] WHERE [Id] IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM [Books] WHERE [Id] IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "emptyin",
+    "sql": "SELECT * FROM [Books] WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM [Books] WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "strings",
+    "sql": "SELECT * FROM [Books] WHERE [Title] like @p0 AND NOT ([Title] like @p1) OR [Title] like @p2 AND [Title] like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM [Books] WHERE [Title] like ? AND NOT ([Title] like ?) OR [Title] like ? AND [Title] like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM [Books] WHERE [Created] \u003C [Updated]",
+    "raw": "SELECT * FROM [Books] WHERE [Created] \u003C [Updated]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "nested",
+    "sql": "SELECT * FROM [Books] WHERE ([Id] = @p0 OR [Id] = @p1) AND NOT ([Title] IS NULL)",
+    "raw": "SELECT * FROM [Books] WHERE ([Id] = ? OR [Id] = ?) AND NOT ([Title] IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "emptynested",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "raw",
+    "sql": "SELECT coalesce([Price], @p0) as [Amount] FROM [Books] WHERE [Id] \u003E @p1 ORDER BY [Amount] \u002B @p2",
+    "raw": "SELECT coalesce([Price], ?) as [Amount] FROM [Books] WHERE [Id] \u003E ? ORDER BY [Amount] \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM [Books] WHERE [Text] = @p0 AND [Other] = \\?",
+    "raw": "SELECT * FROM [Books] WHERE [Text] = ? AND [Other] = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "group",
+    "sql": "SELECT [Category], COUNT([Id]) AS [Count] FROM [Books] GROUP BY [Category] HAVING [Category] = @p0 OR [Category] IS NULL",
+    "raw": "SELECT [Category], COUNT([Id]) AS [Count] FROM [Books] GROUP BY [Category] HAVING [Category] = ? OR [Category] IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "havingnested",
+    "sql": "SELECT * FROM [Books] GROUP BY [Id]",
+    "raw": "SELECT * FROM [Books] GROUP BY [Id]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM [Books] GROUP BY [Id] HAVING ([Id] = @p0 OR [Id] = @p1)",
+    "raw": "SELECT * FROM [Books] GROUP BY [Id] HAVING ([Id] = ? OR [Id] = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN [Published] = cast(1 as bit) THEN [Id] END) AS [Published] FROM [Books]",
+    "raw": "SELECT COUNT(CASE WHEN [Published] = cast(1 as bit) THEN [Id] END) AS [Published] FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "join",
+    "sql": "SELECT [Books].*, [Authors].[Name] AS [AuthorName] FROM [Books] \nINNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]",
+    "raw": "SELECT [Books].*, [Authors].[Name] AS [AuthorName] FROM [Books] \nINNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "joincallback",
+    "sql": "SELECT * FROM [Books] \nLEFT JOIN [Authors] ON ([Authors].[Id] = [Books].[AuthorId] AND [Authors].[Active] = cast(1 as bit))",
+    "raw": "SELECT * FROM [Books] \nLEFT JOIN [Authors] ON ([Authors].[Id] = [Books].[AuthorId] AND [Authors].[Active] = cast(1 as bit))",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "cross",
+    "sql": "SELECT * FROM [Books] \nCROSS JOIN [Languages]",
+    "raw": "SELECT * FROM [Books] \nCROSS JOIN [Languages]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT [Name] FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId]) AS [Author] FROM [Books]",
+    "raw": "SELECT (SELECT [Name] FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId]) AS [Author] FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit)) AS [b] WHERE [b].[Id] = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit)) AS [b] WHERE [b].[Id] = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "insub",
+    "sql": "SELECT * FROM [Books] WHERE [AuthorId] IN (SELECT [Id] FROM [Authors] WHERE [Country] = @p0)",
+    "raw": "SELECT * FROM [Books] WHERE [AuthorId] IN (SELECT [Id] FROM [Authors] WHERE [Country] = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "exists",
+    "sql": "SELECT * FROM [Books] WHERE EXISTS (SELECT 1 FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId])",
+    "raw": "SELECT * FROM [Books] WHERE EXISTS (SELECT 1 FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId])",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "notexists",
+    "sql": "SELECT * FROM [Books] WHERE NOT EXISTS (SELECT 1 FROM [Authors] WHERE [Active] = cast(1 as bit))",
+    "raw": "SELECT * FROM [Books] WHERE NOT EXISTS (SELECT 1 FROM [Authors] WHERE [Active] = cast(1 as bit))",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "querycondition",
+    "sql": "SELECT * FROM [Books] WHERE [Price] \u003E (SELECT AVG([Price]) AS [avg] FROM [Books])",
+    "raw": "SELECT * FROM [Books] WHERE [Price] \u003E (SELECT AVG([Price]) AS [avg] FROM [Books])",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "cte",
+    "sql": "WITH [published] AS (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit))\nSELECT * FROM [published] WHERE [Id] = @p0",
+    "raw": "WITH [published] AS (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit))\nSELECT * FROM [published] WHERE [Id] = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "ctedependency",
+    "sql": "WITH [b] AS (SELECT * FROM [Books] WHERE [Id] = @p0),\n[a] AS (SELECT * FROM [b])\nSELECT * FROM [a]",
+    "raw": "WITH [b] AS (SELECT * FROM [Books] WHERE [Id] = ?),\n[a] AS (SELECT * FROM [b])\nSELECT * FROM [a]",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "cteraw",
+    "sql": "WITH [x] AS (SELECT @p0 AS [Id])\nSELECT * FROM [x]",
+    "raw": "WITH [x] AS (SELECT ? AS [Id])\nSELECT * FROM [x]",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "ctevalues",
+    "sql": "WITH [x] AS (SELECT [Id], [Name] FROM (VALUES (@p0, @p1), (@p2, @p3)) AS tbl ([Id], [Name]))\nSELECT * FROM [x]",
+    "raw": "WITH [x] AS (SELECT [Id], [Name] FROM (VALUES (?, ?), (?, ?)) AS tbl ([Id], [Name]))\nSELECT * FROM [x]",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "union",
+    "sql": "SELECT * FROM [Books] WHERE [Lang] = @p0 UNION SELECT * FROM [Books] WHERE [Lang] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Lang] = ? UNION SELECT * FROM [Books] WHERE [Lang] = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "intersect",
+    "sql": "SELECT [Id] FROM [Books] INTERSECT ALL SELECT [BookId] FROM [Orders]",
+    "raw": "SELECT [Id] FROM [Books] INTERSECT ALL SELECT [BookId] FROM [Orders]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "except",
+    "sql": "SELECT [Id] FROM [Books] EXCEPT SELECT [BookId] FROM [Orders]",
+    "raw": "SELECT [Id] FROM [Books] EXCEPT SELECT [BookId] FROM [Orders]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "limit",
+    "sql": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY",
+    "raw": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "0",
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "offset",
+    "sql": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET @p0 ROWS",
+    "raw": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET ? ROWS",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "page",
+    "sql": "SELECT * FROM [Books] ORDER BY [Id] DESC OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY",
+    "raw": "SELECT * FROM [Books] ORDER BY [Id] DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "20",
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY",
+    "raw": "SELECT * FROM [Books] ORDER BY (SELECT 0) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "20",
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT [Lang] FROM [Books] ORDER BY (SELECT 0) OFFSET @p0 ROWS FETCH NEXT @p1 ROWS ONLY",
+    "raw": "SELECT DISTINCT [Lang] FROM [Books] ORDER BY (SELECT 0) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "0",
+      "5"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "random",
+    "sql": "SELECT * FROM [Books] ORDER BY NEWID()",
+    "raw": "SELECT * FROM [Books] ORDER BY NEWID()",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_date",
+    "sql": "SELECT * FROM [Books] WHERE CAST([Created] AS DATE) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE CAST([Created] AS DATE) \u003E= ?",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_time",
+    "sql": "SELECT * FROM [Books] WHERE CAST([Created] AS TIME) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE CAST([Created] AS TIME) \u003E= ?",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_year",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(YEAR, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(YEAR, [Created]) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_month",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(MONTH, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(MONTH, [Created]) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_day",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(DAY, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(DAY, [Created]) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_hour",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(HOUR, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(HOUR, [Created]) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_minute",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(MINUTE, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(MINUTE, [Created]) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "date_second",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(SECOND, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(SECOND, [Created]) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "datenot",
+    "sql": "SELECT * FROM [Books] WHERE NOT (CAST([Created] AS DATE) = @p0)",
+    "raw": "SELECT * FROM [Books] WHERE NOT (CAST([Created] AS DATE) = ?)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS [count] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "raw": "SELECT COUNT(*) AS [count] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS [count] FROM (SELECT DISTINCT [Lang] FROM [Books] WHERE [Active] = cast(1 as bit)) AS [countQuery]",
+    "raw": "SELECT COUNT(*) AS [count] FROM (SELECT DISTINCT [Lang] FROM [Books] WHERE [Active] = cast(1 as bit)) AS [countQuery]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS [count] FROM (SELECT 1 FROM [Books] WHERE [Active] = cast(1 as bit) AND [Id] IS NOT NULL AND [Lang] IS NOT NULL) AS [countQuery]",
+    "raw": "SELECT COUNT(*) AS [count] FROM (SELECT 1 FROM [Books] WHERE [Active] = cast(1 as bit) AND [Id] IS NOT NULL AND [Lang] IS NOT NULL) AS [countQuery]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "sum",
+    "sql": "SELECT SUM([Price]) AS [sum] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "raw": "SELECT SUM([Price]) AS [sum] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "insert",
+    "sql": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "insertmany",
+    "sql": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (@p0, @p1), (@p2, @p3)",
+    "raw": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (?, ?), (?, ?)",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "insertid",
+    "sql": "INSERT INTO [Users] ([Name]) VALUES (@p0);SELECT scope_identity() as Id",
+    "raw": "INSERT INTO [Users] ([Name]) VALUES (?);SELECT scope_identity() as Id",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "update",
+    "sql": "UPDATE [Users] SET [Name] = @p0, [CountryId] = @p1 WHERE [Id] = @p2",
+    "raw": "UPDATE [Users] SET [Name] = ?, [CountryId] = ? WHERE [Id] = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "increment",
+    "sql": "UPDATE [Books] SET [Stock] = [Stock] \u002B @p0 WHERE [Id] = @p1",
+    "raw": "UPDATE [Books] SET [Stock] = [Stock] \u002B ? WHERE [Id] = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "decrement",
+    "sql": "UPDATE [Books] SET [Stock] = [Stock] - @p0",
+    "raw": "UPDATE [Books] SET [Stock] = [Stock] - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "delete",
+    "sql": "DELETE FROM [Users] WHERE [Id] = @p0",
+    "raw": "DELETE FROM [Users] WHERE [Id] = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "updatejoin",
+    "sql": "UPDATE [u] SET [Active] = @p0 FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId] WHERE [c].[Name] = @p1",
+    "raw": "UPDATE [u] SET [Active] = ? FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId] WHERE [c].[Name] = ?",
+    "bindings": [
+      "True",
+      "AT"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "deletejoin",
+    "sql": "DELETE [u] FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId]",
+    "raw": "DELETE [u] FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "variable",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "literal",
+    "sql": "SELECT * FROM [Books] WHERE [Created] = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM [Books] WHERE [Created] = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "engine",
+    "sql": "SELECT * FROM [Books] WHERE [Engine] = @p0 AND [Id] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Engine] = ? AND [Id] = ?",
+    "bindings": [
+      "MSSQL",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv",
+    "name": "when",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "all",
+    "sql": "SELECT * FROM \u0022Books\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "columns",
+    "sql": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 AS \u0022Writer\u0022 FROM \u0022Books\u0022 AS \u0022b\u0022",
+    "raw": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 AS \u0022Writer\u0022 FROM \u0022Books\u0022 AS \u0022b\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0 AND \u0022Lang\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ? AND \u0022Lang\u0022 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "null",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "not",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = @p0) OR NOT (\u0022Lang\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = ?) OR NOT (\u0022Lang\u0022 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "between",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN @p0 AND @p1 OR \u0022Price\u0022 NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN ? AND ? OR \u0022Price\u0022 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "in",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (@p0, @p1) AND \u0022Id\u0022 NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (?, ?) AND \u0022Id\u0022 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like @p0 AND NOT (\u0022Title\u0022 like @p1) OR \u0022Title\u0022 like @p2 AND \u0022Title\u0022 like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like ? AND NOT (\u0022Title\u0022 like ?) OR \u0022Title\u0022 like ? AND \u0022Title\u0022 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = @p0 OR \u0022Id\u0022 = @p1) AND NOT (\u0022Title\u0022 IS NULL)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?) AND NOT (\u0022Title\u0022 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0022Price\u0022, @p0) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E @p1 ORDER BY \u0022Amount\u0022 \u002B @p2",
+    "raw": "SELECT coalesce(\u0022Price\u0022, ?) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E ? ORDER BY \u0022Amount\u0022 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = @p0 AND \u0022Other\u0022 = \\?",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = ? AND \u0022Other\u0022 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "group",
+    "sql": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022) AS \u0022Count\u0022 FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = @p0 OR \u0022Category\u0022 IS NULL",
+    "raw": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022) AS \u0022Count\u0022 FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = ? OR \u0022Category\u0022 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = @p0 OR \u0022Id\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "filter",
+    "sql": "SELECT COUNT(\u0022Id\u0022) FILTER (WHERE \u0022Published\u0022 = true) AS \u0022Published\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT COUNT(\u0022Id\u0022) FILTER (WHERE \u0022Published\u0022 = true) AS \u0022Published\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "join",
+    "sql": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 AS \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "raw": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 AS \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) AS \u0022Author\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) AS \u0022Author\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) AS \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) AS \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = @p0)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) AS \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) AS \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "cte",
+    "sql": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "ctedependency",
+    "sql": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "raw": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "cteraw",
+    "sql": "WITH \u0022x\u0022 AS (SELECT @p0 AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "ctevalues",
+    "sql": "WITH \u0022x\u0022 AS (SELECT @p0 AS \u0022Id\u0022, @p1 AS \u0022Name\u0022 UNION ALL SELECT @p2 AS \u0022Id\u0022, @p3 AS \u0022Name\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 UNION ALL SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "union",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = @p0 UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ? UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "intersect",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "except",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "limit",
+    "sql": "SELECT * FROM \u0022Books\u0022 LIMIT @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 LIMIT ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "offset",
+    "sql": "SELECT * FROM \u0022Books\u0022 OFFSET @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 OFFSET ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "page",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM \u0022Books\u0022 LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 LIMIT @p0",
+    "raw": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 LIMIT ?",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "random",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY RANDOM()",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY RANDOM()",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022::date \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022::date \u003E= ?",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022::time \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022::time \u003E= ?",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027YEAR\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027YEAR\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027MONTH\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027MONTH\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027DAY\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027DAY\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027HOUR\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027HOUR\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027MINUTE\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027MINUTE\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027SECOND\u0027, \u0022Created\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE DATE_PART(\u0027SECOND\u0027, \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Created\u0022::date = @p0)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Created\u0022::date = ?)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) AS \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) AS \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) AS \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) AS \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0022Price\u0022) AS \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT SUM(\u0022Price\u0022) AS \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "insert",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "insertmany",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (@p0, @p1), (@p2, @p3)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?), (?, ?)",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (@p0);SELECT lastval() AS id",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (?);SELECT lastval() AS id",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "update",
+    "sql": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = @p0, \u0022CountryId\u0022 = @p1 WHERE \u0022Id\u0022 = @p2",
+    "raw": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = ?, \u0022CountryId\u0022 = ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "increment",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B @p0 WHERE \u0022Id\u0022 = @p1",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "decrement",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - @p0",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "delete",
+    "sql": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "updatejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "postgres",
+    "name": "deletejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "postgres",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "postgres",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Engine\u0022 = @p0 AND \u0022Id\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Engine\u0022 = ? AND \u0022Id\u0022 = ?",
+    "bindings": [
+      "PG",
+      "1"
+    ]
+  },
+  {
+    "engine": "postgres",
+    "name": "when",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "all",
+    "sql": "SELECT * FROM \u0060Books\u0060",
+    "raw": "SELECT * FROM \u0060Books\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "columns",
+    "sql": "SELECT \u0060b\u0060.\u0060Id\u0060, \u0060b\u0060.\u0060Title\u0060, \u0060b\u0060.\u0060AuthorId\u0060 AS \u0060Writer\u0060 FROM \u0060Books\u0060 AS \u0060b\u0060",
+    "raw": "SELECT \u0060b\u0060.\u0060Id\u0060, \u0060b\u0060.\u0060Title\u0060, \u0060b\u0060.\u0060AuthorId\u0060 AS \u0060Writer\u0060 FROM \u0060Books\u0060 AS \u0060b\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0 AND \u0060Lang\u0060 = @p1",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ? AND \u0060Lang\u0060 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true OR \u0060Hidden\u0060 = false",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true OR \u0060Hidden\u0060 = false",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true AND \u0060Hidden\u0060 != false",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true AND \u0060Hidden\u0060 != false",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "null",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Deleted\u0060 IS NULL OR \u0060AuthorId\u0060 IS NOT NULL",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Deleted\u0060 IS NULL OR \u0060AuthorId\u0060 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "not",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE NOT (\u0060Id\u0060 = @p0) OR NOT (\u0060Lang\u0060 = @p1)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE NOT (\u0060Id\u0060 = ?) OR NOT (\u0060Lang\u0060 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "between",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 BETWEEN @p0 AND @p1 OR \u0060Price\u0060 NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 BETWEEN ? AND ? OR \u0060Price\u0060 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "in",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 IN (@p0, @p1) AND \u0060Id\u0060 NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 IN (?, ?) AND \u0060Id\u0060 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Title\u0060 like @p0 AND NOT (\u0060Title\u0060 like @p1) OR \u0060Title\u0060 like @p2 AND \u0060Title\u0060 like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Title\u0060 like ? AND NOT (\u0060Title\u0060 like ?) OR \u0060Title\u0060 like ? AND \u0060Title\u0060 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Created\u0060 \u003C \u0060Updated\u0060",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Created\u0060 \u003C \u0060Updated\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE (\u0060Id\u0060 = @p0 OR \u0060Id\u0060 = @p1) AND NOT (\u0060Title\u0060 IS NULL)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE (\u0060Id\u0060 = ? OR \u0060Id\u0060 = ?) AND NOT (\u0060Title\u0060 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0060Price\u0060, @p0) as \u0060Amount\u0060 FROM \u0060Books\u0060 WHERE \u0060Id\u0060 \u003E @p1 ORDER BY \u0060Amount\u0060 \u002B @p2",
+    "raw": "SELECT coalesce(\u0060Price\u0060, ?) as \u0060Amount\u0060 FROM \u0060Books\u0060 WHERE \u0060Id\u0060 \u003E ? ORDER BY \u0060Amount\u0060 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Text\u0060 = @p0 AND \u0060Other\u0060 = \\?",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Text\u0060 = ? AND \u0060Other\u0060 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "group",
+    "sql": "SELECT \u0060Category\u0060, COUNT(\u0060Id\u0060) AS \u0060Count\u0060 FROM \u0060Books\u0060 GROUP BY \u0060Category\u0060 HAVING \u0060Category\u0060 = @p0 OR \u0060Category\u0060 IS NULL",
+    "raw": "SELECT \u0060Category\u0060, COUNT(\u0060Id\u0060) AS \u0060Count\u0060 FROM \u0060Books\u0060 GROUP BY \u0060Category\u0060 HAVING \u0060Category\u0060 = ? OR \u0060Category\u0060 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0060Books\u0060 GROUP BY \u0060Id\u0060",
+    "raw": "SELECT * FROM \u0060Books\u0060 GROUP BY \u0060Id\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0060Books\u0060 GROUP BY \u0060Id\u0060 HAVING (\u0060Id\u0060 = @p0 OR \u0060Id\u0060 = @p1)",
+    "raw": "SELECT * FROM \u0060Books\u0060 GROUP BY \u0060Id\u0060 HAVING (\u0060Id\u0060 = ? OR \u0060Id\u0060 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN \u0060Published\u0060 = true THEN \u0060Id\u0060 END) AS \u0060Published\u0060 FROM \u0060Books\u0060",
+    "raw": "SELECT COUNT(CASE WHEN \u0060Published\u0060 = true THEN \u0060Id\u0060 END) AS \u0060Published\u0060 FROM \u0060Books\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "join",
+    "sql": "SELECT \u0060Books\u0060.*, \u0060Authors\u0060.\u0060Name\u0060 AS \u0060AuthorName\u0060 FROM \u0060Books\u0060 \nINNER JOIN \u0060Authors\u0060 ON \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060",
+    "raw": "SELECT \u0060Books\u0060.*, \u0060Authors\u0060.\u0060Name\u0060 AS \u0060AuthorName\u0060 FROM \u0060Books\u0060 \nINNER JOIN \u0060Authors\u0060 ON \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0060Books\u0060 \nLEFT JOIN \u0060Authors\u0060 ON (\u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060 AND \u0060Authors\u0060.\u0060Active\u0060 = true)",
+    "raw": "SELECT * FROM \u0060Books\u0060 \nLEFT JOIN \u0060Authors\u0060 ON (\u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060 AND \u0060Authors\u0060.\u0060Active\u0060 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0060Books\u0060 \nCROSS JOIN \u0060Languages\u0060",
+    "raw": "SELECT * FROM \u0060Books\u0060 \nCROSS JOIN \u0060Languages\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0060Name\u0060 FROM \u0060Authors\u0060 WHERE \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060) AS \u0060Author\u0060 FROM \u0060Books\u0060",
+    "raw": "SELECT (SELECT \u0060Name\u0060 FROM \u0060Authors\u0060 WHERE \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060) AS \u0060Author\u0060 FROM \u0060Books\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true) AS \u0060b\u0060 WHERE \u0060b\u0060.\u0060Id\u0060 = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true) AS \u0060b\u0060 WHERE \u0060b\u0060.\u0060Id\u0060 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060AuthorId\u0060 IN (SELECT \u0060Id\u0060 FROM \u0060Authors\u0060 WHERE \u0060Country\u0060 = @p0)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060AuthorId\u0060 IN (SELECT \u0060Id\u0060 FROM \u0060Authors\u0060 WHERE \u0060Country\u0060 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE EXISTS (SELECT 1 FROM \u0060Authors\u0060 WHERE \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE EXISTS (SELECT 1 FROM \u0060Authors\u0060 WHERE \u0060Authors\u0060.\u0060Id\u0060 = \u0060Books\u0060.\u0060AuthorId\u0060)",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE NOT EXISTS (SELECT 1 FROM \u0060Authors\u0060 WHERE \u0060Active\u0060 = true)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE NOT EXISTS (SELECT 1 FROM \u0060Authors\u0060 WHERE \u0060Active\u0060 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Price\u0060 \u003E (SELECT AVG(\u0060Price\u0060) AS \u0060avg\u0060 FROM \u0060Books\u0060)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Price\u0060 \u003E (SELECT AVG(\u0060Price\u0060) AS \u0060avg\u0060 FROM \u0060Books\u0060)",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "cte",
+    "sql": "WITH \u0060published\u0060 AS (SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true)\nSELECT * FROM \u0060published\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "WITH \u0060published\u0060 AS (SELECT * FROM \u0060Books\u0060 WHERE \u0060Published\u0060 = true)\nSELECT * FROM \u0060published\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "ctedependency",
+    "sql": "WITH \u0060b\u0060 AS (SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0),\n\u0060a\u0060 AS (SELECT * FROM \u0060b\u0060)\nSELECT * FROM \u0060a\u0060",
+    "raw": "WITH \u0060b\u0060 AS (SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ?),\n\u0060a\u0060 AS (SELECT * FROM \u0060b\u0060)\nSELECT * FROM \u0060a\u0060",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "cteraw",
+    "sql": "WITH \u0060x\u0060 AS (SELECT @p0 AS \u0060Id\u0060)\nSELECT * FROM \u0060x\u0060",
+    "raw": "WITH \u0060x\u0060 AS (SELECT ? AS \u0060Id\u0060)\nSELECT * FROM \u0060x\u0060",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "ctevalues",
+    "sql": "WITH \u0060x\u0060 AS (SELECT @p0 AS \u0060Id\u0060, @p1 AS \u0060Name\u0060 UNION ALL SELECT @p2 AS \u0060Id\u0060, @p3 AS \u0060Name\u0060)\nSELECT * FROM \u0060x\u0060",
+    "raw": "WITH \u0060x\u0060 AS (SELECT ? AS \u0060Id\u0060, ? AS \u0060Name\u0060 UNION ALL SELECT ? AS \u0060Id\u0060, ? AS \u0060Name\u0060)\nSELECT * FROM \u0060x\u0060",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "union",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 = @p0 UNION SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 = @p1",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 = ? UNION SELECT * FROM \u0060Books\u0060 WHERE \u0060Lang\u0060 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "intersect",
+    "sql": "SELECT \u0060Id\u0060 FROM \u0060Books\u0060 INTERSECT ALL SELECT \u0060BookId\u0060 FROM \u0060Orders\u0060",
+    "raw": "SELECT \u0060Id\u0060 FROM \u0060Books\u0060 INTERSECT ALL SELECT \u0060BookId\u0060 FROM \u0060Orders\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "except",
+    "sql": "SELECT \u0060Id\u0060 FROM \u0060Books\u0060 EXCEPT SELECT \u0060BookId\u0060 FROM \u0060Orders\u0060",
+    "raw": "SELECT \u0060Id\u0060 FROM \u0060Books\u0060 EXCEPT SELECT \u0060BookId\u0060 FROM \u0060Orders\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "limit",
+    "sql": "SELECT * FROM \u0060Books\u0060 LIMIT @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 LIMIT ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "offset",
+    "sql": "SELECT * FROM \u0060Books\u0060 LIMIT 18446744073709551615 OFFSET @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 LIMIT 18446744073709551615 OFFSET ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "page",
+    "sql": "SELECT * FROM \u0060Books\u0060 ORDER BY \u0060Id\u0060 DESC LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0060Books\u0060 ORDER BY \u0060Id\u0060 DESC LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM \u0060Books\u0060 LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0060Books\u0060 LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT \u0060Lang\u0060 FROM \u0060Books\u0060 LIMIT @p0",
+    "raw": "SELECT DISTINCT \u0060Lang\u0060 FROM \u0060Books\u0060 LIMIT ?",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "random",
+    "sql": "SELECT * FROM \u0060Books\u0060 ORDER BY RAND(42)",
+    "raw": "SELECT * FROM \u0060Books\u0060 ORDER BY RAND(42)",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE DATE(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE DATE(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE TIME(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE TIME(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE YEAR(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE YEAR(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE MONTH(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE MONTH(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE DAY(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE DAY(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE HOUR(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE HOUR(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE MINUTE(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE MINUTE(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE SECOND(\u0060Created\u0060) \u003E= @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE SECOND(\u0060Created\u0060) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE NOT (DATE(\u0060Created\u0060) = @p0)",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE NOT (DATE(\u0060Created\u0060) = ?)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS \u0060count\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true",
+    "raw": "SELECT COUNT(*) AS \u0060count\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS \u0060count\u0060 FROM (SELECT DISTINCT \u0060Lang\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true) AS \u0060countQuery\u0060",
+    "raw": "SELECT COUNT(*) AS \u0060count\u0060 FROM (SELECT DISTINCT \u0060Lang\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true) AS \u0060countQuery\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS \u0060count\u0060 FROM (SELECT 1 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true AND \u0060Id\u0060 IS NOT NULL AND \u0060Lang\u0060 IS NOT NULL) AS \u0060countQuery\u0060",
+    "raw": "SELECT COUNT(*) AS \u0060count\u0060 FROM (SELECT 1 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true AND \u0060Id\u0060 IS NOT NULL AND \u0060Lang\u0060 IS NOT NULL) AS \u0060countQuery\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0060Price\u0060) AS \u0060sum\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true",
+    "raw": "SELECT SUM(\u0060Price\u0060) AS \u0060sum\u0060 FROM \u0060Books\u0060 WHERE \u0060Active\u0060 = true",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "insert",
+    "sql": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060, \u0060CountryId\u0060) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060, \u0060CountryId\u0060) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "insertmany",
+    "sql": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060, \u0060CountryId\u0060) VALUES (@p0, @p1), (@p2, @p3)",
+    "raw": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060, \u0060CountryId\u0060) VALUES (?, ?), (?, ?)",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060) VALUES (@p0);SELECT last_insert_id() as Id",
+    "raw": "INSERT INTO \u0060Users\u0060 (\u0060Name\u0060) VALUES (?);SELECT last_insert_id() as Id",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "update",
+    "sql": "UPDATE \u0060Users\u0060 SET \u0060Name\u0060 = @p0, \u0060CountryId\u0060 = @p1 WHERE \u0060Id\u0060 = @p2",
+    "raw": "UPDATE \u0060Users\u0060 SET \u0060Name\u0060 = ?, \u0060CountryId\u0060 = ? WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "increment",
+    "sql": "UPDATE \u0060Books\u0060 SET \u0060Stock\u0060 = \u0060Stock\u0060 \u002B @p0 WHERE \u0060Id\u0060 = @p1",
+    "raw": "UPDATE \u0060Books\u0060 SET \u0060Stock\u0060 = \u0060Stock\u0060 \u002B ? WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "decrement",
+    "sql": "UPDATE \u0060Books\u0060 SET \u0060Stock\u0060 = \u0060Stock\u0060 - @p0",
+    "raw": "UPDATE \u0060Books\u0060 SET \u0060Stock\u0060 = \u0060Stock\u0060 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "delete",
+    "sql": "DELETE FROM \u0060Users\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "DELETE FROM \u0060Users\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "updatejoin",
+    "sql": "UPDATE \u0060Users\u0060 AS \u0060u\u0060 \nINNER JOIN \u0060Countries\u0060 AS \u0060c\u0060 ON \u0060c\u0060.\u0060Id\u0060 = \u0060u\u0060.\u0060CountryId\u0060 SET \u0060Active\u0060 = @p0 WHERE \u0060c\u0060.\u0060Name\u0060 = @p1",
+    "raw": "UPDATE \u0060Users\u0060 AS \u0060u\u0060 \nINNER JOIN \u0060Countries\u0060 AS \u0060c\u0060 ON \u0060c\u0060.\u0060Id\u0060 = \u0060u\u0060.\u0060CountryId\u0060 SET \u0060Active\u0060 = ? WHERE \u0060c\u0060.\u0060Name\u0060 = ?",
+    "bindings": [
+      "True",
+      "AT"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "deletejoin",
+    "sql": "DELETE \u0060u\u0060 FROM \u0060Users\u0060 AS \u0060u\u0060 \nINNER JOIN \u0060Countries\u0060 AS \u0060c\u0060 ON \u0060c\u0060.\u0060Id\u0060 = \u0060u\u0060.\u0060CountryId\u0060",
+    "raw": "DELETE \u0060u\u0060 FROM \u0060Users\u0060 AS \u0060u\u0060 \nINNER JOIN \u0060Countries\u0060 AS \u0060c\u0060 ON \u0060c\u0060.\u0060Id\u0060 = \u0060u\u0060.\u0060CountryId\u0060",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Created\u0060 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Created\u0060 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "mysql",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "mysql",
+    "name": "when",
+    "sql": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = @p0",
+    "raw": "SELECT * FROM \u0060Books\u0060 WHERE \u0060Id\u0060 = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "all",
+    "sql": "SELECT * FROM \u0022Books\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "columns",
+    "sql": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 AS \u0022Writer\u0022 FROM \u0022Books\u0022 AS \u0022b\u0022",
+    "raw": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 AS \u0022Writer\u0022 FROM \u0022Books\u0022 AS \u0022b\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0 AND \u0022Lang\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ? AND \u0022Lang\u0022 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1 OR \u0022Hidden\u0022 = 0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1 OR \u0022Hidden\u0022 = 0",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1 AND \u0022Hidden\u0022 != 0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1 AND \u0022Hidden\u0022 != 0",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "null",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "not",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = @p0) OR NOT (\u0022Lang\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = ?) OR NOT (\u0022Lang\u0022 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "between",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN @p0 AND @p1 OR \u0022Price\u0022 NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN ? AND ? OR \u0022Price\u0022 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "in",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (@p0, @p1) AND \u0022Id\u0022 NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (?, ?) AND \u0022Id\u0022 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like @p0 AND NOT (\u0022Title\u0022 like @p1) OR \u0022Title\u0022 like @p2 AND \u0022Title\u0022 like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like ? AND NOT (\u0022Title\u0022 like ?) OR \u0022Title\u0022 like ? AND \u0022Title\u0022 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = @p0 OR \u0022Id\u0022 = @p1) AND NOT (\u0022Title\u0022 IS NULL)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?) AND NOT (\u0022Title\u0022 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0022Price\u0022, @p0) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E @p1 ORDER BY \u0022Amount\u0022 \u002B @p2",
+    "raw": "SELECT coalesce(\u0022Price\u0022, ?) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E ? ORDER BY \u0022Amount\u0022 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = @p0 AND \u0022Other\u0022 = \\?",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = ? AND \u0022Other\u0022 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "group",
+    "sql": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022) AS \u0022Count\u0022 FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = @p0 OR \u0022Category\u0022 IS NULL",
+    "raw": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022) AS \u0022Count\u0022 FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = ? OR \u0022Category\u0022 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = @p0 OR \u0022Id\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "filter",
+    "sql": "SELECT COUNT(\u0022Id\u0022) FILTER (WHERE \u0022Published\u0022 = 1) AS \u0022Published\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT COUNT(\u0022Id\u0022) FILTER (WHERE \u0022Published\u0022 = 1) AS \u0022Published\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "join",
+    "sql": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 AS \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "raw": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 AS \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = 1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = 1)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) AS \u0022Author\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) AS \u0022Author\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1) AS \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1) AS \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = @p0)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = 1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = 1)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) AS \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) AS \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "cte",
+    "sql": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = 1)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "ctedependency",
+    "sql": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "raw": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "cteraw",
+    "sql": "WITH \u0022x\u0022 AS (SELECT @p0 AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "ctevalues",
+    "sql": "WITH \u0022x\u0022 AS (SELECT @p0 AS \u0022Id\u0022, @p1 AS \u0022Name\u0022 UNION ALL SELECT @p2 AS \u0022Id\u0022, @p3 AS \u0022Name\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 UNION ALL SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "union",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = @p0 UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ? UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "intersect",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "except",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "limit",
+    "sql": "SELECT * FROM \u0022Books\u0022 LIMIT @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 LIMIT ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "offset",
+    "sql": "SELECT * FROM \u0022Books\u0022 LIMIT -1 OFFSET @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 LIMIT -1 OFFSET ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "page",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM \u0022Books\u0022 LIMIT @p0 OFFSET @p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 LIMIT ? OFFSET ?",
+    "bindings": [
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 LIMIT @p0",
+    "raw": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 LIMIT ?",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "random",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY RANDOM()",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY RANDOM()",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%Y-%m-%d\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%Y-%m-%d\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%H:%M:%S\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%H:%M:%S\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%Y\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%Y\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%m\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%m\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%d\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%d\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%H\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%H\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%M\u0027, \u0022Created\u0022) \u003E= cast(@p0 as text)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE strftime(\u0027%M\u0027, \u0022Created\u0022) \u003E= cast(? as text)",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003E= @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (strftime(\u0027%Y-%m-%d\u0027, \u0022Created\u0022) = cast(@p0 as text))",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (strftime(\u0027%Y-%m-%d\u0027, \u0022Created\u0022) = cast(? as text))",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1) AS \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1) AS \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1 AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) AS \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1 AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) AS \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0022Price\u0022) AS \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1",
+    "raw": "SELECT SUM(\u0022Price\u0022) AS \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = 1",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "insert",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "insertmany",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (@p0, @p1), (@p2, @p3)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?), (?, ?)",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (@p0);select last_insert_rowid() as id",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (?);select last_insert_rowid() as id",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "update",
+    "sql": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = @p0, \u0022CountryId\u0022 = @p1 WHERE \u0022Id\u0022 = @p2",
+    "raw": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = ?, \u0022CountryId\u0022 = ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "increment",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B @p0 WHERE \u0022Id\u0022 = @p1",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "decrement",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - @p0",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "delete",
+    "sql": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "updatejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "sqlite",
+    "name": "deletejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "sqlite",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "sqlite",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlite",
+    "name": "when",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "all",
+    "sql": "SELECT * FROM \u0022Books\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "columns",
+    "sql": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 \u0022Writer\u0022 FROM \u0022Books\u0022 \u0022b\u0022",
+    "raw": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 \u0022Writer\u0022 FROM \u0022Books\u0022 \u0022b\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0 AND \u0022Lang\u0022 = :p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ? AND \u0022Lang\u0022 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "null",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "not",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = :p0) OR NOT (\u0022Lang\u0022 = :p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = ?) OR NOT (\u0022Lang\u0022 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "between",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN :p0 AND :p1 OR \u0022Price\u0022 NOT BETWEEN :p2 AND :p3",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN ? AND ? OR \u0022Price\u0022 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "in",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (:p0, :p1) AND \u0022Id\u0022 NOT IN (:p2, :p3)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (?, ?) AND \u0022Id\u0022 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (:p0, :p1, :p2)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like :p0 AND NOT (\u0022Title\u0022 like :p1) OR \u0022Title\u0022 like :p2 AND \u0022Title\u0022 like :p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like ? AND NOT (\u0022Title\u0022 like ?) OR \u0022Title\u0022 like ? AND \u0022Title\u0022 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = :p0 OR \u0022Id\u0022 = :p1) AND NOT (\u0022Title\u0022 IS NULL)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?) AND NOT (\u0022Title\u0022 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0022Price\u0022, :p0) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E :p1 ORDER BY \u0022Amount\u0022 \u002B :p2",
+    "raw": "SELECT coalesce(\u0022Price\u0022, ?) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E ? ORDER BY \u0022Amount\u0022 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = :p0 AND \u0022Other\u0022 = \\?",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = ? AND \u0022Other\u0022 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "group",
+    "sql": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022 \u0022Count\u0022) FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = :p0 OR \u0022Category\u0022 IS NULL",
+    "raw": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022 \u0022Count\u0022) FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = ? OR \u0022Category\u0022 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = :p0 OR \u0022Id\u0022 = :p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN \u0022Published\u0022 = true THEN \u0022Id\u0022 \u0022Published\u0022 END) FROM \u0022Books\u0022",
+    "raw": "SELECT COUNT(CASE WHEN \u0022Published\u0022 = true THEN \u0022Id\u0022 \u0022Published\u0022 END) FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "join",
+    "sql": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "raw": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) \u0022Author\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) \u0022Author\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = :p0)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "cte",
+    "sql": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "ctedependency",
+    "sql": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "raw": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "cteraw",
+    "sql": "WITH \u0022x\u0022 AS (SELECT :p0 AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "ctevalues",
+    "sql": "WITH \u0022x\u0022 AS (SELECT :p0 AS \u0022Id\u0022, :p1 AS \u0022Name\u0022 FROM DUAL UNION ALL SELECT :p2 AS \u0022Id\u0022, :p3 AS \u0022Name\u0022 FROM DUAL)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 FROM DUAL UNION ALL SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 FROM DUAL)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "union",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = :p0 UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = :p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ? UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "intersect",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "except",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "limit",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET :p0 ROWS FETCH NEXT :p1 ROWS ONLY",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "0",
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "offset",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET :p0 ROWS",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET ? ROWS",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "page",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC OFFSET :p0 ROWS FETCH NEXT :p1 ROWS ONLY",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "20",
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET :p0 ROWS FETCH NEXT :p1 ROWS ONLY",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "20",
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET :p0 ROWS FETCH NEXT :p1 ROWS ONLY",
+    "raw": "SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 ORDER BY (SELECT 0 FROM DUAL) OFFSET ? ROWS FETCH NEXT ? ROWS ONLY",
+    "bindings": [
+      "0",
+      "5"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "random",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY DBMS_RANDOM.VALUE",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY DBMS_RANDOM.VALUE",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) \u003E= TO_CHAR(TO_DATE(:p0, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) \u003E= TO_CHAR(TO_DATE(?, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027HH24:MI:SS\u0027) \u003E= TO_CHAR(TO_DATE(:p0, \u0027HH24:MI\u0027), \u0027HH24:MI:SS\u0027)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027HH24:MI:SS\u0027) \u003E= TO_CHAR(TO_DATE(?, \u0027HH24:MI\u0027), \u0027HH24:MI:SS\u0027)",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(YEAR FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(YEAR FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MONTH FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MONTH FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(DAY FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(DAY FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(HOUR FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(HOUR FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MINUTE FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MINUTE FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(SECOND FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(SECOND FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) = TO_CHAR(TO_DATE(:p0, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027))",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) = TO_CHAR(TO_DATE(?, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027))",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "count",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0022Price\u0022) \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT SUM(\u0022Price\u0022) \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "insert",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p0, :p1)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "insertmany",
+    "sql": "INSERT ALL INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p0, :p1) INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p2, :p3) SELECT 1 FROM DUAL",
+    "raw": "INSERT ALL INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?) INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?) SELECT 1 FROM DUAL",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (:p0)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (?)",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "update",
+    "sql": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = :p0, \u0022CountryId\u0022 = :p1 WHERE \u0022Id\u0022 = :p2",
+    "raw": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = ?, \u0022CountryId\u0022 = ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "increment",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B :p0 WHERE \u0022Id\u0022 = :p1",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "decrement",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - :p0",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "delete",
+    "sql": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "updatejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "oracle",
+    "name": "deletejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "oracle",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "oracle",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle",
+    "name": "when",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "all",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "columns",
+    "sql": "SELECT \u0022B\u0022.\u0022ID\u0022, \u0022B\u0022.\u0022TITLE\u0022, \u0022B\u0022.\u0022AUTHORID\u0022 AS \u0022WRITER\u0022 FROM \u0022BOOKS\u0022 AS \u0022B\u0022",
+    "raw": "SELECT \u0022B\u0022.\u0022ID\u0022, \u0022B\u0022.\u0022TITLE\u0022, \u0022B\u0022.\u0022AUTHORID\u0022 AS \u0022WRITER\u0022 FROM \u0022BOOKS\u0022 AS \u0022B\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0 AND \u0022LANG\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ? AND \u0022LANG\u0022 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1 OR \u0022HIDDEN\u0022 = 0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1 OR \u0022HIDDEN\u0022 = 0",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1 AND \u0022HIDDEN\u0022 != 0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1 AND \u0022HIDDEN\u0022 != 0",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "null",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022DELETED\u0022 IS NULL OR \u0022AUTHORID\u0022 IS NOT NULL",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022DELETED\u0022 IS NULL OR \u0022AUTHORID\u0022 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "not",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT (\u0022ID\u0022 = @p0) OR NOT (\u0022LANG\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT (\u0022ID\u0022 = ?) OR NOT (\u0022LANG\u0022 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "between",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 BETWEEN @p0 AND @p1 OR \u0022PRICE\u0022 NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 BETWEEN ? AND ? OR \u0022PRICE\u0022 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "in",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 IN (@p0, @p1) AND \u0022ID\u0022 NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 IN (?, ?) AND \u0022ID\u0022 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022TITLE\u0022 like @p0 AND NOT (\u0022TITLE\u0022 like @p1) OR \u0022TITLE\u0022 like @p2 AND \u0022TITLE\u0022 like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022TITLE\u0022 like ? AND NOT (\u0022TITLE\u0022 like ?) OR \u0022TITLE\u0022 like ? AND \u0022TITLE\u0022 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022CREATED\u0022 \u003C \u0022UPDATED\u0022",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022CREATED\u0022 \u003C \u0022UPDATED\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE (\u0022ID\u0022 = @p0 OR \u0022ID\u0022 = @p1) AND NOT (\u0022TITLE\u0022 IS NULL)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE (\u0022ID\u0022 = ? OR \u0022ID\u0022 = ?) AND NOT (\u0022TITLE\u0022 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0022Price\u0022, @p0) as \u0022Amount\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022Id\u0022 \u003E @p1 ORDER BY \u0022Amount\u0022 \u002B @p2",
+    "raw": "SELECT coalesce(\u0022Price\u0022, ?) as \u0022Amount\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022Id\u0022 \u003E ? ORDER BY \u0022Amount\u0022 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022Text\u0022 = @p0 AND \u0022Other\u0022 = \\?",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022Text\u0022 = ? AND \u0022Other\u0022 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "group",
+    "sql": "SELECT \u0022CATEGORY\u0022, COUNT(\u0022ID\u0022) AS \u0022COUNT\u0022 FROM \u0022BOOKS\u0022 GROUP BY \u0022CATEGORY\u0022 HAVING \u0022CATEGORY\u0022 = @p0 OR \u0022CATEGORY\u0022 IS NULL",
+    "raw": "SELECT \u0022CATEGORY\u0022, COUNT(\u0022ID\u0022) AS \u0022COUNT\u0022 FROM \u0022BOOKS\u0022 GROUP BY \u0022CATEGORY\u0022 HAVING \u0022CATEGORY\u0022 = ? OR \u0022CATEGORY\u0022 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 GROUP BY \u0022ID\u0022",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 GROUP BY \u0022ID\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 GROUP BY \u0022ID\u0022 HAVING (\u0022ID\u0022 = @p0 OR \u0022ID\u0022 = @p1)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 GROUP BY \u0022ID\u0022 HAVING (\u0022ID\u0022 = ? OR \u0022ID\u0022 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN \u0022PUBLISHED\u0022 = 1 THEN \u0022ID\u0022 END) AS \u0022PUBLISHED\u0022 FROM \u0022BOOKS\u0022",
+    "raw": "SELECT COUNT(CASE WHEN \u0022PUBLISHED\u0022 = 1 THEN \u0022ID\u0022 END) AS \u0022PUBLISHED\u0022 FROM \u0022BOOKS\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "join",
+    "sql": "SELECT \u0022BOOKS\u0022.*, \u0022AUTHORS\u0022.\u0022NAME\u0022 AS \u0022AUTHORNAME\u0022 FROM \u0022BOOKS\u0022 \nINNER JOIN \u0022AUTHORS\u0022 ON \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022",
+    "raw": "SELECT \u0022BOOKS\u0022.*, \u0022AUTHORS\u0022.\u0022NAME\u0022 AS \u0022AUTHORNAME\u0022 FROM \u0022BOOKS\u0022 \nINNER JOIN \u0022AUTHORS\u0022 ON \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 \nLEFT JOIN \u0022AUTHORS\u0022 ON (\u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022 AND \u0022AUTHORS\u0022.\u0022ACTIVE\u0022 = 1)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 \nLEFT JOIN \u0022AUTHORS\u0022 ON (\u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022 AND \u0022AUTHORS\u0022.\u0022ACTIVE\u0022 = 1)",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 \nCROSS JOIN \u0022LANGUAGES\u0022",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 \nCROSS JOIN \u0022LANGUAGES\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0022NAME\u0022 FROM \u0022AUTHORS\u0022 WHERE \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022) AS \u0022AUTHOR\u0022 FROM \u0022BOOKS\u0022",
+    "raw": "SELECT (SELECT \u0022NAME\u0022 FROM \u0022AUTHORS\u0022 WHERE \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022) AS \u0022AUTHOR\u0022 FROM \u0022BOOKS\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1) AS \u0022B\u0022 WHERE \u0022B\u0022.\u0022ID\u0022 = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1) AS \u0022B\u0022 WHERE \u0022B\u0022.\u0022ID\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022AUTHORID\u0022 IN (SELECT \u0022ID\u0022 FROM \u0022AUTHORS\u0022 WHERE \u0022COUNTRY\u0022 = @p0)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022AUTHORID\u0022 IN (SELECT \u0022ID\u0022 FROM \u0022AUTHORS\u0022 WHERE \u0022COUNTRY\u0022 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXISTS (SELECT 1 FROM \u0022AUTHORS\u0022 WHERE \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXISTS (SELECT 1 FROM \u0022AUTHORS\u0022 WHERE \u0022AUTHORS\u0022.\u0022ID\u0022 = \u0022BOOKS\u0022.\u0022AUTHORID\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022AUTHORS\u0022 WHERE \u0022ACTIVE\u0022 = 1)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022AUTHORS\u0022 WHERE \u0022ACTIVE\u0022 = 1)",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PRICE\u0022 \u003E (SELECT AVG(\u0022PRICE\u0022) AS \u0022AVG\u0022 FROM \u0022BOOKS\u0022)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PRICE\u0022 \u003E (SELECT AVG(\u0022PRICE\u0022) AS \u0022AVG\u0022 FROM \u0022BOOKS\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "cte",
+    "sql": "WITH \u0022PUBLISHED\u0022 AS (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1)\nSELECT * FROM \u0022PUBLISHED\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "WITH \u0022PUBLISHED\u0022 AS (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022PUBLISHED\u0022 = 1)\nSELECT * FROM \u0022PUBLISHED\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "ctedependency",
+    "sql": "WITH \u0022B\u0022 AS (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0),\n\u0022A\u0022 AS (SELECT * FROM \u0022B\u0022)\nSELECT * FROM \u0022A\u0022",
+    "raw": "WITH \u0022B\u0022 AS (SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ?),\n\u0022A\u0022 AS (SELECT * FROM \u0022B\u0022)\nSELECT * FROM \u0022A\u0022",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "cteraw",
+    "sql": "WITH \u0022X\u0022 AS (SELECT @p0 AS \u0022Id\u0022)\nSELECT * FROM \u0022X\u0022",
+    "raw": "WITH \u0022X\u0022 AS (SELECT ? AS \u0022Id\u0022)\nSELECT * FROM \u0022X\u0022",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "ctevalues",
+    "sql": "WITH \u0022X\u0022 AS (SELECT @p0 AS \u0022ID\u0022, @p1 AS \u0022NAME\u0022 FROM RDB$DATABASE UNION ALL SELECT @p2 AS \u0022ID\u0022, @p3 AS \u0022NAME\u0022 FROM RDB$DATABASE)\nSELECT * FROM \u0022X\u0022",
+    "raw": "WITH \u0022X\u0022 AS (SELECT ? AS \u0022ID\u0022, ? AS \u0022NAME\u0022 FROM RDB$DATABASE UNION ALL SELECT ? AS \u0022ID\u0022, ? AS \u0022NAME\u0022 FROM RDB$DATABASE)\nSELECT * FROM \u0022X\u0022",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "union",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 = @p0 UNION SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 = @p1",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 = ? UNION SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022LANG\u0022 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "intersect",
+    "sql": "SELECT \u0022ID\u0022 FROM \u0022BOOKS\u0022 INTERSECT ALL SELECT \u0022BOOKID\u0022 FROM \u0022ORDERS\u0022",
+    "raw": "SELECT \u0022ID\u0022 FROM \u0022BOOKS\u0022 INTERSECT ALL SELECT \u0022BOOKID\u0022 FROM \u0022ORDERS\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "except",
+    "sql": "SELECT \u0022ID\u0022 FROM \u0022BOOKS\u0022 EXCEPT SELECT \u0022BOOKID\u0022 FROM \u0022ORDERS\u0022",
+    "raw": "SELECT \u0022ID\u0022 FROM \u0022BOOKS\u0022 EXCEPT SELECT \u0022BOOKID\u0022 FROM \u0022ORDERS\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "limit",
+    "sql": "SELECT FIRST @p0 * FROM \u0022BOOKS\u0022",
+    "raw": "SELECT FIRST ? * FROM \u0022BOOKS\u0022",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "offset",
+    "sql": "SELECT SKIP @p0 * FROM \u0022BOOKS\u0022",
+    "raw": "SELECT SKIP ? * FROM \u0022BOOKS\u0022",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "page",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 ORDER BY \u0022ID\u0022 DESC ROWS @p0 TO @p1",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 ORDER BY \u0022ID\u0022 DESC ROWS ? TO ?",
+    "bindings": [
+      "21",
+      "30"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 ROWS @p0 TO @p1",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 ROWS ? TO ?",
+    "bindings": [
+      "21",
+      "30"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "distinct",
+    "sql": "SELECT FIRST @p0 DISTINCT \u0022LANG\u0022 FROM \u0022BOOKS\u0022",
+    "raw": "SELECT FIRST ? DISTINCT \u0022LANG\u0022 FROM \u0022BOOKS\u0022",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "random",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 ORDER BY RAND()",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 ORDER BY RAND()",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE CAST(\u0022CREATED\u0022 as DATE) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE CAST(\u0022CREATED\u0022 as DATE) \u003E= ?",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE CAST(\u0022CREATED\u0022 as TIME) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE CAST(\u0022CREATED\u0022 as TIME) \u003E= ?",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(YEAR FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(YEAR FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(MONTH FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(MONTH FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(DAY FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(DAY FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(HOUR FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(HOUR FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(MINUTE FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(MINUTE FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(SECOND FROM \u0022CREATED\u0022) \u003E= @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE EXTRACT(SECOND FROM \u0022CREATED\u0022) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT (CAST(\u0022CREATED\u0022 as DATE) = @p0)",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE NOT (CAST(\u0022CREATED\u0022 as DATE) = ?)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1",
+    "raw": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM (SELECT DISTINCT \u0022LANG\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1) AS \u0022COUNTQUERY\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM (SELECT DISTINCT \u0022LANG\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1) AS \u0022COUNTQUERY\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM (SELECT 1 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1 AND \u0022ID\u0022 IS NOT NULL AND \u0022LANG\u0022 IS NOT NULL) AS \u0022COUNTQUERY\u0022",
+    "raw": "SELECT COUNT(*) AS \u0022COUNT\u0022 FROM (SELECT 1 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1 AND \u0022ID\u0022 IS NOT NULL AND \u0022LANG\u0022 IS NOT NULL) AS \u0022COUNTQUERY\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0022PRICE\u0022) AS \u0022SUM\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1",
+    "raw": "SELECT SUM(\u0022PRICE\u0022) AS \u0022SUM\u0022 FROM \u0022BOOKS\u0022 WHERE \u0022ACTIVE\u0022 = 1",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "insert",
+    "sql": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022, \u0022COUNTRYID\u0022) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022, \u0022COUNTRYID\u0022) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "insertmany",
+    "sql": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022, \u0022COUNTRYID\u0022) SELECT @p0, @p1 FROM RDB$DATABASE UNION ALL SELECT @p2, @p3 FROM RDB$DATABASE",
+    "raw": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022, \u0022COUNTRYID\u0022) SELECT ?, ? FROM RDB$DATABASE UNION ALL SELECT ?, ? FROM RDB$DATABASE",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022) VALUES (@p0)",
+    "raw": "INSERT INTO \u0022USERS\u0022 (\u0022NAME\u0022) VALUES (?)",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "update",
+    "sql": "UPDATE \u0022USERS\u0022 SET \u0022NAME\u0022 = @p0, \u0022COUNTRYID\u0022 = @p1 WHERE \u0022ID\u0022 = @p2",
+    "raw": "UPDATE \u0022USERS\u0022 SET \u0022NAME\u0022 = ?, \u0022COUNTRYID\u0022 = ? WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "increment",
+    "sql": "UPDATE \u0022BOOKS\u0022 SET \u0022STOCK\u0022 = \u0022STOCK\u0022 \u002B @p0 WHERE \u0022ID\u0022 = @p1",
+    "raw": "UPDATE \u0022BOOKS\u0022 SET \u0022STOCK\u0022 = \u0022STOCK\u0022 \u002B ? WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "decrement",
+    "sql": "UPDATE \u0022BOOKS\u0022 SET \u0022STOCK\u0022 = \u0022STOCK\u0022 - @p0",
+    "raw": "UPDATE \u0022BOOKS\u0022 SET \u0022STOCK\u0022 = \u0022STOCK\u0022 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "delete",
+    "sql": "DELETE FROM \u0022USERS\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "DELETE FROM \u0022USERS\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "updatejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "firebird",
+    "name": "deletejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "firebird",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022CREATED\u0022 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022CREATED\u0022 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "firebird",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "firebird",
+    "name": "when",
+    "sql": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = @p0",
+    "raw": "SELECT * FROM \u0022BOOKS\u0022 WHERE \u0022ID\u0022 = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "all",
+    "sql": "SELECT * FROM [Books]",
+    "raw": "SELECT * FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "columns",
+    "sql": "SELECT [b].[Id], [b].[Title], [b].[AuthorId] AS [Writer] FROM [Books] AS [b]",
+    "raw": "SELECT [b].[Id], [b].[Title], [b].[AuthorId] AS [Writer] FROM [Books] AS [b]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "basic",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0 AND [Lang] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ? AND [Lang] = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "bool",
+    "sql": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) OR [Hidden] = cast(0 as bit)",
+    "raw": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) OR [Hidden] = cast(0 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) AND [Hidden] != cast(0 as bit)",
+    "raw": "SELECT * FROM [Books] WHERE [Published] = cast(1 as bit) AND [Hidden] != cast(0 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "null",
+    "sql": "SELECT * FROM [Books] WHERE [Deleted] IS NULL OR [AuthorId] IS NOT NULL",
+    "raw": "SELECT * FROM [Books] WHERE [Deleted] IS NULL OR [AuthorId] IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "not",
+    "sql": "SELECT * FROM [Books] WHERE NOT ([Id] = @p0) OR NOT ([Lang] = @p1)",
+    "raw": "SELECT * FROM [Books] WHERE NOT ([Id] = ?) OR NOT ([Lang] = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "between",
+    "sql": "SELECT * FROM [Books] WHERE [Id] BETWEEN @p0 AND @p1 OR [Price] NOT BETWEEN @p2 AND @p3",
+    "raw": "SELECT * FROM [Books] WHERE [Id] BETWEEN ? AND ? OR [Price] NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "in",
+    "sql": "SELECT * FROM [Books] WHERE [Lang] IN (@p0, @p1) AND [Id] NOT IN (@p2, @p3)",
+    "raw": "SELECT * FROM [Books] WHERE [Lang] IN (?, ?) AND [Id] NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "induplicate",
+    "sql": "SELECT * FROM [Books] WHERE [Id] IN (@p0, @p1, @p2)",
+    "raw": "SELECT * FROM [Books] WHERE [Id] IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "emptyin",
+    "sql": "SELECT * FROM [Books] WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM [Books] WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "strings",
+    "sql": "SELECT * FROM [Books] WHERE [Title] like @p0 AND NOT ([Title] like @p1) OR [Title] like @p2 AND [Title] like @p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM [Books] WHERE [Title] like ? AND NOT ([Title] like ?) OR [Title] like ? AND [Title] like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM [Books] WHERE [Created] \u003C [Updated]",
+    "raw": "SELECT * FROM [Books] WHERE [Created] \u003C [Updated]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "nested",
+    "sql": "SELECT * FROM [Books] WHERE ([Id] = @p0 OR [Id] = @p1) AND NOT ([Title] IS NULL)",
+    "raw": "SELECT * FROM [Books] WHERE ([Id] = ? OR [Id] = ?) AND NOT ([Title] IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "emptynested",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "raw",
+    "sql": "SELECT coalesce([Price], @p0) as [Amount] FROM [Books] WHERE [Id] \u003E @p1 ORDER BY [Amount] \u002B @p2",
+    "raw": "SELECT coalesce([Price], ?) as [Amount] FROM [Books] WHERE [Id] \u003E ? ORDER BY [Amount] \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM [Books] WHERE [Text] = @p0 AND [Other] = \\?",
+    "raw": "SELECT * FROM [Books] WHERE [Text] = ? AND [Other] = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "group",
+    "sql": "SELECT [Category], COUNT([Id]) AS [Count] FROM [Books] GROUP BY [Category] HAVING [Category] = @p0 OR [Category] IS NULL",
+    "raw": "SELECT [Category], COUNT([Id]) AS [Count] FROM [Books] GROUP BY [Category] HAVING [Category] = ? OR [Category] IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "havingnested",
+    "sql": "SELECT * FROM [Books] GROUP BY [Id]",
+    "raw": "SELECT * FROM [Books] GROUP BY [Id]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM [Books] GROUP BY [Id] HAVING ([Id] = @p0 OR [Id] = @p1)",
+    "raw": "SELECT * FROM [Books] GROUP BY [Id] HAVING ([Id] = ? OR [Id] = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN [Published] = cast(1 as bit) THEN [Id] END) AS [Published] FROM [Books]",
+    "raw": "SELECT COUNT(CASE WHEN [Published] = cast(1 as bit) THEN [Id] END) AS [Published] FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "join",
+    "sql": "SELECT [Books].*, [Authors].[Name] AS [AuthorName] FROM [Books] \nINNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]",
+    "raw": "SELECT [Books].*, [Authors].[Name] AS [AuthorName] FROM [Books] \nINNER JOIN [Authors] ON [Authors].[Id] = [Books].[AuthorId]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "joincallback",
+    "sql": "SELECT * FROM [Books] \nLEFT JOIN [Authors] ON ([Authors].[Id] = [Books].[AuthorId] AND [Authors].[Active] = cast(1 as bit))",
+    "raw": "SELECT * FROM [Books] \nLEFT JOIN [Authors] ON ([Authors].[Id] = [Books].[AuthorId] AND [Authors].[Active] = cast(1 as bit))",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "cross",
+    "sql": "SELECT * FROM [Books] \nCROSS JOIN [Languages]",
+    "raw": "SELECT * FROM [Books] \nCROSS JOIN [Languages]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT [Name] FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId]) AS [Author] FROM [Books]",
+    "raw": "SELECT (SELECT [Name] FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId]) AS [Author] FROM [Books]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit)) AS [b] WHERE [b].[Id] = @p0",
+    "raw": "SELECT * FROM (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit)) AS [b] WHERE [b].[Id] = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "insub",
+    "sql": "SELECT * FROM [Books] WHERE [AuthorId] IN (SELECT [Id] FROM [Authors] WHERE [Country] = @p0)",
+    "raw": "SELECT * FROM [Books] WHERE [AuthorId] IN (SELECT [Id] FROM [Authors] WHERE [Country] = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "exists",
+    "sql": "SELECT * FROM [Books] WHERE EXISTS (SELECT 1 FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId])",
+    "raw": "SELECT * FROM [Books] WHERE EXISTS (SELECT 1 FROM [Authors] WHERE [Authors].[Id] = [Books].[AuthorId])",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "notexists",
+    "sql": "SELECT * FROM [Books] WHERE NOT EXISTS (SELECT 1 FROM [Authors] WHERE [Active] = cast(1 as bit))",
+    "raw": "SELECT * FROM [Books] WHERE NOT EXISTS (SELECT 1 FROM [Authors] WHERE [Active] = cast(1 as bit))",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "querycondition",
+    "sql": "SELECT * FROM [Books] WHERE [Price] \u003E (SELECT AVG([Price]) AS [avg] FROM [Books])",
+    "raw": "SELECT * FROM [Books] WHERE [Price] \u003E (SELECT AVG([Price]) AS [avg] FROM [Books])",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "cte",
+    "sql": "WITH [published] AS (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit))\nSELECT * FROM [published] WHERE [Id] = @p0",
+    "raw": "WITH [published] AS (SELECT * FROM [Books] WHERE [Published] = cast(1 as bit))\nSELECT * FROM [published] WHERE [Id] = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "ctedependency",
+    "sql": "WITH [b] AS (SELECT * FROM [Books] WHERE [Id] = @p0),\n[a] AS (SELECT * FROM [b])\nSELECT * FROM [a]",
+    "raw": "WITH [b] AS (SELECT * FROM [Books] WHERE [Id] = ?),\n[a] AS (SELECT * FROM [b])\nSELECT * FROM [a]",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "cteraw",
+    "sql": "WITH [x] AS (SELECT @p0 AS [Id])\nSELECT * FROM [x]",
+    "raw": "WITH [x] AS (SELECT ? AS [Id])\nSELECT * FROM [x]",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "ctevalues",
+    "sql": "WITH [x] AS (SELECT [Id], [Name] FROM (VALUES (@p0, @p1), (@p2, @p3)) AS tbl ([Id], [Name]))\nSELECT * FROM [x]",
+    "raw": "WITH [x] AS (SELECT [Id], [Name] FROM (VALUES (?, ?), (?, ?)) AS tbl ([Id], [Name]))\nSELECT * FROM [x]",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "union",
+    "sql": "SELECT * FROM [Books] WHERE [Lang] = @p0 UNION SELECT * FROM [Books] WHERE [Lang] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Lang] = ? UNION SELECT * FROM [Books] WHERE [Lang] = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "intersect",
+    "sql": "SELECT [Id] FROM [Books] INTERSECT ALL SELECT [BookId] FROM [Orders]",
+    "raw": "SELECT [Id] FROM [Books] INTERSECT ALL SELECT [BookId] FROM [Orders]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "except",
+    "sql": "SELECT [Id] FROM [Books] EXCEPT SELECT [BookId] FROM [Orders]",
+    "raw": "SELECT [Id] FROM [Books] EXCEPT SELECT [BookId] FROM [Orders]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "limit",
+    "sql": "SELECT TOP (@p0) * FROM [Books]",
+    "raw": "SELECT TOP (?) * FROM [Books]",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "offset",
+    "sql": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] \u003E= @p0",
+    "raw": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] \u003E= ?",
+    "bindings": [
+      "21"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "page",
+    "sql": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY [Id] DESC) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] BETWEEN @p0 AND @p1",
+    "raw": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY [Id] DESC) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] BETWEEN ? AND ?",
+    "bindings": [
+      "21",
+      "30"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] BETWEEN @p0 AND @p1",
+    "raw": "SELECT * FROM (SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT 0)) AS [row_num] FROM [Books]) AS [results_wrapper] WHERE [row_num] BETWEEN ? AND ?",
+    "bindings": [
+      "21",
+      "30"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "distinct",
+    "sql": "SELECT DISTINCT TOP (@p0) [Lang] FROM [Books]",
+    "raw": "SELECT DISTINCT TOP (?) [Lang] FROM [Books]",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "random",
+    "sql": "SELECT * FROM [Books] ORDER BY NEWID()",
+    "raw": "SELECT * FROM [Books] ORDER BY NEWID()",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_date",
+    "sql": "SELECT * FROM [Books] WHERE CAST([Created] AS DATE) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE CAST([Created] AS DATE) \u003E= ?",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_time",
+    "sql": "SELECT * FROM [Books] WHERE CAST([Created] AS TIME) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE CAST([Created] AS TIME) \u003E= ?",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_year",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(YEAR, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(YEAR, [Created]) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_month",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(MONTH, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(MONTH, [Created]) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_day",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(DAY, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(DAY, [Created]) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_hour",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(HOUR, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(HOUR, [Created]) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_minute",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(MINUTE, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(MINUTE, [Created]) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "date_second",
+    "sql": "SELECT * FROM [Books] WHERE DATEPART(SECOND, [Created]) \u003E= @p0",
+    "raw": "SELECT * FROM [Books] WHERE DATEPART(SECOND, [Created]) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "datenot",
+    "sql": "SELECT * FROM [Books] WHERE NOT (CAST([Created] AS DATE) = @p0)",
+    "raw": "SELECT * FROM [Books] WHERE NOT (CAST([Created] AS DATE) = ?)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "count",
+    "sql": "SELECT COUNT(*) AS [count] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "raw": "SELECT COUNT(*) AS [count] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) AS [count] FROM (SELECT DISTINCT [Lang] FROM [Books] WHERE [Active] = cast(1 as bit)) AS [countQuery]",
+    "raw": "SELECT COUNT(*) AS [count] FROM (SELECT DISTINCT [Lang] FROM [Books] WHERE [Active] = cast(1 as bit)) AS [countQuery]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) AS [count] FROM (SELECT 1 FROM [Books] WHERE [Active] = cast(1 as bit) AND [Id] IS NOT NULL AND [Lang] IS NOT NULL) AS [countQuery]",
+    "raw": "SELECT COUNT(*) AS [count] FROM (SELECT 1 FROM [Books] WHERE [Active] = cast(1 as bit) AND [Id] IS NOT NULL AND [Lang] IS NOT NULL) AS [countQuery]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "sum",
+    "sql": "SELECT SUM([Price]) AS [sum] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "raw": "SELECT SUM([Price]) AS [sum] FROM [Books] WHERE [Active] = cast(1 as bit)",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "insert",
+    "sql": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (@p0, @p1)",
+    "raw": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "insertmany",
+    "sql": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (@p0, @p1), (@p2, @p3)",
+    "raw": "INSERT INTO [Users] ([Name], [CountryId]) VALUES (?, ?), (?, ?)",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "insertid",
+    "sql": "INSERT INTO [Users] ([Name]) VALUES (@p0);SELECT scope_identity() as Id",
+    "raw": "INSERT INTO [Users] ([Name]) VALUES (?);SELECT scope_identity() as Id",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "update",
+    "sql": "UPDATE [Users] SET [Name] = @p0, [CountryId] = @p1 WHERE [Id] = @p2",
+    "raw": "UPDATE [Users] SET [Name] = ?, [CountryId] = ? WHERE [Id] = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "increment",
+    "sql": "UPDATE [Books] SET [Stock] = [Stock] \u002B @p0 WHERE [Id] = @p1",
+    "raw": "UPDATE [Books] SET [Stock] = [Stock] \u002B ? WHERE [Id] = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "decrement",
+    "sql": "UPDATE [Books] SET [Stock] = [Stock] - @p0",
+    "raw": "UPDATE [Books] SET [Stock] = [Stock] - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "delete",
+    "sql": "DELETE FROM [Users] WHERE [Id] = @p0",
+    "raw": "DELETE FROM [Users] WHERE [Id] = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "updatejoin",
+    "sql": "UPDATE [u] SET [Active] = @p0 FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId] WHERE [c].[Name] = @p1",
+    "raw": "UPDATE [u] SET [Active] = ? FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId] WHERE [c].[Name] = ?",
+    "bindings": [
+      "True",
+      "AT"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "deletejoin",
+    "sql": "DELETE [u] FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId]",
+    "raw": "DELETE [u] FROM [Users] AS [u] \nINNER JOIN [Countries] AS [c] ON [c].[Id] = [u].[CountryId]",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "variable",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "literal",
+    "sql": "SELECT * FROM [Books] WHERE [Created] = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM [Books] WHERE [Created] = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "engine",
+    "sql": "SELECT * FROM [Books] WHERE [Engine] = @p0 AND [Id] = @p1",
+    "raw": "SELECT * FROM [Books] WHERE [Engine] = ? AND [Id] = ?",
+    "bindings": [
+      "MSSQL",
+      "1"
+    ]
+  },
+  {
+    "engine": "sqlsrv_legacy",
+    "name": "when",
+    "sql": "SELECT * FROM [Books] WHERE [Id] = @p0",
+    "raw": "SELECT * FROM [Books] WHERE [Id] = ?",
+    "bindings": [
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "all",
+    "sql": "SELECT * FROM \u0022Books\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "columns",
+    "sql": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 \u0022Writer\u0022 FROM \u0022Books\u0022 \u0022b\u0022",
+    "raw": "SELECT \u0022b\u0022.\u0022Id\u0022, \u0022b\u0022.\u0022Title\u0022, \u0022b\u0022.\u0022AuthorId\u0022 \u0022Writer\u0022 FROM \u0022Books\u0022 \u0022b\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "basic",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0 AND \u0022Lang\u0022 = :p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ? AND \u0022Lang\u0022 = ?",
+    "bindings": [
+      "145",
+      "en"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "bool",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true OR \u0022Hidden\u0022 = false",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "boolvalue",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true AND \u0022Hidden\u0022 != false",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "null",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Deleted\u0022 IS NULL OR \u0022AuthorId\u0022 IS NOT NULL",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "not",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = :p0) OR NOT (\u0022Lang\u0022 = :p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (\u0022Id\u0022 = ?) OR NOT (\u0022Lang\u0022 = ?)",
+    "bindings": [
+      "1",
+      "de"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "between",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN :p0 AND :p1 OR \u0022Price\u0022 NOT BETWEEN :p2 AND :p3",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 BETWEEN ? AND ? OR \u0022Price\u0022 NOT BETWEEN ? AND ?",
+    "bindings": [
+      "1",
+      "9",
+      "10",
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "in",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (:p0, :p1) AND \u0022Id\u0022 NOT IN (:p2, :p3)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 IN (?, ?) AND \u0022Id\u0022 NOT IN (?, ?)",
+    "bindings": [
+      "de",
+      "en",
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "induplicate",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (:p0, :p1, :p2)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 IN (?, ?, ?)",
+    "bindings": [
+      "1",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "emptyin",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE 1 = 0 /* IN [empty list] */ OR 1 = 1 /* NOT IN [empty list] */",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "strings",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like :p0 AND NOT (\u0022Title\u0022 like :p1) OR \u0022Title\u0022 like :p2 AND \u0022Title\u0022 like :p3 ESCAPE \u0027!\u0027",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Title\u0022 like ? AND NOT (\u0022Title\u0022 like ?) OR \u0022Title\u0022 like ? AND \u0022Title\u0022 like ? ESCAPE \u0027!\u0027",
+    "bindings": [
+      "A%",
+      "%SQL%",
+      "Delphi%",
+      "%!"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "columnscondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 \u003C \u0022Updated\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "nested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = :p0 OR \u0022Id\u0022 = :p1) AND NOT (\u0022Title\u0022 IS NULL)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?) AND NOT (\u0022Title\u0022 IS NULL)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "emptynested",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "raw",
+    "sql": "SELECT coalesce(\u0022Price\u0022, :p0) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E :p1 ORDER BY \u0022Amount\u0022 \u002B :p2",
+    "raw": "SELECT coalesce(\u0022Price\u0022, ?) as \u0022Amount\u0022 FROM \u0022Books\u0022 WHERE \u0022Id\u0022 \u003E ? ORDER BY \u0022Amount\u0022 \u002B ?",
+    "bindings": [
+      "10",
+      "2",
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "escapedraw",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = :p0 AND \u0022Other\u0022 = \\?",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Text\u0022 = ? AND \u0022Other\u0022 = \\?",
+    "bindings": [
+      "a"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "group",
+    "sql": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022 \u0022Count\u0022) FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = :p0 OR \u0022Category\u0022 IS NULL",
+    "raw": "SELECT \u0022Category\u0022, COUNT(\u0022Id\u0022 \u0022Count\u0022) FROM \u0022Books\u0022 GROUP BY \u0022Category\u0022 HAVING \u0022Category\u0022 = ? OR \u0022Category\u0022 IS NULL",
+    "bindings": [
+      "A"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "havingnested",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "havingcallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = :p0 OR \u0022Id\u0022 = :p1)",
+    "raw": "SELECT * FROM \u0022Books\u0022 GROUP BY \u0022Id\u0022 HAVING (\u0022Id\u0022 = ? OR \u0022Id\u0022 = ?)",
+    "bindings": [
+      "1",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "filter",
+    "sql": "SELECT COUNT(CASE WHEN \u0022Published\u0022 = true THEN \u0022Id\u0022 \u0022Published\u0022 END) FROM \u0022Books\u0022",
+    "raw": "SELECT COUNT(CASE WHEN \u0022Published\u0022 = true THEN \u0022Id\u0022 \u0022Published\u0022 END) FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "join",
+    "sql": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "raw": "SELECT \u0022Books\u0022.*, \u0022Authors\u0022.\u0022Name\u0022 \u0022AuthorName\u0022 FROM \u0022Books\u0022 \nINNER JOIN \u0022Authors\u0022 ON \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "joincallback",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nLEFT JOIN \u0022Authors\u0022 ON (\u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022 AND \u0022Authors\u0022.\u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "cross",
+    "sql": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "raw": "SELECT * FROM \u0022Books\u0022 \nCROSS JOIN \u0022Languages\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "selectsub",
+    "sql": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) \u0022Author\u0022 FROM \u0022Books\u0022",
+    "raw": "SELECT (SELECT \u0022Name\u0022 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022) \u0022Author\u0022 FROM \u0022Books\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "fromsub",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true) \u0022b\u0022 WHERE \u0022b\u0022.\u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "insub",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = :p0)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022AuthorId\u0022 IN (SELECT \u0022Id\u0022 FROM \u0022Authors\u0022 WHERE \u0022Country\u0022 = ?)",
+    "bindings": [
+      "AT"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "exists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Authors\u0022.\u0022Id\u0022 = \u0022Books\u0022.\u0022AuthorId\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "notexists",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT EXISTS (SELECT 1 FROM \u0022Authors\u0022 WHERE \u0022Active\u0022 = true)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "querycondition",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Price\u0022 \u003E (SELECT AVG(\u0022Price\u0022) \u0022avg\u0022 FROM \u0022Books\u0022)",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "cte",
+    "sql": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "WITH \u0022published\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Published\u0022 = true)\nSELECT * FROM \u0022published\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "ctedependency",
+    "sql": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "raw": "WITH \u0022b\u0022 AS (SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?),\n\u0022a\u0022 AS (SELECT * FROM \u0022b\u0022)\nSELECT * FROM \u0022a\u0022",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "cteraw",
+    "sql": "WITH \u0022x\u0022 AS (SELECT :p0 AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "4"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "ctevalues",
+    "sql": "WITH \u0022x\u0022 AS (SELECT :p0 AS \u0022Id\u0022, :p1 AS \u0022Name\u0022 FROM DUAL UNION ALL SELECT :p2 AS \u0022Id\u0022, :p3 AS \u0022Name\u0022 FROM DUAL)\nSELECT * FROM \u0022x\u0022",
+    "raw": "WITH \u0022x\u0022 AS (SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 FROM DUAL UNION ALL SELECT ? AS \u0022Id\u0022, ? AS \u0022Name\u0022 FROM DUAL)\nSELECT * FROM \u0022x\u0022",
+    "bindings": [
+      "1",
+      "A",
+      "2",
+      "B"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "union",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = :p0 UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = :p1",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ? UNION SELECT * FROM \u0022Books\u0022 WHERE \u0022Lang\u0022 = ?",
+    "bindings": [
+      "en",
+      "de"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "intersect",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 INTERSECT ALL SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "except",
+    "sql": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "raw": "SELECT \u0022Id\u0022 FROM \u0022Books\u0022 EXCEPT SELECT \u0022BookId\u0022 FROM \u0022Orders\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "limit",
+    "sql": "SELECT * FROM (SELECT * FROM \u0022Books\u0022) WHERE ROWNUM \u003C= :p0",
+    "raw": "SELECT * FROM (SELECT * FROM \u0022Books\u0022) WHERE ROWNUM \u003C= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "offset",
+    "sql": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022) \u0022results_wrapper\u0022) WHERE \u0022row_num\u0022 \u003E :p0",
+    "raw": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022) \u0022results_wrapper\u0022) WHERE \u0022row_num\u0022 \u003E ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "page",
+    "sql": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC) \u0022results_wrapper\u0022 WHERE ROWNUM \u003C= :p0) WHERE \u0022row_num\u0022 \u003E :p1",
+    "raw": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022 ORDER BY \u0022Id\u0022 DESC) \u0022results_wrapper\u0022 WHERE ROWNUM \u003C= ?) WHERE \u0022row_num\u0022 \u003E ?",
+    "bindings": [
+      "30",
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "limitoffset",
+    "sql": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022) \u0022results_wrapper\u0022 WHERE ROWNUM \u003C= :p0) WHERE \u0022row_num\u0022 \u003E :p1",
+    "raw": "SELECT * FROM (SELECT \u0022results_wrapper\u0022.*, ROWNUM \u0022row_num\u0022 FROM (SELECT * FROM \u0022Books\u0022) \u0022results_wrapper\u0022 WHERE ROWNUM \u003C= ?) WHERE \u0022row_num\u0022 \u003E ?",
+    "bindings": [
+      "30",
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "distinct",
+    "sql": "SELECT * FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022) WHERE ROWNUM \u003C= :p0",
+    "raw": "SELECT * FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022) WHERE ROWNUM \u003C= ?",
+    "bindings": [
+      "5"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "random",
+    "sql": "SELECT * FROM \u0022Books\u0022 ORDER BY DBMS_RANDOM.VALUE",
+    "raw": "SELECT * FROM \u0022Books\u0022 ORDER BY DBMS_RANDOM.VALUE",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_date",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) \u003E= TO_CHAR(TO_DATE(:p0, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) \u003E= TO_CHAR(TO_DATE(?, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027)",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_time",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027HH24:MI:SS\u0027) \u003E= TO_CHAR(TO_DATE(:p0, \u0027HH24:MI\u0027), \u0027HH24:MI:SS\u0027)",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE TO_CHAR(\u0022Created\u0022, \u0027HH24:MI:SS\u0027) \u003E= TO_CHAR(TO_DATE(?, \u0027HH24:MI\u0027), \u0027HH24:MI:SS\u0027)",
+    "bindings": [
+      "13:14"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_year",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(YEAR FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(YEAR FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "2025"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_month",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MONTH FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MONTH FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "10"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_day",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(DAY FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(DAY FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "20"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_hour",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(HOUR FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(HOUR FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "13"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_minute",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MINUTE FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(MINUTE FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "14"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "date_second",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(SECOND FROM \u0022Created\u0022) \u003E= :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE EXTRACT(SECOND FROM \u0022Created\u0022) \u003E= ?",
+    "bindings": [
+      "15"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "datenot",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE NOT (TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) = TO_CHAR(TO_DATE(:p0, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027))",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE NOT (TO_CHAR(\u0022Created\u0022, \u0027YY-MM-DD\u0027) = TO_CHAR(TO_DATE(?, \u0027YY-MM-DD\u0027), \u0027YY-MM-DD\u0027))",
+    "bindings": [
+      "2025-01-01"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "count",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "countdistinct",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT DISTINCT \u0022Lang\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true) \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "countmulti",
+    "sql": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) \u0022countQuery\u0022",
+    "raw": "SELECT COUNT(*) \u0022count\u0022 FROM (SELECT 1 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true AND \u0022Id\u0022 IS NOT NULL AND \u0022Lang\u0022 IS NOT NULL) \u0022countQuery\u0022",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "sum",
+    "sql": "SELECT SUM(\u0022Price\u0022) \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "raw": "SELECT SUM(\u0022Price\u0022) \u0022sum\u0022 FROM \u0022Books\u0022 WHERE \u0022Active\u0022 = true",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "insert",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p0, :p1)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?)",
+    "bindings": [
+      "Jane",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "insertmany",
+    "sql": "INSERT ALL INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p0, :p1) INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (:p2, :p3) SELECT 1 FROM DUAL",
+    "raw": "INSERT ALL INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?) INTO \u0022Users\u0022 (\u0022Name\u0022, \u0022CountryId\u0022) VALUES (?, ?) SELECT 1 FROM DUAL",
+    "bindings": [
+      "Jane",
+      "1",
+      "John",
+      "2"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "insertid",
+    "sql": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (:p0)",
+    "raw": "INSERT INTO \u0022Users\u0022 (\u0022Name\u0022) VALUES (?)",
+    "bindings": [
+      "Jane"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "update",
+    "sql": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = :p0, \u0022CountryId\u0022 = :p1 WHERE \u0022Id\u0022 = :p2",
+    "raw": "UPDATE \u0022Users\u0022 SET \u0022Name\u0022 = ?, \u0022CountryId\u0022 = ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "Jane",
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "increment",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B :p0 WHERE \u0022Id\u0022 = :p1",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 \u002B ? WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2",
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "decrement",
+    "sql": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - :p0",
+    "raw": "UPDATE \u0022Books\u0022 SET \u0022Stock\u0022 = \u0022Stock\u0022 - ?",
+    "bindings": [
+      "3"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "delete",
+    "sql": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "DELETE FROM \u0022Users\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "updatejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "deletejoin",
+    "error": "NotSupportedException"
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "variable",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "7"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "literal",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Created\u0022 = CURRENT_TIMESTAMP",
+    "bindings": []
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "engine",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "1"
+    ]
+  },
+  {
+    "engine": "oracle_legacy",
+    "name": "when",
+    "sql": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = :p0",
+    "raw": "SELECT * FROM \u0022Books\u0022 WHERE \u0022Id\u0022 = ?",
+    "bindings": [
+      "2"
+    ]
+  }
+]
