@@ -2,7 +2,7 @@ unit ReadmeExamples;
 
 interface
 
-uses SqlKata;
+uses QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
 
 function PublishedBooks: IQuery;
 function BooksWithAuthors: IQuery;

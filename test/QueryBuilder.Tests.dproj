@@ -32,10 +32,8 @@
         </DelphiCompile>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.Core.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.pas"/>
-        <DCCReference Include="..\src\SqlKata.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.Writes.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Query.DataMapper.pas"/>
-        <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.Compiler.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.SqlServerCompiler.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.PostgresCompiler.pas"/>

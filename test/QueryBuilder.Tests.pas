@@ -3,7 +3,13 @@ unit QueryBuilder.Tests;
 interface
 
 uses System.SysUtils, System.Rtti, System.JSON, System.Generics.Collections,
-  DUnitX.TestFramework, SqlKata, QueryBuilder4Delphi.Compilers;
+  DUnitX.TestFramework, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler,
+  QueryBuilder4Delphi.Compilers.PostgresCompiler,
+  QueryBuilder4Delphi.Compilers.MySqlCompiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.OracleCompiler,
+  QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 type
   [TestFixture]
@@ -602,11 +608,11 @@ type
     FId: Integer;
     FName, FInternal: string;
   public
-    [SqlKata.Key('UserId')]
+    [QueryBuilder4Delphi.Query.Core.Key('UserId')]
     property Id: Integer read FId write FId;
-    [SqlKata.Column('DisplayName')]
+    [QueryBuilder4Delphi.Query.Core.Column('DisplayName')]
     property Name: string read FName write FName;
-    [SqlKata.Ignore]
+    [QueryBuilder4Delphi.Query.Core.Ignore]
     property Internal: string read FInternal write FInternal;
   end;
 
@@ -620,7 +626,7 @@ type
     destructor Destroy; override;
     function NewQuery: IQuery; override;
   end;
-  TTrackedCompiler = class(TCompilerObject)
+  TTrackedCompiler = class(TCompiler)
   public
     constructor CreateInstance; override;
     destructor Destroy; override;

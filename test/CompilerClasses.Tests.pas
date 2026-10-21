@@ -23,7 +23,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Rtti, SqlKata,
+  System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.SqlServerCompiler,
   QueryBuilder4Delphi.Compilers.PostgresCompiler,

@@ -9,7 +9,7 @@ type
   [TestFixture]
   TQueryModelTests = class
   public
-    [Test] procedure FacadeAndDirectImportsShareTypes;
+    [Test] procedure FactoryCreatesConcreteQuery;
     [Test] procedure ClonePreservesSubclassAndIndependentState;
     [Test] procedure ScopedClausesKeepFallbackAndRemovalRules;
     [Test] procedure CallbacksRejectReplacementAndRestoreScope;
@@ -23,7 +23,7 @@ implementation
 
 uses
   System.SysUtils, System.Rtti, System.TypInfo,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query, SqlKata;
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
 
 type
   TCustomQuery = class(QueryBuilder4Delphi.Query.TQueryObject)
@@ -36,26 +36,19 @@ begin
   Result := TCustomQuery.Create;
 end;
 
-procedure TQueryModelTests.FacadeAndDirectImportsShareTypes;
+procedure TQueryModelTests.FactoryCreatesConcreteQuery;
 var
-  Direct: QueryBuilder4Delphi.Query.Core.IQuery;
-  Legacy: SqlKata.IQuery;
+  Query, Shared, Empty: IQuery;
 begin
-  Direct := QueryBuilder4Delphi.Query.TQuery.Create('Books');
-  Legacy := Direct;
-  Assert.IsTrue(Legacy = Direct);
-  Assert.IsTrue(SqlKata.TQueryObject = QueryBuilder4Delphi.Query.TQueryObject);
-  Assert.IsTrue(TypeInfo(SqlKata.TQueryCallback) =
-    TypeInfo(QueryBuilder4Delphi.Query.Core.TQueryCallback));
-  Assert.IsTrue(TypeInfo(SqlKata.TValues) = TypeInfo(QueryBuilder4Delphi.Query.Core.TValues));
-  Assert.IsTrue(SqlKata.ColumnAttribute = QueryBuilder4Delphi.Query.Core.ColumnAttribute);
-  Assert.IsTrue(SqlKata.KeyAttribute = QueryBuilder4Delphi.Query.Core.KeyAttribute);
-  Assert.IsTrue(SqlKata.IgnoreAttribute = QueryBuilder4Delphi.Query.Core.IgnoreAttribute);
-  Assert.IsTrue(SqlKata.ckQuery = QueryBuilder4Delphi.Query.Core.ckQuery);
-  Legacy := SqlKata.TQuery.Create('Authors');
-  Direct := Legacy;
-  Assert.IsTrue((Direct as QueryBuilder4Delphi.Query.TQueryObject).ClassType =
-    QueryBuilder4Delphi.Query.TQueryObject);
+  Query := TQuery.Create('Books');
+  Assert.IsTrue((Query as TQueryObject).ClassType = TQueryObject);
+  Shared := Query;
+  Query := nil;
+  Assert.AreEqual('Books', Shared.GetOne('from', '').Name);
+  Empty := Shared.NewQuery;
+  Assert.IsTrue((Empty as TQueryObject).ClassType = TQueryObject);
+  Assert.IsFalse(Empty.HasComponent('from'));
+  Assert.IsTrue(Shared.HasComponent('from'));
 end;
 
 procedure TQueryModelTests.ClonePreservesSubclassAndIndependentState;
@@ -182,8 +175,8 @@ var
   Original, Copied, Unique: TValues;
   Expanded: TArray<string>;
 begin
-  Original := SqlKata.TSqlValues.&Of<Integer>([1, 1, 2]);
-  Copied := SqlKata.CopyValues(Original);
+  Original := TSqlValues.&Of<Integer>([1, 1, 2]);
+  Copied := CopyValues(Original);
   Unique := QueryBuilder4Delphi.Query.Core.DistinctValues(Original);
   Original[0] := 99;
   Assert.AreEqual(1, Copied[0].AsInteger);
@@ -191,10 +184,10 @@ begin
   Assert.AreEqual(1, Unique[0].AsInteger);
   Assert.AreEqual(2, Unique[1].AsInteger);
   Assert.IsTrue(Copied[0].TypeInfo = TypeInfo(Integer));
-  Expanded := SqlKata.ExpandExpression('Books.{Id, Title}');
+  Expanded := ExpandExpression('Books.{Id, Title}');
   Assert.AreEqual('Books.Id', Expanded[0]);
   Assert.AreEqual('Books.Title', Expanded[1]);
-  Expanded := SqlKata.CopyStrings(Expanded);
+  Expanded := CopyStrings(Expanded);
   Assert.AreEqual<NativeInt>(2, Length(Expanded));
 end;
 
