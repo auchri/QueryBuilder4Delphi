@@ -115,3 +115,9 @@ Completed work packages for query compilation:
     Document the shortcut and the separate parameterized compiler API.
     All 603 DUnitX tests pass on Win32 and Win64, with no build errors or
     warnings and no reported test leaks. Both generator checks pass.
+24. Replace `TEngineCodes` with the central `TSqlDialect.EngineCode` mapping.
+    Use it in dialect constructors and generated scope helpers. Retain custom
+    string engine scopes and cover the mapping and custom-scoped conditions
+    in the existing regression cases. Update API migration guidance.
+    All 603 tests pass on each of Win32 and Win64 after full builds with zero
+    errors and warnings; both generator checks and six Python tests pass.

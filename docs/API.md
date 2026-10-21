@@ -32,7 +32,14 @@ All include files have been removed. Generated fluent declarations and methods
 are regular Pascal source in marked sections of the two query units.
 `tools/generate_query.py` updates those sections without replacing handwritten
 code; `--check` verifies that the checked-in source matches the generator.
-`EngineCodes` is named `TEngineCodes`.
+The upstream `EngineCodes` constants are represented by
+`TSqlDialect.EngineCode`: for example, `TSqlDialect.MSSql.EngineCode` returns
+`'sqlsrv'`. Dialect compilers and the `ForSqlServer`/`ForMySql`/etc. methods use
+this central mapping. The former `TEngineCodes` record has been removed;
+replace `TEngineCodes.SqlServer` with `TSqlDialect.MSSql.EngineCode` and use
+the corresponding enum member for each other dialect. `IQuery.For` and
+`SetEngineScope` continue to accept strings for custom compiler engine names.
+The base `TCompiler` uses the string code `'generic'`.
 
 Write operations delegate to the stateless `TQueryWrites` class in
 `QueryBuilder4Delphi.Query.Writes`. RTTI property mapping delegates to

@@ -104,6 +104,13 @@ preview and logging convenience. For execution with parameters, or custom
 compiler settings, use the compiler API shown above to keep SQL and bindings
 separate.
 
+`TSqlDialect` also provides the central engine-code mapping:
+`TSqlDialect.MSSql.EngineCode` returns `'sqlsrv'`, and
+`TSqlDialect.MySql.EngineCode` returns `'mysql'`. Use this helper wherever
+an engine-code string is needed. Custom compilers can still define their own
+string codes for `For` and `SetEngineScope`. The former `TEngineCodes` record
+has been removed.
+
 ## More tested examples
 
 The following functions are also available in `test/ReadmeExamples.pas`.
