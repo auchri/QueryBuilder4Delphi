@@ -60,6 +60,23 @@ Results and executable architectures/hashes are recorded in
 `tools/build.ps1 -Suite FireDAC -TestsOnly` after rebuilding the optional
 project, then `python tools/record_validation.py --suite FireDAC`.
 
+## Source formatting
+
+All 22 versioned `.pas` and `.dpr` files in `src` and `test` were formatted
+with Delphi 12 `Formatter.exe` and the installed `Formatter_Default.config`.
+A second formatter pass produced identical file hashes. A token comparison
+against the pre-format sources confirmed unchanged Pascal tokens apart from
+case-insensitive identifier spelling; string literals, comments, and compiler
+directives remained identical. `tools/format.ps1` repeats the formatting.
+
+Generator comparisons now ignore layout outside strings/comments/directives
+and preserve matching formatted files instead of rewriting them. Both generator
+checks pass, and all eight Python regression tests pass, including preservation
+of formatted files and rejection of changes inside literals/comments or at
+token boundaries. Both Delphi suites were fully rebuilt and rerun on Win32
+and Win64: 603 core and 26 FireDAC tests per platform, with zero build errors,
+warnings, hints, or reported test leaks.
+
 ## Reference comparison
 
 The C# outputs come directly from local source commit
@@ -122,7 +139,7 @@ engine name. The built-in scope helpers use the same central mapping.
 
 The suite now builds without any include files. The 69 reference scenario
 queries are implemented in `Oracle.Scenarios.pas`; their DUnitX case attributes
-remain in the main fixture. Both generators pass `--check`, and six Python
+remain in the main fixture. Both generators pass `--check`, and eight Python
 tests verify replacement boundaries, invalid marker rejection, idempotence,
 read-only checking, UTF-8 BOM preservation, and CRLF output. The generated
 method bodies, declarations, scenarios, and case attributes were also compared

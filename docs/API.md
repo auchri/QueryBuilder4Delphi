@@ -93,7 +93,9 @@ same, but old imports and compatibility type names are intentionally removed.
 All include files have been removed. Generated fluent declarations and methods
 are regular Pascal source in marked sections of the two query units.
 `tools/generate_query.py` updates those sections without replacing handwritten
-code; `--check` verifies that the checked-in source matches the generator.
+code; `--check` verifies generated tokens while allowing formatter whitespace
+outside strings, comments, and directives. Generation preserves matching
+formatted files. Use `tools/format.ps1` after generating changed code.
 The upstream `EngineCodes` constants are represented by
 `TSqlDialect.EngineCode`: for example, `TSqlDialect.MSSql.EngineCode` returns
 `'sqlsrv'`. Dialect compilers and the `ForSqlServer`/`ForMySql`/etc. methods use

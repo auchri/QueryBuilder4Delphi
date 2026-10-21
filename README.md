@@ -451,7 +451,21 @@ python tools/test_generated_sections.py
 ```
 
 These checks require Python only. Both `--check` commands leave files unchanged
-and return a nonzero exit code when generated content is out of date.
+and return a nonzero exit code when generated content is out of date. They
+ignore layout outside Pascal strings, comments, and directives; generation
+preserves existing formatting when the generated tokens already match.
+
+Format Delphi source and test files with the installed Embarcadero formatter:
+
+```powershell
+./tools/format.ps1
+```
+
+Run this from a RAD Studio command prompt with `Formatter.exe` on `PATH`, or
+pass `-Formatter` with its full path. The script uses the installation's
+`config/Formatter_Default.config`; use `-Config` to select another profile.
+It formats immediate `.pas` and `.dpr` files in `src` and `test`, leaving IDE
+history and build output alone. Run it again after generators change code.
 
 ## License
 

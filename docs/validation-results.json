@@ -17,7 +17,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "cac671a1350576b8ccf50f7783fa74f9bfb9d350762d641e374cafb399099b61"
+      "executableSha256": "4555fadb8a4642e1cb6bf6ed50cfa4275b187545347bdeb6d0383ec99368c5b9"
     },
     {
       "platform": "Win64",
@@ -27,7 +27,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "26675ce27c1dc77b0d9c67ff337e90dc31af958383faec661a2238b3116a0c4c"
+      "executableSha256": "e38745e2a3593f5cd414538abbe75504692c5af0dd6df376d14aaf126b963bf0"
     }
   ]
 }

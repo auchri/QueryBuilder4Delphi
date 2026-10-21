@@ -149,3 +149,17 @@ Completed work packages for optional FireDAC integration:
     cases covering enabled/disabled preprocessing and both binding modes;
     execute SQLite CRUD with positional binding. All 26 FireDAC tests pass
     on Win32 and Win64 with no build warnings or reported test leaks.
+
+Completed work packages for source formatting:
+
+30. Start `codex/format-source` from merged `origin/main` at `adb4994`.
+    Format all 22 Delphi source/test files using the installed Delphi 12
+    `Formatter.exe` and `Formatter_Default.config`. Verify formatter idempotence
+    and unchanged tokens, literals, comments, and directives apart from
+    case-insensitive identifier spelling.
+31. Add `tools/format.ps1` and preserve formatted generated code by comparing
+    Pascal tokens rather than layout. Add two generator regressions and
+    document the formatting workflow. Both generator checks and all eight
+    Python tests pass. Full Delphi 12 builds have zero errors/warnings/hints;
+    all 603 core and 26 FireDAC tests pass on each of Win32 and Win64 with no
+    reported test leaks.

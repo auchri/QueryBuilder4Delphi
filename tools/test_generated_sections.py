@@ -4,10 +4,31 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from generated_sections import replace_section, update_files
+from generated_sections import pascal_tokens, replace_section, update_files
 
 
 class GeneratedSectionTests(unittest.TestCase):
+    def test_formatted_files_are_preserved_by_check_and_generation(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'Query.pas'
+            formatted = b"begin\r\n  Value := 'a b';\r\nend;\r\n"
+            path.write_bytes(formatted)
+            expected = {path: "begin Value:='a b'; end;\n"}
+            timestamp = path.stat().st_mtime_ns
+            update_files(expected, check=True)
+            update_files(expected)
+            self.assertEqual(formatted, path.read_bytes())
+            self.assertEqual(timestamp, path.stat().st_mtime_ns)
+
+    def test_layout_comparison_preserves_literals_comments_and_token_boundaries(self):
+        for first, second in [("'a b'", "'ab'"), ("'a'' b'", "'a''b'"),
+                              ('// a b\n', '// ab\n'), ('{a b}', '{ab}'),
+                              ('(* a b *)', '(* ab *)'), ('{$IFDEF A}', '{$IFDEF B}'),
+                              ('Some Name', 'SomeName'), (': =', ':='),
+                              ('1 . 5', '1.5'), ('Value := 1', 'Value := 2')]:
+            with self.subTest(first=first, second=second):
+                self.assertNotEqual(pascal_tokens(first), pascal_tokens(second))
+
     def test_preserves_handwritten_code_and_is_idempotent(self):
         source = ('procedure Manual;\n// BEGIN GENERATED: methods\nold\n'
                   '// END GENERATED: methods\nprocedure AlsoManual;\n')
