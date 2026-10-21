@@ -36,6 +36,7 @@ type
     destructor Destroy; override;
     function Clone: IQuery; virtual;
     function NewQuery: IQuery; virtual;
+    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     function CopyClausesFrom(Source: IQuery): IQuery;
     function Add(const Component: string; Kind: TClauseKind): TClause;
     procedure Remove(const Component, Engine: string);
@@ -414,10 +415,34 @@ implementation
 
 uses
   System.StrUtils, QueryBuilder4Delphi.Query.Writes,
-  QueryBuilder4Delphi.Query.DataMapper;
+  QueryBuilder4Delphi.Query.DataMapper,
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler,
+  QueryBuilder4Delphi.Compilers.MySqlCompiler,
+  QueryBuilder4Delphi.Compilers.PostgresCompiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.OracleCompiler,
+  QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 class function TQuery.Create(const Table, Comment: string): IQuery;
 begin Result := TQueryObject.Create(Table, Comment); end;
+
+function TQueryObject.Compile(Dialect: TSqlDialect): string;
+var
+  Compiler: ICompiler;
+begin
+  case Dialect of
+    TSqlDialect.MSSql: Compiler := TSqlServerCompiler.Create;
+    TSqlDialect.MySql: Compiler := TMySqlCompiler.Create;
+    TSqlDialect.PostgreSql: Compiler := TPostgresCompiler.Create;
+    TSqlDialect.Sqlite: Compiler := TSqliteCompiler.Create;
+    TSqlDialect.Oracle: Compiler := TOracleCompiler.Create;
+    TSqlDialect.Firebird: Compiler := TFirebirdCompiler.Create;
+  else
+    raise EQueryException.Create('Unsupported SQL dialect');
+  end;
+  Result := Compiler.Compile(Self).ToString;
+end;
 
 function TQueryObject.GetEngineScope: string;
 begin Result := FEngineScope; end;

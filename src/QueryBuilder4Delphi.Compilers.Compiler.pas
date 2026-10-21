@@ -2,7 +2,7 @@ unit QueryBuilder4Delphi.Compilers.Compiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
+uses System.SysUtils, System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core;
 
 type
   TEngineCodes = record
@@ -155,7 +155,8 @@ type
 
 implementation
 
-uses System.StrUtils, System.TypInfo, System.Variants, System.RegularExpressions;
+uses System.StrUtils, System.TypInfo, System.Variants, System.RegularExpressions,
+  QueryBuilder4Delphi.Query;
 
 function TSqlResult.GetRawSql: string;
 begin Result := RawSql; end;

@@ -7,6 +7,9 @@ uses
 
 type
   EQueryException = class(Exception);
+  {$SCOPEDENUMS ON}
+  TSqlDialect = (MSSql, MySql, PostgreSql, Sqlite, Oracle, Firebird);
+  {$SCOPEDENUMS OFF}
   IQuery = interface;
   TQueryCallback = reference to function(Query: IQuery): IQuery;
   TValues = TArray<TValue>;
@@ -65,6 +68,7 @@ type
     function GetVariables: TDictionary<string,TValue>;
     function Clone: IQuery;
     function NewQuery: IQuery;
+    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     function CopyClausesFrom(Source: IQuery): IQuery;
     function Add(const Component: string; Kind: TClauseKind): TClause;
     procedure Remove(const Component, Engine: string);
