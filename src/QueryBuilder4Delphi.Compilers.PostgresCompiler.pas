@@ -18,7 +18,7 @@ uses System.StrUtils;
 constructor TPostgresCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.PostgreSql;
+  FEngineCode := TSqlDialect.PostgreSql.EngineCode;
   SupportsFilterClause := True;
   FLastId := 'SELECT lastval() AS id';
   FSupportsJoinWrites := False;

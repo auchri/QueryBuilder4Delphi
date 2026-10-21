@@ -84,8 +84,8 @@ for name in ['Union','Except','Intersect']:
     method(name,'const Callback: TQueryCallback; All: Boolean = False',f'  Q := CallbackQuery(Callback);\n  Result := {name}(Q, All);','var Q: IQuery;',True)
     method(name+'All','Query: IQuery',f'  Result := {name}(Query, True);',overload=True)
     method(name+'All','const Callback: TQueryCallback',f'  Result := {name}(Callback, True);',overload=True)
-for name,engine in [('ForSqlServer','sqlsrv'),('ForPostgreSql','postgres'),('ForMySql','mysql'),('ForSqlite','sqlite'),('ForOracle','oracle'),('ForFirebird','firebird')]:
-    method(name,'const Callback: TQueryCallback',f"  Result := &For('{engine}', Callback);")
+for name,dialect in [('ForSqlServer','MSSql'),('ForPostgreSql','PostgreSql'),('ForMySql','MySql'),('ForSqlite','Sqlite'),('ForOracle','Oracle'),('ForFirebird','Firebird')]:
+    method(name,'const Callback: TQueryCallback',f"  Result := &For(TSqlDialect.{dialect}.EngineCode, Callback);")
 
 outputs = {}
 for name in ['QueryBuilder4Delphi.Query.Core.pas', 'QueryBuilder4Delphi.Query.pas']:

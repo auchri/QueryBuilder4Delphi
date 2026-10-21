@@ -26,7 +26,7 @@ uses System.StrUtils;
 constructor TSqlServerCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.SqlServer;
+  FEngineCode := TSqlDialect.MSSql.EngineCode;
   FOpening := '[';
   FClosing := ']';
   FLastId := 'SELECT scope_identity() as Id';

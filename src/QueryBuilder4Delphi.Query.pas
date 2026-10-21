@@ -2816,37 +2816,37 @@ end;
 function TQueryObject.ForSqlServer(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('sqlsrv', Callback);
+  Result := &For(TSqlDialect.MSSql.EngineCode, Callback);
 end;
 
 function TQueryObject.ForPostgreSql(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('postgres', Callback);
+  Result := &For(TSqlDialect.PostgreSql.EngineCode, Callback);
 end;
 
 function TQueryObject.ForMySql(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('mysql', Callback);
+  Result := &For(TSqlDialect.MySql.EngineCode, Callback);
 end;
 
 function TQueryObject.ForSqlite(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('sqlite', Callback);
+  Result := &For(TSqlDialect.Sqlite.EngineCode, Callback);
 end;
 
 function TQueryObject.ForOracle(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('oracle', Callback);
+  Result := &For(TSqlDialect.Oracle.EngineCode, Callback);
 end;
 
 function TQueryObject.ForFirebird(const Callback: TQueryCallback): IQuery;
 
 begin
-  Result := &For('firebird', Callback);
+  Result := &For(TSqlDialect.Firebird.EngineCode, Callback);
 end;
 // END GENERATED: fluent implementation
 

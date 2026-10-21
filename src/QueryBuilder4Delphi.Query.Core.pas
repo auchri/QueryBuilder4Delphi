@@ -10,6 +10,9 @@ type
   {$SCOPEDENUMS ON}
   TSqlDialect = (MSSql, MySql, PostgreSql, Sqlite, Oracle, Firebird);
   {$SCOPEDENUMS OFF}
+  TSqlDialectHelper = record helper for TSqlDialect
+    function EngineCode: string;
+  end;
   IQuery = interface;
   TQueryCallback = reference to function(Query: IQuery): IQuery;
   TValues = TArray<TValue>;
@@ -452,6 +455,14 @@ implementation
 
 uses
   System.Variants;
+
+function TSqlDialectHelper.EngineCode: string;
+const
+  Codes: array[TSqlDialect] of string =
+    ('sqlsrv', 'mysql', 'postgres', 'sqlite', 'oracle', 'firebird');
+begin
+  Result := Codes[Self];
+end;
 
 class function TSqlValues.&Of<T>(const Values: array of T): TValues;
 var I: Integer;

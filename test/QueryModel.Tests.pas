@@ -93,10 +93,12 @@ begin
     TSqlDialect.Oracle: Compiler := TOracleCompiler.Create;
     TSqlDialect.Firebird: Compiler := TFirebirdCompiler.Create;
   end;
+  Assert.AreEqual(Engines[Dialect], Dialect.EngineCode);
+  Assert.AreEqual(Dialect.EngineCode, Compiler.EngineCode);
   Query := TQuery.Create('Books').Select('Title').Where('Id', 42)
     .OrderBy('Title').Limit(2).Offset(1);
   for EngineDialect := Low(TSqlDialect) to High(TSqlDialect) do
-    Query.&For(Engines[EngineDialect],
+    Query.&For(EngineDialect.EngineCode,
       function(Q: IQuery): IQuery
       begin
         Result := Q.SelectRaw(IntToStr(Ord(EngineDialect)));

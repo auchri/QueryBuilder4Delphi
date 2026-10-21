@@ -5,12 +5,6 @@ interface
 uses System.SysUtils, System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core;
 
 type
-  TEngineCodes = record
-  const
-    Generic = 'generic'; SqlServer = 'sqlsrv'; MySql = 'mysql';
-    PostgreSql = 'postgres'; Sqlite = 'sqlite'; Oracle = 'oracle'; Firebird = 'firebird';
-  end;
-
   ISqlResult = interface
     ['{451A0775-C8EC-455D-B66A-7480EF77C28C}']
     function GetRawSql: string;

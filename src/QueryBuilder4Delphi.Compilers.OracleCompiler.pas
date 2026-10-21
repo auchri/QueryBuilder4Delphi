@@ -23,7 +23,7 @@ uses System.StrUtils, System.TypInfo;
 constructor TOracleCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.Oracle;
+  FEngineCode := TSqlDialect.Oracle.EngineCode;
   FParameterPrefix := ':p';
   FColumnAs := '';
   FTableAs := '';

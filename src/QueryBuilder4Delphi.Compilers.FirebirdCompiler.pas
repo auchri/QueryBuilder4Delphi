@@ -26,7 +26,7 @@ uses System.StrUtils;
 constructor TFirebirdCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.Firebird;
+  FEngineCode := TSqlDialect.Firebird.EngineCode;
   FDummyTable := 'RDB$DATABASE';
   FSupportsJoinWrites := False;
 end;
