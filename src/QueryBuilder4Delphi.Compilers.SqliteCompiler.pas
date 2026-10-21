@@ -2,7 +2,7 @@ unit QueryBuilder4Delphi.Compilers.SqliteCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TSqliteCompiler = class(TCompiler)
