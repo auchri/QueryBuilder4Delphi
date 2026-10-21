@@ -12,6 +12,15 @@ dialect compilers are classes; their inherited `Create` class function returns
 `ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
 Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
 with the Delphi `T` prefix omitted from the unit name.
+`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` is a
+Delphi convenience method for SQL previews. `TSqlDialect` is a scoped enum in
+`QueryBuilder4Delphi.Query.Core` with `MSSql`, `MySql`, `PostgreSql`, `Sqlite`,
+`Oracle`, and `Firebird`. The method creates the selected compiler with its
+default settings and returns `Compiler.Compile(Query).ToString`, including
+substituted values. It preserves the query, propagates compiler errors, and
+requires no compiler unit imports in calling code. Use `ICompiler.Compile`
+when you need SQL and bindings separately or custom compiler settings.
+
 `TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
 `IQuery`, `TClause`, callbacks, attributes, and value types live in
 `QueryBuilder4Delphi.Query.Core`. Import both units to use the model directly.
