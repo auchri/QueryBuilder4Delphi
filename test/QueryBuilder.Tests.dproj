@@ -46,6 +46,7 @@
         <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryWrites.Tests.pas"/>
         <DCCReference Include="QueryModel.Tests.pas"/>
+        <DCCReference Include="Oracle.Scenarios.pas"/>
         <DCCReference Include="QueryBuilder.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
