@@ -143,3 +143,9 @@ Completed work packages for optional FireDAC integration:
     macro/escape expansion, and export binary values without text conversion.
     All 24 FireDAC tests pass on each of Win32 and Win64 after full Delphi 12
     builds with zero errors, warnings, hints, or reported test leaks.
+29. Preserve caller-owned FireDAC resource/format options and parameter binding
+    mode. Remove the preprocessing changes introduced in steps 26/28 and move
+    configuration guidance into the application examples. Add two regression
+    cases covering enabled/disabled preprocessing and both binding modes;
+    execute SQLite CRUD with positional binding. All 26 FireDAC tests pass
+    on Win32 and Win64 with no build warnings or reported test leaks.

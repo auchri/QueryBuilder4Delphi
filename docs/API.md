@@ -12,9 +12,12 @@ not a port of `SqlKata.Execution` or an object result mapper.
 
 The adapter uses a fresh compiler with `ParameterPrefix = ':p'`. It builds
 and validates parameters before closing/unpreparing the target, then replaces
-SQL and parameters, binds by name, enables automatic parameter creation and
-parameter expansion, and disables macro/escape expansion. These resource
-settings remain on the target after the call. Compilation/binding errors
+SQL and parameters, preserving the target's resource/format options and
+parameter binding mode (`pbByName` or `pbByNumber`). `Apply` creates its own
+parameter collection even when `ParamCreate` is disabled. The caller configures
+FireDAC preprocessing: enable `ParamExpand` for parameterized execution and,
+when using automatic parameter creation, `ParamCreate`; disable macro/escape
+expansion if SQL should pass through unchanged. Compilation/binding errors
 leave the target intact; connection/execution errors propagate from FireDAC.
 
 `TFireDACAdapter.Compile(Query, Dialect)` returns a `TFireDACCommand` record:

@@ -39,6 +39,9 @@ type
     [Test] procedure ExportsTypesAndNulls;
     [Test] procedure ExportsEmptyParametersAndRejectsNil;
     [Test] procedure ExecutesExportedCommand;
+    [TestCase('ByName', '0')]
+    [TestCase('ByNumber', '1')]
+    procedure PreservesCallerOptions(BindModeIndex: Integer);
   end;
 
 implementation
@@ -52,7 +55,15 @@ uses
   QueryBuilder4Delphi.FireDAC;
 
 procedure TFireDACAdapterTests.Setup;
-begin FTarget := TFDQuery.Create(nil); end;
+begin
+  FTarget := TFDQuery.Create(nil);
+  // The application configures FireDAC preprocessing, not the adapter.
+  FTarget.ResourceOptions.ParamCreate := True;
+  FTarget.ResourceOptions.ParamExpand := True;
+  FTarget.ResourceOptions.MacroCreate := False;
+  FTarget.ResourceOptions.MacroExpand := False;
+  FTarget.ResourceOptions.EscapeExpand := False;
+end;
 
 procedure TFireDACAdapterTests.TearDown;
 begin FreeAndNil(FTarget); end;
@@ -203,6 +214,7 @@ var
 begin
   Connection := ConnectMemory(FTarget);
   try
+    FTarget.Params.BindMode := pbByNumber;
     Connection.ExecSQL('CREATE TABLE Books (Id INTEGER PRIMARY KEY, Title TEXT, Price NUMERIC)');
     Assert.AreEqual<Int64>(1, TFireDACAdapter.ExecSQL(FTarget,
       TQuery.Create('Books').AsInsert(['Id', 'Title', 'Price'], [1, 'O''Brien', TFireDACNull.Create(ftCurrency)]),
@@ -368,6 +380,46 @@ begin
     FTarget.Close;
     FTarget.Connection := nil;
     Connection.Free;
+  end;
+end;
+
+procedure TFireDACAdapterTests.PreservesCallerOptions(BindModeIndex: Integer);
+var
+  Enabled: Boolean;
+  Pass: Integer;
+begin
+  if BindModeIndex = 0 then FTarget.Params.BindMode := pbByName
+  else FTarget.Params.BindMode := pbByNumber;
+  for Pass := 0 to 1 do
+  begin
+    Enabled := Pass = 1;
+    FTarget.ResourceOptions.ParamCreate := Enabled;
+    FTarget.ResourceOptions.ParamExpand := Enabled;
+    FTarget.ResourceOptions.MacroCreate := Enabled;
+    FTarget.ResourceOptions.MacroExpand := Enabled;
+    FTarget.ResourceOptions.EscapeExpand := Enabled;
+    FTarget.FormatOptions.DefaultParamDataType := ftDateTime;
+    TFireDACAdapter.Apply(FTarget, TQuery.Create('Books').Where('Id', 42));
+    Assert.IsTrue(FTarget.ResourceOptions.ParamCreate = Enabled, 'ParamCreate');
+    Assert.IsTrue(FTarget.ResourceOptions.ParamExpand = Enabled, 'ParamExpand');
+    Assert.IsTrue(FTarget.ResourceOptions.MacroCreate = Enabled, 'MacroCreate');
+    Assert.IsTrue(FTarget.ResourceOptions.MacroExpand = Enabled, 'MacroExpand');
+    Assert.IsTrue(FTarget.ResourceOptions.EscapeExpand = Enabled, 'EscapeExpand');
+    Assert.IsTrue(FTarget.FormatOptions.DefaultParamDataType = ftDateTime);
+    if BindModeIndex = 0 then Assert.IsTrue(FTarget.Params.BindMode = pbByName)
+    else Assert.IsTrue(FTarget.Params.BindMode = pbByNumber);
+    Assert.AreEqual(1, FTarget.Params.Count);
+    Assert.AreEqual(42, FTarget.Params[0].AsInteger);
+    // Reuse and parameter-free commands must also retain the configuration.
+    TFireDACAdapter.Apply(FTarget, TQuery.Create('Books'));
+    Assert.IsTrue(FTarget.ResourceOptions.ParamCreate = Enabled);
+    Assert.IsTrue(FTarget.ResourceOptions.ParamExpand = Enabled);
+    Assert.IsTrue(FTarget.ResourceOptions.MacroCreate = Enabled);
+    Assert.IsTrue(FTarget.ResourceOptions.MacroExpand = Enabled);
+    Assert.IsTrue(FTarget.ResourceOptions.EscapeExpand = Enabled);
+    if BindModeIndex = 0 then Assert.IsTrue(FTarget.Params.BindMode = pbByName)
+    else Assert.IsTrue(FTarget.Params.BindMode = pbByNumber);
+    Assert.AreEqual(0, FTarget.Params.Count);
   end;
 end;
 

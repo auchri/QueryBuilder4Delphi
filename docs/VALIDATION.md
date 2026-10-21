@@ -28,7 +28,7 @@ test runs; update the validation date in the script for a new validation run.
 
 The separate `test/QueryBuilder.FireDAC.Tests.dproj` project requires FireDAC.
 It was fully built for Win32 and Win64 using Delphi 12, with zero errors and
-warnings. All 24 tests passed on each platform with no reported test leaks.
+warnings. All 26 tests passed on each platform with no reported test leaks.
 The core project does not import FireDAC.
 
 The export cases verify `ToSql`, `GetParameters`, and the combined `Compile`
@@ -36,6 +36,10 @@ result for all six dialects with FireDAC automatic parameter creation enabled.
 They also cover empty parameter arrays, nil arguments, Variant types, typed
 and untyped NULLs, UInt64 decimal precision, binary byte arrays, and direct
 `TFDQuery.Open`/`ExecSQL` execution of exported commands using SQLite.
+Two option-preservation cases exercise binding by name and by position, all
+five preprocessing flags enabled and disabled, and reuse with no parameters.
+SQLite CRUD also executes with caller-selected positional binding. The test
+fixture explicitly configures preprocessing; the adapter preserves it.
 
 Six cases verify parameterized SQL and binding order for every dialect,
 including Firebird's pagination bindings. Further cases cover string, integer,

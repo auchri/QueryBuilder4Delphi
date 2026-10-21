@@ -200,7 +200,7 @@ begin
   // Validate bindings before closing or changing the caller's query.
   Params := TFDParams.Create;
   try
-    Params.BindMode := pbByName;
+    Params.BindMode := Target.Params.BindMode;
     for I := 0 to Compiled.Bindings.Count-1 do
     begin
       Param := Params.Add;
@@ -211,14 +211,8 @@ begin
     end;
     Target.Close;
     Target.Unprepare;
-    Target.ResourceOptions.ParamCreate := True;
-    Target.ResourceOptions.ParamExpand := True;
-    Target.ResourceOptions.MacroCreate := False;
-    Target.ResourceOptions.MacroExpand := False;
-    Target.ResourceOptions.EscapeExpand := False;
     Target.SQL.Text := Compiled.Sql;
     Target.Params.Assign(Params);
-    Target.Params.BindMode := pbByName;
   finally
     Params.Free;
   end;

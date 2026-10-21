@@ -119,6 +119,11 @@ has been removed.
 Use an existing `TFDQuery` with its `Connection` configured for the selected
 database. The adapter does not own the query or connection. The dialect
 defaults to SQL Server; pass another `TSqlDialect` explicitly when needed.
+The adapter preserves the component's options and parameter binding mode.
+Configure preprocessing in your application or the Object Inspector before
+calling these examples: enable `ParamExpand` and, for automatic parameter
+creation, `ParamCreate`; disable `MacroCreate`, `MacroExpand`, and
+`EscapeExpand` when SQL should be passed without macro/escape processing.
 
 ```pascal
 uses
@@ -166,9 +171,10 @@ when it is `ftUnknown`. Specify `TFireDACNull` when the column requires a
 different type. `WhereNull` still generates `IS NULL` without a binding.
 
 Applying a query closes/unprepares the target, replaces SQL and parameters,
-sets binding by name, enables automatic parameter creation and parameter
-expansion, and disables FireDAC macro/escape expansion. SQL generation and
-binding validation finish before those changes. `Query.Compile` remains a
+and preserves its resource/format options and parameter binding mode.
+`Apply` supplies parameters even when automatic parameter creation is disabled.
+SQL generation and binding validation finish before those changes.
+`Query.Compile` remains a
 preview; the adapter uses parameterized compiler results for execution.
 
 To obtain SQL and parameter values without changing a component, use
@@ -183,13 +189,18 @@ var
 begin
   Command := TFireDACAdapter.Compile(
     TQuery.Create('Books').Where('Lang', 'de'));
-  FDQuery.ResourceOptions.ParamCreate := True;
-  FDQuery.ResourceOptions.ParamExpand := True;
-  FDQuery.ResourceOptions.MacroCreate := False;
-  FDQuery.ResourceOptions.MacroExpand := False;
-  FDQuery.ResourceOptions.EscapeExpand := False;
   FDQuery.Open(Command.Sql, Command.Parameters, Command.DataTypes);
 end;
+```
+
+For example, the caller can configure a component once during initialization:
+
+```pascal
+FDQuery.ResourceOptions.ParamCreate := True;
+FDQuery.ResourceOptions.ParamExpand := True;
+FDQuery.ResourceOptions.MacroCreate := False;
+FDQuery.ResourceOptions.MacroExpand := False;
+FDQuery.ResourceOptions.EscapeExpand := False;
 ```
 
 For writes, call `FDQuery.ExecSQL(Command.Sql, Command.Parameters,
