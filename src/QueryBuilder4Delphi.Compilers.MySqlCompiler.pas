@@ -21,7 +21,7 @@ uses System.StrUtils;
 constructor TMySqlCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.MySql;
+  FEngineCode := TSqlDialect.MySql.EngineCode;
   FOpening := '`';
   FClosing := '`';
   FLastId := 'SELECT last_insert_id() as Id';

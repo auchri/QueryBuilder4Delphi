@@ -102,3 +102,22 @@ Completed work packages for removing compatibility layers:
     and the C# reference program.
     All 594 DUnitX tests pass on each platform after full builds with zero
     errors and warnings. Both generator checks and all six Python tests pass.
+
+Completed work packages for query compilation:
+
+22. Start `codex/query-compile` from `origin/main` at `5a59ecc`, after PR #5
+    was merged. Add the scoped `TSqlDialect` enum and `IQuery.Compile`, with
+    SQL Server as its default. Reuse the dialect compilers and their `ToString`
+    rendering to return a SQL preview with substituted values. Keep compiler
+    dependencies in implementation sections to avoid an interface cycle.
+23. Add nine regression cases for defaults, all dialects, scoped projections,
+    pagination, repeated compilation, exceptions, inline quoting, and writes.
+    Document the shortcut and the separate parameterized compiler API.
+    All 603 DUnitX tests pass on Win32 and Win64, with no build errors or
+    warnings and no reported test leaks. Both generator checks pass.
+24. Replace `TEngineCodes` with the central `TSqlDialect.EngineCode` mapping.
+    Use it in dialect constructors and generated scope helpers. Retain custom
+    string engine scopes and cover the mapping and custom-scoped conditions
+    in the existing regression cases. Update API migration guidance.
+    All 603 tests pass on each of Win32 and Win64 after full builds with zero
+    errors and warnings; both generator checks and six Python tests pass.

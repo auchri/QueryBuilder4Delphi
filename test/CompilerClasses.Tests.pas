@@ -99,6 +99,14 @@ begin
     .Join('Authors', 'Authors.Id', 'Books.AuthorId').AsUpdate(['Title'], ['Revised']));
   Assert.IsTrue(Compiled.Sql.StartsWith('UPDATE `Books` '+#10+'INNER JOIN `Authors`'));
   Assert.IsTrue(Compiled.Sql.EndsWith(' SET `Title` = @p0'));
+
+  Compiled := Compiler.Compile(TQuery.Create('Books').&For('custom_mysql',
+    function(Q: IQuery): IQuery
+    begin
+      Result := Q.Where('TenantId', 7);
+    end));
+  Assert.AreEqual('SELECT * FROM `Books` WHERE `TenantId` = @p0', Compiled.Sql);
+  Assert.AreEqual(7, Compiled.Bindings[0].AsInteger);
 end;
 
 procedure TCompilerClassTests.CustomSqlServerCompilerInheritsLegacyPagination;

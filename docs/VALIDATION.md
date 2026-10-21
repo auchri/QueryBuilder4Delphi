@@ -13,8 +13,8 @@ Both standalone test executables were then run using
 
 | Target | DUnitX tests | Passed | Failed | Errors | Ignored |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Win32 | 594 | 594 | 0 | 0 | 0 |
-| Win64 | 594 | 594 | 0 | 0 | 0 |
+| Win32 | 603 | 603 | 0 | 0 | 0 |
+| Win64 | 603 | 603 | 0 | 0 | 0 |
 
 DUnitX reported `Tests Leaked: 0` in both runs.
 `ReportMemoryLeaksOnShutdown` is also enabled in the test program.
@@ -73,6 +73,16 @@ callback return validation and scope restoration, snapshots of subqueries,
 independent JOIN condition groups, Int64 pagination and negative limits,
 and value helper copying and type preservation. Both the write and query-model
 fixtures are included after rebasing onto the merged PR #2.
+
+Nine additional query compilation cases check the SQL Server default,
+selection of all six dialects with engine-scoped projections and pagination,
+repeat compilation without query mutation, propagation of compiler errors,
+quoted inline values, and INSERT previews. The shortcut is compared with
+the existing compiler API's `ToString` output.
+The dialect cases also verify the enum's engine-code mapping against the
+established string codes and each compiler's `EngineCode`. The custom MySQL
+compiler test checks that string-scoped conditions still work with a custom
+engine name. The built-in scope helpers use the same central mapping.
 
 The suite now builds without any include files. The 69 reference scenario
 queries are implemented in `Oracle.Scenarios.pas`; their DUnitX case attributes

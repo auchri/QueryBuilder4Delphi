@@ -7,6 +7,12 @@ uses
 
 type
   EQueryException = class(Exception);
+  {$SCOPEDENUMS ON}
+  TSqlDialect = (MSSql, MySql, PostgreSql, Sqlite, Oracle, Firebird);
+  {$SCOPEDENUMS OFF}
+  TSqlDialectHelper = record helper for TSqlDialect
+    function EngineCode: string;
+  end;
   IQuery = interface;
   TQueryCallback = reference to function(Query: IQuery): IQuery;
   TValues = TArray<TValue>;
@@ -65,6 +71,7 @@ type
     function GetVariables: TDictionary<string,TValue>;
     function Clone: IQuery;
     function NewQuery: IQuery;
+    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     function CopyClausesFrom(Source: IQuery): IQuery;
     function Add(const Component: string; Kind: TClauseKind): TClause;
     procedure Remove(const Component, Engine: string);
@@ -448,6 +455,14 @@ implementation
 
 uses
   System.Variants;
+
+function TSqlDialectHelper.EngineCode: string;
+const
+  Codes: array[TSqlDialect] of string =
+    ('sqlsrv', 'mysql', 'postgres', 'sqlite', 'oracle', 'firebird');
+begin
+  Result := Codes[Self];
+end;
 
 class function TSqlValues.&Of<T>(const Values: array of T): TValues;
 var I: Integer;

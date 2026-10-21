@@ -79,6 +79,38 @@ the same values under `@p0`, `@p1`, etc., or `:p0`, `:p1`, etc. for Oracle.
 separately when executing a statement. `ISqlResult.Query` keeps the original
 query alive. Compilation does not modify the query.
 
+## Compile directly from a query
+
+For a SQL preview with values substituted, call `Compile` on the query.
+SQL Server is the default; no compiler unit imports or manual cleanup are
+needed for this shortcut.
+
+```pascal
+uses QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
+
+// SELECT [Title] FROM [Books] WHERE [Id] = 42
+Sql := TQuery.Create('Books').Select('Title').Where('Id', 42).Compile;
+
+// SELECT `Title` FROM `Books` WHERE `Id` = 42
+Sql := TQuery.Create('Books').Select('Title').Where('Id', 42)
+  .Compile(TSqlDialect.MySql);
+```
+
+`Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` supports `MSSql`,
+`MySql`, `PostgreSql`, `Sqlite`, `Oracle`, and `Firebird`. It uses the selected
+compiler's default settings and returns the same text as
+`Compiler.Compile(Query).ToString`, without changing the query. This is a
+preview and logging convenience. For execution with parameters, or custom
+compiler settings, use the compiler API shown above to keep SQL and bindings
+separate.
+
+`TSqlDialect` also provides the central engine-code mapping:
+`TSqlDialect.MSSql.EngineCode` returns `'sqlsrv'`, and
+`TSqlDialect.MySql.EngineCode` returns `'mysql'`. Use this helper wherever
+an engine-code string is needed. Custom compilers can still define their own
+string codes for `For` and `SetEngineScope`. The former `TEngineCodes` record
+has been removed.
+
 ## More tested examples
 
 The following functions are also available in `test/ReadmeExamples.pas`.

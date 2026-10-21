@@ -22,7 +22,7 @@ uses System.StrUtils;
 constructor TSqliteCompiler.CreateInstance;
 begin
   inherited;
-  FEngineCode := TEngineCodes.Sqlite;
+  FEngineCode := TSqlDialect.Sqlite.EngineCode;
   SupportsFilterClause := True;
   FLastId := 'select last_insert_rowid() as id';
   FSupportsJoinWrites := False;

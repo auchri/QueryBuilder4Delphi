@@ -12,6 +12,15 @@ dialect compilers are classes; their inherited `Create` class function returns
 `ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
 Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
 with the Delphi `T` prefix omitted from the unit name.
+`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` is a
+Delphi convenience method for SQL previews. `TSqlDialect` is a scoped enum in
+`QueryBuilder4Delphi.Query.Core` with `MSSql`, `MySql`, `PostgreSql`, `Sqlite`,
+`Oracle`, and `Firebird`. The method creates the selected compiler with its
+default settings and returns `Compiler.Compile(Query).ToString`, including
+substituted values. It preserves the query, propagates compiler errors, and
+requires no compiler unit imports in calling code. Use `ICompiler.Compile`
+when you need SQL and bindings separately or custom compiler settings.
+
 `TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
 `IQuery`, `TClause`, callbacks, attributes, and value types live in
 `QueryBuilder4Delphi.Query.Core`. Import both units to use the model directly.
@@ -23,7 +32,14 @@ All include files have been removed. Generated fluent declarations and methods
 are regular Pascal source in marked sections of the two query units.
 `tools/generate_query.py` updates those sections without replacing handwritten
 code; `--check` verifies that the checked-in source matches the generator.
-`EngineCodes` is named `TEngineCodes`.
+The upstream `EngineCodes` constants are represented by
+`TSqlDialect.EngineCode`: for example, `TSqlDialect.MSSql.EngineCode` returns
+`'sqlsrv'`. Dialect compilers and the `ForSqlServer`/`ForMySql`/etc. methods use
+this central mapping. The former `TEngineCodes` record has been removed;
+replace `TEngineCodes.SqlServer` with `TSqlDialect.MSSql.EngineCode` and use
+the corresponding enum member for each other dialect. `IQuery.For` and
+`SetEngineScope` continue to accept strings for custom compiler engine names.
+The base `TCompiler` uses the string code `'generic'`.
 
 Write operations delegate to the stateless `TQueryWrites` class in
 `QueryBuilder4Delphi.Query.Writes`. RTTI property mapping delegates to
