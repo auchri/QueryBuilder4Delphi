@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-20",
+  "date": "2026-10-21",
   "compiler": "Delphi 12 Community Edition, RAD Studio 23.0",
   "sourceCommit": "df4a2377750d34fc057c81886b481e7309ef975e",
   "buildMethod": "IDE: Project / Build, Base configuration, zero warnings",
@@ -17,7 +17,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "6856a9a5568c91a2fad9941b56d180bbe7d9f503ee87bbb27aa6c641f612f797"
+      "executableSha256": "34f5c20af1f010568815b49189f612d3e93c6959508234f4655df60ee3632cdf"
     },
     {
       "platform": "Win64",
@@ -27,7 +27,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "8a2ff9d8909511347ce35347ad65bc1d1c304449e76c7d9c4a9839a182e958a7"
+      "executableSha256": "8a25b98657807b35249c8f9bdf14e8e68105d6f000b58586933ed700e69263a0"
     }
   ]
 }

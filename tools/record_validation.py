@@ -23,7 +23,7 @@ for platform, machine in [('Win32', 0x14c), ('Win64', 0x8664)]:
                         passed=len(cases), failed=0, errors=0, ignored=0,
                         executableSha256=hashlib.sha256(exe).hexdigest()))
 
-summary = dict(date='2026-10-20', compiler='Delphi 12 Community Edition, RAD Studio 23.0',
+summary = dict(date='2026-10-21', compiler='Delphi 12 Community Edition, RAD Studio 23.0',
                sourceCommit='df4a2377750d34fc057c81886b481e7309ef975e',
                buildMethod='IDE: Project / Build, Base configuration, zero warnings',
                referenceResults=552, directComparisons=540, correctedBehaviorCases=12,

@@ -288,6 +288,20 @@ both `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query`.
 
 Regenerate the fluent forwarding methods with `python tools/generate_query.py`.
 Make semantic changes in the Pascal units and their corresponding tests.
+The generator updates marked sections in the query units; no include files
+are required. Reference scenario queries live in `test/Oracle.Scenarios.pas`,
+and generated DUnitX case attributes live in `test/QueryBuilder.Tests.pas`.
+
+Verify generated Pascal sources and the generator's replacement safeguards:
+
+```powershell
+python tools/generate_query.py --check
+python tools/generate_oracle.py --check
+python tools/test_generated_sections.py
+```
+
+These checks require Python only. Both `--check` commands leave files unchanged
+and return a nonzero exit code when generated content is out of date.
 
 ## License
 

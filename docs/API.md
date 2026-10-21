@@ -21,8 +21,10 @@ clause-kind constants, and forwarding functions for the public value helpers.
 Existing source imports and fluent method signatures remain supported.
 Runtime RTTI unit names now identify the new defining units; rebuild dependent
 units and packages after updating the library.
-`SqlKata.Query.inc` and `SqlKata.Writes.inc` have been removed. The generated
-fluent declaration and implementation includes remain in use.
+All include files have been removed. Generated fluent declarations and methods
+are regular Pascal source in marked sections of the two query units.
+`tools/generate_query.py` updates those sections without replacing handwritten
+code; `--check` verifies that the checked-in source matches the generator.
 `EngineCodes` is named `TEngineCodes`.
 
 Write operations delegate to the stateless `TQueryWrites` class in

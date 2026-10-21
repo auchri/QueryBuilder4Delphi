@@ -73,3 +73,18 @@ Completed work packages for the query unit:
     pagination, and value helpers. Update project references and documentation.
     All 594 tests pass on both Win32 and Win64 after full Delphi 12 builds
     with zero errors and warnings.
+
+Completed work packages for the remaining includes:
+
+16. Start `codex/remove-remaining-includes` from `origin/main` at `6341bba`,
+    after PR #3 was merged. Replace fluent declaration and implementation
+    includes with generated sections in the existing query units, preserving
+    the public API. Update the generator to check markers before writing and
+    support a read-only `--check` mode.
+17. Replace the test includes with `Oracle.Scenarios.pas` and generated case
+    attributes in the regular DUnitX fixture. Preserve the reference scenarios
+    and case attributes; add six Python tests for generator safeguards.
+18. Rebuild and run the Delphi suite for Win32 and Win64, verify generated
+    source consistency, and update the README and validation records.
+    All 594 DUnitX tests pass on both platforms with zero build errors and
+    warnings; all six Python generator tests and both `--check` commands pass.

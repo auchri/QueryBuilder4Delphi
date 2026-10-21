@@ -1,4 +1,4 @@
-# Validation results: October 20, 2026
+# Validation results: October 21, 2026
 
 ## Checks performed
 
@@ -73,6 +73,15 @@ callback return validation and scope restoration, snapshots of subqueries,
 independent JOIN condition groups, Int64 pagination and negative limits,
 and value helper copying and type preservation. Both the write and query-model
 fixtures are included after rebasing onto the merged PR #2.
+
+The suite now builds without any include files. The 69 reference scenario
+queries are implemented in `Oracle.Scenarios.pas`; their DUnitX case attributes
+remain in the main fixture. Both generators pass `--check`, and six Python
+tests verify replacement boundaries, invalid marker rejection, idempotence,
+read-only checking, UTF-8 BOM preservation, and CRLF output. The generated
+method bodies, declarations, scenarios, and case attributes were also compared
+with the previous include contents to verify that this extraction preserves
+the tested behavior and reference coverage.
 
 ## Limitations
 
