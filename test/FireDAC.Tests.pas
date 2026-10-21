@@ -29,6 +29,16 @@ type
     [Test] procedure SQLiteCrud;
     [Test] procedure LeavesTransactionsWithCaller;
     [Test] procedure LeavesRawLiteralsIntact;
+    [TestCase('MSSql', '0')]
+    [TestCase('MySql', '1')]
+    [TestCase('PostgreSql', '2')]
+    [TestCase('Sqlite', '3')]
+    [TestCase('Oracle', '4')]
+    [TestCase('Firebird', '5')]
+    procedure ExportsSqlAndParameters(DialectIndex: Integer);
+    [Test] procedure ExportsTypesAndNulls;
+    [Test] procedure ExportsEmptyParametersAndRejectsNil;
+    [Test] procedure ExecutesExportedCommand;
   end;
 
 implementation
@@ -64,6 +74,7 @@ begin
   for I := 0 to Compiled.Bindings.Count-1 do
     Assert.AreEqual(Compiled.Bindings[I].ToString, VarToStr(FTarget.ParamByName('p'+IntToStr(I)).Value));
   Assert.IsTrue(FTarget.Params.BindMode = pbByName);
+  Assert.IsTrue(FTarget.ResourceOptions.ParamCreate);
   Assert.IsFalse(FTarget.Active);
   Assert.IsFalse(FTarget.Prepared);
   Assert.IsTrue(FTarget.Connection = nil);
@@ -243,6 +254,116 @@ begin
     TFireDACAdapter.Open(FTarget, TQuery.Create.SelectRaw('''&macro \{text\} :p0'' AS Value')
       .WhereRaw('? = ?', [7, 7]), TSqlDialect.Sqlite);
     Assert.AreEqual('&macro {text} :p0', FTarget.FieldByName('Value').AsString);
+  finally
+    FTarget.Close;
+    FTarget.Connection := nil;
+    Connection.Free;
+  end;
+end;
+
+procedure TFireDACAdapterTests.ExportsSqlAndParameters(DialectIndex: Integer);
+var
+  Query: IQuery;
+  Command: TFireDACCommand;
+  Values: TArray<Variant>;
+  I: Integer;
+begin
+  Query := TQuery.Create('Books').Where('Title', 'O''Brien').OrderBy('Id').Limit(3);
+  Command := TFireDACAdapter.Compile(Query, TSqlDialect(DialectIndex));
+  Assert.AreEqual(Command.Sql, TFireDACAdapter.ToSql(Query, TSqlDialect(DialectIndex)));
+  Values := TFireDACAdapter.GetParameters(Query, TSqlDialect(DialectIndex));
+  FTarget.ResourceOptions.ParamCreate := True;
+  FTarget.ResourceOptions.MacroCreate := False;
+  FTarget.ResourceOptions.MacroExpand := False;
+  FTarget.SQL.Text := Command.Sql;
+  Assert.AreEqual<NativeInt>(Length(Values), FTarget.Params.Count);
+  for I := 0 to High(Values) do
+  begin
+    Assert.AreEqual('p'+IntToStr(I), FTarget.Params[I].Name);
+    Assert.AreEqual(VarToStr(Command.Parameters[I]), VarToStr(Values[I]));
+  end;
+  TFireDACAdapter.Apply(FTarget, Query, TSqlDialect(DialectIndex));
+  Assert.AreEqual(Command.Sql, Trim(FTarget.SQL.Text));
+  for I := 0 to High(Values) do
+    Assert.AreEqual(VarToStr(FTarget.Params[I].Value), VarToStr(Values[I]));
+end;
+
+procedure TFireDACAdapterTests.ExportsTypesAndNulls;
+var
+  Command: TFireDACCommand;
+  D: TDateTime;
+  Bytes: TBytes;
+  I: Integer;
+begin
+  D := EncodeDate(2026, 10, 21);
+  Bytes := TBytes.Create(0, 127, 255);
+  Command := TFireDACAdapter.Compile(TQuery.Create('Values').AsInsert(
+    ['Text', 'Number', 'Flag', 'Date', 'Money', 'Decimal', 'Bytes', 'Empty', 'TypedNull'],
+    ['Gr'+#$00FC+#$00DF+'e', TValue.From<Int64>(High(Int64)), True,
+     TValue.From<TDateTime>(D), TValue.From<Currency>(12.34),
+     TValue.From<UInt64>(High(UInt64)), TValue.From<TBytes>(Bytes),
+     TValue.Empty, TFireDACNull.Create(ftInteger)]));
+  Assert.AreEqual('Gr'+#$00FC+#$00DF+'e', VarToStr(Command.Parameters[0]));
+  Assert.AreEqual<Int64>(High(Int64), Command.Parameters[1]);
+  Assert.IsTrue(Command.Parameters[2], 'Boolean value');
+  Assert.AreEqual<TDateTime>(D, Command.Parameters[3]);
+  Assert.AreEqual<Currency>(12.34, Command.Parameters[4]);
+  Assert.IsTrue(BcdCompare(VarToBcd(Command.Parameters[5]), StrToBcd('18446744073709551615')) = 0, 'UInt64 decimal value');
+  Assert.IsTrue(VarIsArray(Command.Parameters[6]), 'Binary Variant array; actual type '+IntToStr(VarType(Command.Parameters[6])));
+  for I := 0 to High(Bytes) do
+    Assert.AreEqual<Integer>(Bytes[I], Command.Parameters[6][I]);
+  Assert.IsTrue(VarIsNull(Command.Parameters[7]), 'Untyped NULL');
+  Assert.IsTrue(VarIsNull(Command.Parameters[8]), 'Typed NULL');
+  Assert.IsTrue(Command.DataTypes[7] = ftWideString, 'Untyped NULL default type');
+  Assert.IsTrue(Command.DataTypes[8] = ftInteger, 'Typed NULL integer type');
+end;
+
+procedure TFireDACAdapterTests.ExportsEmptyParametersAndRejectsNil;
+var
+  Command: TFireDACCommand;
+  Sql: string;
+  Values: TArray<Variant>;
+begin
+  Command := TFireDACAdapter.Compile(TQuery.Create('Books'));
+  Assert.AreEqual('SELECT * FROM [Books]', Command.Sql);
+  Assert.AreEqual<NativeInt>(0, Length(Command.Parameters));
+  Assert.AreEqual<NativeInt>(0, Length(Command.DataTypes));
+  Assert.WillRaise(DUnitX.Assert.TTestLocalMethod(procedure
+    begin Command := TFireDACAdapter.Compile(nil); end), EArgumentNilException);
+  Assert.WillRaise(DUnitX.Assert.TTestLocalMethod(procedure
+    begin Sql := TFireDACAdapter.ToSql(nil); end), EArgumentNilException);
+  Assert.WillRaise(DUnitX.Assert.TTestLocalMethod(procedure
+    begin Values := TFireDACAdapter.GetParameters(nil); end), EArgumentNilException);
+end;
+
+procedure TFireDACAdapterTests.ExecutesExportedCommand;
+var
+  Connection: TFDConnection;
+  Command: TFireDACCommand;
+  Bytes: TBytes;
+begin
+  Connection := ConnectMemory(FTarget);
+  try
+    Connection.ExecSQL('CREATE TABLE Books (Id INTEGER, Title TEXT, Price NUMERIC, Payload BLOB)');
+    FTarget.ResourceOptions.ParamCreate := True;
+    FTarget.ResourceOptions.MacroCreate := False;
+    FTarget.ResourceOptions.MacroExpand := False;
+    FTarget.ResourceOptions.EscapeExpand := False;
+    Command := TFireDACAdapter.Compile(TQuery.Create('Books').AsInsert(
+      ['Id', 'Title', 'Price', 'Payload'], [1, '&literal {text} :p0',
+       TFireDACNull.Create(ftCurrency), TValue.From<TBytes>(TBytes.Create(0, 127, 255))]),
+      TSqlDialect.Sqlite);
+    FTarget.ExecSQL(Command.Sql, Command.Parameters, Command.DataTypes);
+    Assert.AreEqual<Int64>(1, FTarget.RowsAffected);
+    Command := TFireDACAdapter.Compile(TQuery.Create('Books').Where('Id', 1), TSqlDialect.Sqlite);
+    FTarget.Open(Command.Sql, Command.Parameters);
+    Assert.AreEqual('&literal {text} :p0', FTarget.FieldByName('Title').AsString);
+    Assert.IsTrue(FTarget.FieldByName('Price').IsNull);
+    Bytes := FTarget.FieldByName('Payload').AsBytes;
+    Assert.AreEqual<NativeInt>(3, Length(Bytes));
+    Assert.AreEqual<Byte>(0, Bytes[0]);
+    Assert.AreEqual<Byte>(127, Bytes[1]);
+    Assert.AreEqual<Byte>(255, Bytes[2]);
   finally
     FTarget.Close;
     FTarget.Connection := nil;

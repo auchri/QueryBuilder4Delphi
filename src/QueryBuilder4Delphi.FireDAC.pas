@@ -14,7 +14,19 @@ type
     class operator Implicit(const Value: TFireDACNull): TValue;
   end;
 
+  TFireDACCommand = record
+    Sql: string;
+    Parameters: TArray<Variant>;
+    DataTypes: TArray<TFieldType>;
+  end;
+
   TFireDACAdapter = record
+    class function Compile(const Query: IQuery;
+      Dialect: TSqlDialect = TSqlDialect.MSSql): TFireDACCommand; static;
+    class function ToSql(const Query: IQuery;
+      Dialect: TSqlDialect = TSqlDialect.MSSql): string; static;
+    class function GetParameters(const Query: IQuery;
+      Dialect: TSqlDialect = TSqlDialect.MSSql): TArray<Variant>; static;
     class procedure Apply(Target: TFDQuery; const Query: IQuery;
       Dialect: TSqlDialect = TSqlDialect.MSSql); static;
     class procedure Open(Target: TFDQuery; const Query: IQuery;
@@ -109,20 +121,82 @@ begin
   end;
 end;
 
+function CompileQuery(const Query: IQuery; Dialect: TSqlDialect): ISqlResult;
+var
+  Compiler: ICompiler;
+begin
+  if Query = nil then raise EArgumentNilException.Create('Query');
+  Compiler := CreateCompiler(Dialect);
+  Compiler.ParameterPrefix := ':p';
+  Result := Compiler.Compile(Query);
+end;
+
+function ParameterValue(Param: TFDParam): Variant;
+var
+  Blob: RawByteString;
+  Buffer: Pointer;
+begin
+  if (Param.DataType <> ftBlob) or Param.IsNull then Exit(Param.Value);
+  // FireDAC exposes blobs as ANSI strings; export bytes without text conversion.
+  Blob := Param.AsBlob;
+  Result := VarArrayCreate([0, Length(Blob)-1], varByte);
+  if Length(Blob) = 0 then Exit;
+  Buffer := VarArrayLock(Result);
+  try
+    Move(PAnsiChar(Blob)^, Buffer^, Length(Blob));
+  finally
+    VarArrayUnlock(Result);
+  end;
+end;
+
+class function TFireDACAdapter.Compile(const Query: IQuery;
+  Dialect: TSqlDialect): TFireDACCommand;
+var
+  Compiled: ISqlResult;
+  Params: TFDParams;
+  Param: TFDParam;
+  I: Integer;
+begin
+  Compiled := CompileQuery(Query, Dialect);
+  Result.Sql := Compiled.Sql;
+  SetLength(Result.Parameters, Compiled.Bindings.Count);
+  SetLength(Result.DataTypes, Compiled.Bindings.Count);
+  Params := TFDParams.Create;
+  try
+    for I := 0 to Compiled.Bindings.Count-1 do
+    begin
+      Param := Params.Add;
+      BindValue(Param, Compiled.Bindings[I], ftUnknown);
+      Result.Parameters[I] := ParameterValue(Param);
+      Result.DataTypes[I] := Param.DataType;
+    end;
+  finally
+    Params.Free;
+  end;
+end;
+
+class function TFireDACAdapter.ToSql(const Query: IQuery;
+  Dialect: TSqlDialect): string;
+begin
+  Result := CompileQuery(Query, Dialect).Sql;
+end;
+
+class function TFireDACAdapter.GetParameters(const Query: IQuery;
+  Dialect: TSqlDialect): TArray<Variant>;
+begin
+  Result := Compile(Query, Dialect).Parameters;
+end;
+
 class procedure TFireDACAdapter.Apply(Target: TFDQuery; const Query: IQuery;
   Dialect: TSqlDialect);
 var
-  Compiler: ICompiler;
   Compiled: ISqlResult;
   Params: TFDParams;
   Param: TFDParam;
   I: Integer;
 begin
   if Target = nil then raise EArgumentNilException.Create('Target');
-  if Query = nil then raise EArgumentNilException.Create('Query');
-  Compiler := CreateCompiler(Dialect);
-  Compiler.ParameterPrefix := ':p';
-  Compiled := Compiler.Compile(Query);
+  Compiled := CompileQuery(Query, Dialect);
   // Validate bindings before closing or changing the caller's query.
   Params := TFDParams.Create;
   try
@@ -137,7 +211,7 @@ begin
     end;
     Target.Close;
     Target.Unprepare;
-    Target.ResourceOptions.ParamCreate := False;
+    Target.ResourceOptions.ParamCreate := True;
     Target.ResourceOptions.ParamExpand := True;
     Target.ResourceOptions.MacroCreate := False;
     Target.ResourceOptions.MacroExpand := False;
