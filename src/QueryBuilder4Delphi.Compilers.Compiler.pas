@@ -317,12 +317,14 @@ end;
 function TCompiler.Resolve(Context: TCompileContext; const Value: TValue): TValue;
 begin
   Result := Value;
+  if Value.IsEmpty then Exit;
   if Value.IsType<TVariable> then Result := Context.FindVariable(Value.AsType<TVariable>.Name)
   else if Value.IsType<TUnsafeLiteral> then Result := Value.AsType<TUnsafeLiteral>.Value;
 end;
 function TCompiler.Parameter(Context: TCompileContext; const Value: TValue): string;
 begin
-  if Value.IsType<TUnsafeLiteral> then Exit(Value.AsType<TUnsafeLiteral>.Value);
+  if not Value.IsEmpty and Value.IsType<TUnsafeLiteral> then
+    Exit(Value.AsType<TUnsafeLiteral>.Value);
   Context.Bindings.Add(Resolve(Context, Value)); Result := '?';
 end;
 function TCompiler.Parameterize(Context: TCompileContext; const Values: array of TValue): string;
