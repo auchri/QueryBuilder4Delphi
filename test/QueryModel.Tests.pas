@@ -6,11 +6,14 @@ uses
   DUnitX.TestFramework;
 
 type
+
   [TestFixture]
   TQueryModelTests = class
   public
-    [Test] procedure FactoryCreatesConcreteQuery;
-    [Test] procedure CompileDefaultsToMSSql;
+    [Test]
+    procedure FactoryCreatesConcreteQuery;
+    [Test]
+    procedure CompileDefaultsToMSSql;
     [TestCase('MSSql', '0')]
     [TestCase('MySql', '1')]
     [TestCase('PostgreSql', '2')]
@@ -18,15 +21,24 @@ type
     [TestCase('Oracle', '4')]
     [TestCase('Firebird', '5')]
     procedure CompileSelectsDialect(DialectIndex: Integer);
-    [Test] procedure CompilePropagatesErrors;
-    [Test] procedure CompileInlinesValues;
-    [Test] procedure ClonePreservesSubclassAndIndependentState;
-    [Test] procedure ScopedClausesKeepFallbackAndRemovalRules;
-    [Test] procedure CallbacksRejectReplacementAndRestoreScope;
-    [Test] procedure SubqueryComponentsKeepSnapshots;
-    [Test] procedure JoinCallbacksKeepIndependentConditionGroups;
-    [Test] procedure PaginationUsesInt64AndClampsNegativeValues;
-    [Test] procedure ValueHelpersCopyAndPreserveTypes;
+    [Test]
+    procedure CompilePropagatesErrors;
+    [Test]
+    procedure CompileInlinesValues;
+    [Test]
+    procedure ClonePreservesSubclassAndIndependentState;
+    [Test]
+    procedure ScopedClausesKeepFallbackAndRemovalRules;
+    [Test]
+    procedure CallbacksRejectReplacementAndRestoreScope;
+    [Test]
+    procedure SubqueryComponentsKeepSnapshots;
+    [Test]
+    procedure JoinCallbacksKeepIndependentConditionGroups;
+    [Test]
+    procedure PaginationUsesInt64AndClampsNegativeValues;
+    [Test]
+    procedure ValueHelpersCopyAndPreserveTypes;
   end;
 
 implementation
@@ -70,14 +82,14 @@ end;
 
 procedure TQueryModelTests.CompileDefaultsToMSSql;
 begin
-  Assert.AreEqual('SELECT [Title] FROM [Books]',
-    TQuery.Create('Books').Select('Title').Compile);
+  Assert.AreEqual('SELECT [Title] FROM [Books]', TQuery.Create('Books')
+    .Select('Title').Compile);
 end;
 
 procedure TQueryModelTests.CompileSelectsDialect(DialectIndex: Integer);
 const
-  Engines: array[TSqlDialect] of string =
-    ('sqlsrv', 'mysql', 'postgres', 'sqlite', 'oracle', 'firebird');
+  Engines: array [TSqlDialect] of string = ('sqlsrv', 'mysql', 'postgres',
+    'sqlite', 'oracle', 'firebird');
 var
   Dialect, EngineDialect: TSqlDialect;
   Query: IQuery;
@@ -86,12 +98,18 @@ var
 begin
   Dialect := TSqlDialect(DialectIndex);
   case Dialect of
-    TSqlDialect.MSSql: Compiler := TSqlServerCompiler.Create;
-    TSqlDialect.MySql: Compiler := TMySqlCompiler.Create;
-    TSqlDialect.PostgreSql: Compiler := TPostgresCompiler.Create;
-    TSqlDialect.Sqlite: Compiler := TSqliteCompiler.Create;
-    TSqlDialect.Oracle: Compiler := TOracleCompiler.Create;
-    TSqlDialect.Firebird: Compiler := TFirebirdCompiler.Create;
+    TSqlDialect.MSSql:
+      Compiler := TSqlServerCompiler.Create;
+    TSqlDialect.MySql:
+      Compiler := TMySqlCompiler.Create;
+    TSqlDialect.PostgreSql:
+      Compiler := TPostgresCompiler.Create;
+    TSqlDialect.Sqlite:
+      Compiler := TSqliteCompiler.Create;
+    TSqlDialect.Oracle:
+      Compiler := TOracleCompiler.Create;
+    TSqlDialect.Firebird:
+      Compiler := TFirebirdCompiler.Create;
   end;
   Assert.AreEqual(Engines[Dialect], Dialect.EngineCode);
   Assert.AreEqual(Dialect.EngineCode, Compiler.EngineCode);
@@ -121,7 +139,8 @@ end;
 
 procedure TQueryModelTests.CompileInlinesValues;
 begin
-  Assert.AreEqual('SELECT * FROM [Books] WHERE [Title] = ''O''''Reilly'' AND [Id] = 42',
+  Assert.AreEqual
+    ('SELECT * FROM [Books] WHERE [Title] = ''O''''Reilly'' AND [Id] = 42',
     TQuery.Create('Books').Where('Title', 'O''Reilly').Where('Id', 42).Compile);
   Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (''New Book'')',
     TQuery.Create('Books').AsInsert(['Title'], ['New Book']).Compile);
@@ -175,22 +194,30 @@ procedure TQueryModelTests.CallbacksRejectReplacementAndRestoreScope;
 var
   Query: IQuery;
 begin
-  Query := QueryBuilder4Delphi.Query.TQuery.Create('Books').SetEngineScope('sqlite');
-  Assert.WillRaise(procedure begin
-    Query.&For('mysql', function(Q: IQuery): IQuery
-      begin
-        Assert.AreEqual('mysql', Q.EngineScope);
-        Result := QueryBuilder4Delphi.Query.TQuery.Create;
-      end);
-  end, EQueryException);
+  Query := QueryBuilder4Delphi.Query.TQuery.Create('Books')
+    .SetEngineScope('sqlite');
+  Assert.WillRaise(
+    procedure
+    begin
+      Query.&For('mysql',
+        function(Q: IQuery): IQuery
+        begin
+          Assert.AreEqual('mysql', Q.EngineScope);
+          Result := QueryBuilder4Delphi.Query.TQuery.Create;
+        end);
+    end, EQueryException);
   Assert.AreEqual('sqlite', Query.EngineScope);
-  Assert.WillRaise(procedure begin
-    Query.&From(function(Q: IQuery): IQuery
-      begin
-        Result := nil;
-      end);
-  end, EQueryException);
-  Assert.IsTrue(Query.WhenNot(True, function(Q: IQuery): IQuery
+  Assert.WillRaise(
+    procedure
+    begin
+      Query.&From(
+        function(Q: IQuery): IQuery
+        begin
+          Result := nil;
+        end);
+    end, EQueryException);
+  Assert.IsTrue(Query.WhenNot(True,
+    function(Q: IQuery): IQuery
     begin
       Result := Q;
       raise EQueryException.Create('The inactive branch must not run');
@@ -202,15 +229,18 @@ var
   Source, Query: IQuery;
   Component: string;
 begin
-  Source := QueryBuilder4Delphi.Query.TQuery.Create('Authors').Select('Id').Where('Id', 42);
+  Source := QueryBuilder4Delphi.Query.TQuery.Create('Authors').Select('Id')
+    .Where('Id', 42);
   Query := QueryBuilder4Delphi.Query.TQuery.Create.&From(Source, 'a')
     .Select(Source, 'author').SelectAggregate('count', 'Id', Source)
     .&With('authors', Source).Combine('union', False, Source);
   Source.GetOne('where', '').Value := 7;
   Source := nil;
   for Component in TArray<string>.Create('from', 'select', 'cte', 'combine') do
-    Assert.AreEqual(42, Query.GetOne(Component, '').Query.GetOne('where', '').Value.AsInteger);
-  Assert.AreEqual(42, Query.GetComponents('select')[1].Query.GetOne('where', '').Value.AsInteger);
+    Assert.AreEqual(42, Query.GetOne(Component, '').Query.GetOne('where', '')
+      .Value.AsInteger);
+  Assert.AreEqual(42, Query.GetComponents('select')[1].Query.GetOne('where', '')
+    .Value.AsInteger);
   Assert.AreEqual('', Query.GetOne('cte', '').Query.QueryAlias);
   Assert.AreEqual('a', Query.GetOne('from', '').Query.QueryAlias);
 end;
@@ -222,7 +252,8 @@ begin
   Query := QueryBuilder4Delphi.Query.TQuery.Create('Books').LeftJoin('Authors',
     function(Q: IQuery): IQuery
     begin
-      Result := Q.On('Authors.Id', 'Books.AuthorId').OrWhere('Authors.Active', True);
+      Result := Q.On('Authors.Id', 'Books.AuthorId')
+        .OrWhere('Authors.Active', True);
     end);
   Join := Query.GetOne('join', '').Query;
   Group := Join.GetOne('where', '').Query;
@@ -238,7 +269,8 @@ procedure TQueryModelTests.PaginationUsesInt64AndClampsNegativeValues;
 var
   Query: IQuery;
 begin
-  Query := QueryBuilder4Delphi.Query.TQuery.Create('Books').ForPage(100000, 100000);
+  Query := QueryBuilder4Delphi.Query.TQuery.Create('Books')
+    .ForPage(100000, 100000);
   Assert.AreEqual<Int64>(9999900000, Query.GetOffset);
   Assert.AreEqual(100000, Query.GetLimit);
   Query.Take(-1).Skip(-1);
@@ -270,6 +302,7 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TQueryModelTests);
+
+TDUnitX.RegisterTestFixture(TQueryModelTests);
 
 end.

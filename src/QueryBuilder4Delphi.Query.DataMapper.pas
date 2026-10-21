@@ -9,7 +9,8 @@ type
   TQueryDataMapper = class
   public
     class function GetPairs(Data: TObject;
-      const OnKey: TProc<string, TValue> = nil): TArray<TPair<string, TValue>>; static;
+      const OnKey: TProc<string, TValue> = nil)
+      : TArray<TPair<string, TValue>>; static;
   end;
 
 implementation
@@ -31,7 +32,7 @@ begin
   if Data = nil then
     raise EArgumentNilException.Create('Data');
   Context := TRttiContext.Create;
-  Pairs := TList<TPair<string, TValue>>.Create;
+  Pairs := TList < TPair < string, TValue >>.Create;
   try
     for Prop in Context.GetType(Data.ClassType).GetProperties do
     begin

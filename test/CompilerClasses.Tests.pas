@@ -6,6 +6,7 @@ uses
   DUnitX.TestFramework;
 
 type
+
   [TestFixture]
   TCompilerClassTests = class
   public
@@ -16,14 +17,17 @@ type
     [TestCase('Oracle', 'oracle')]
     [TestCase('Firebird', 'firebird')]
     procedure FactoryCreatesRequestedClass(const Engine: string);
-    [Test] procedure CustomMySqlCompilerInheritsDialectBehavior;
-    [Test] procedure CustomSqlServerCompilerInheritsLegacyPagination;
+    [Test]
+    procedure CustomMySqlCompilerInheritsDialectBehavior;
+    [Test]
+    procedure CustomSqlServerCompilerInheritsLegacyPagination;
   end;
 
 implementation
 
 uses
-  System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.SqlServerCompiler,
   QueryBuilder4Delphi.Compilers.PostgresCompiler,
@@ -64,18 +68,26 @@ begin
   FEngineCode := 'custom_sqlsrv';
 end;
 
-procedure TCompilerClassTests.FactoryCreatesRequestedClass(const Engine: string);
+procedure TCompilerClassTests.FactoryCreatesRequestedClass
+  (const Engine: string);
 var
   CompilerClass: TCompilerClass;
   Compiler: ICompiler;
 begin
-  if Engine = 'sqlsrv' then CompilerClass := TSqlServerCompiler
-  else if Engine = 'postgres' then CompilerClass := TPostgresCompiler
-  else if Engine = 'mysql' then CompilerClass := TMySqlCompiler
-  else if Engine = 'sqlite' then CompilerClass := TSqliteCompiler
-  else if Engine = 'oracle' then CompilerClass := TOracleCompiler
-  else if Engine = 'firebird' then CompilerClass := TFirebirdCompiler
-  else raise EArgumentException.Create('Unknown test engine');
+  if Engine = 'sqlsrv' then
+    CompilerClass := TSqlServerCompiler
+  else if Engine = 'postgres' then
+    CompilerClass := TPostgresCompiler
+  else if Engine = 'mysql' then
+    CompilerClass := TMySqlCompiler
+  else if Engine = 'sqlite' then
+    CompilerClass := TSqliteCompiler
+  else if Engine = 'oracle' then
+    CompilerClass := TOracleCompiler
+  else if Engine = 'firebird' then
+    CompilerClass := TFirebirdCompiler
+  else
+    raise EArgumentException.Create('Unknown test engine');
 
   Compiler := CompilerClass.Create;
   Assert.IsTrue((Compiler as TCompiler).ClassType = CompilerClass);
@@ -88,16 +100,18 @@ var
   Compiled: ISqlResult;
 begin
   Compiler := TCustomMySqlCompiler.Create;
-  Compiled := Compiler.Compile(TQuery.Create('Books').WhereDate('PublishedAt', '2026-10-20')
-    .OrderByRandom.Offset(2));
-  Assert.AreEqual('SELECT * FROM `Books` WHERE DATE(`PublishedAt`) = @p0 '+
-    'ORDER BY CUSTOM_RANDOM() LIMIT 18446744073709551615 OFFSET @p1', Compiled.Sql);
+  Compiled := Compiler.Compile(TQuery.Create('Books').WhereDate('PublishedAt',
+    '2026-10-20').OrderByRandom.Offset(2));
+  Assert.AreEqual('SELECT * FROM `Books` WHERE DATE(`PublishedAt`) = @p0 ' +
+    'ORDER BY CUSTOM_RANDOM() LIMIT 18446744073709551615 OFFSET @p1',
+    Compiled.Sql);
   Assert.AreEqual('2026-10-20', Compiled.Bindings[0].AsString);
   Assert.AreEqual<Int64>(2, Compiled.Bindings[1].AsInt64);
 
-  Compiled := Compiler.Compile(TQuery.Create('Books')
-    .Join('Authors', 'Authors.Id', 'Books.AuthorId').AsUpdate(['Title'], ['Revised']));
-  Assert.IsTrue(Compiled.Sql.StartsWith('UPDATE `Books` '+#10+'INNER JOIN `Authors`'));
+  Compiled := Compiler.Compile(TQuery.Create('Books').Join('Authors',
+    'Authors.Id', 'Books.AuthorId').AsUpdate(['Title'], ['Revised']));
+  Assert.IsTrue(Compiled.Sql.StartsWith('UPDATE `Books` ' + #10 +
+    'INNER JOIN `Authors`'));
   Assert.IsTrue(Compiled.Sql.EndsWith(' SET `Title` = @p0'));
 
   Compiled := Compiler.Compile(TQuery.Create('Books').&For('custom_mysql',
@@ -116,14 +130,17 @@ var
 begin
   Compiler := TCustomSqlServerCompiler.Create;
   Compiler.UseLegacyPagination := True;
-  Compiled := Compiler.Compile(TQuery.Create('Books').WhereTrue('Published').Limit(3));
-  Assert.AreEqual('SELECT TOP (@p0) * FROM [Books] WHERE [Published] = cast(1 as bit)',
+  Compiled := Compiler.Compile(TQuery.Create('Books').WhereTrue('Published')
+    .Limit(3));
+  Assert.AreEqual
+    ('SELECT TOP (@p0) * FROM [Books] WHERE [Published] = cast(1 as bit)',
     Compiled.Sql);
   Assert.AreEqual(3, Compiled.Bindings[0].AsInteger);
   Assert.IsTrue((Compiler as TCompiler).InheritsFrom(TSqlServerCompiler));
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TCompilerClassTests);
+
+TDUnitX.RegisterTestFixture(TCompilerClassTests);
 
 end.

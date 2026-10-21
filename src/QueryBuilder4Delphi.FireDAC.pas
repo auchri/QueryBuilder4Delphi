@@ -51,11 +51,14 @@ begin
 end;
 
 class operator TFireDACNull.Implicit(const Value: TFireDACNull): TValue;
-begin Result := TValue.From<TFireDACNull>(Value); end;
+begin
+  Result := TValue.From<TFireDACNull>(Value);
+end;
 
 procedure BindNull(Param: TFDParam; DataType: TFieldType);
 begin
-  if DataType = ftUnknown then DataType := ftWideString;
+  if DataType = ftUnknown then
+    DataType := ftWideString;
   Param.DataType := DataType;
   Param.Clear;
   Param.Bound := True;
@@ -82,17 +85,22 @@ begin
   if Value.Kind = tkVariant then
   begin
     V := Value.AsVariant;
-    if VarIsNull(V) or VarIsEmpty(V) then BindNull(Param, DefaultNullType)
-    else BindValue(Param, TValue.FromVariant(V), DefaultNullType);
+    if VarIsNull(V) or VarIsEmpty(V) then
+      BindNull(Param, DefaultNullType)
+    else
+      BindValue(Param, TValue.FromVariant(V), DefaultNullType);
     Exit;
   end;
-  if Value.TypeInfo = TypeInfo(Boolean) then Param.AsBoolean := Value.AsBoolean
+  if Value.TypeInfo = TypeInfo(Boolean) then
+    Param.AsBoolean := Value.AsBoolean
   else if Value.TypeInfo = TypeInfo(TDateTime) then
     Param.AsDateTime := Value.AsType<TDateTime>
   else if Value.TypeInfo = TypeInfo(Currency) then
     Param.AsCurrency := Value.AsType<Currency>
-  else if Value.IsType<TGUID> then Param.AsGUID := Value.AsType<TGUID>
-  else if Value.IsType<TBcd> then Param.AsFMTBCD := Value.AsType<TBcd>
+  else if Value.IsType<TGUID> then
+    Param.AsGUID := Value.AsType<TGUID>
+  else if Value.IsType<TBcd> then
+    Param.AsFMTBCD := Value.AsType<TBcd>
   else if Value.IsType<TBytes> then
   begin
     Bytes := Value.AsType<TBytes>;
@@ -102,30 +110,38 @@ begin
   else if Value.TypeInfo = TypeInfo(UInt64) then
   begin
     U := Value.AsUInt64;
-    if U <= UInt64(High(Int64)) then Param.AsLargeInt := Int64(U)
-    else Param.AsFMTBCD := StrToBcd(UIntToStr(U));
+    if U <= UInt64(High(Int64)) then
+      Param.AsLargeInt := Int64(U)
+    else
+      Param.AsFMTBCD := StrToBcd(UIntToStr(U));
   end
-  else case Value.Kind of
-    tkInteger:
-      if GetTypeData(Value.TypeInfo).OrdType = otULong then
-        Param.AsLongword := Value.AsType<Cardinal>
-      else Param.AsInteger := Value.AsInteger;
-    tkInt64: Param.AsLargeInt := Value.AsInt64;
-    tkFloat: Param.AsExtended := Value.AsExtended;
-    tkString, tkLString, tkWString, tkUString:
-      Param.AsWideString := Value.AsString;
-    tkChar, tkWChar: Param.AsWideString := Value.ToString;
   else
-    raise EQueryException.CreateFmt('Unsupported FireDAC binding type: %s',
-      [string(Value.TypeInfo.Name)]);
-  end;
+    case Value.Kind of
+      tkInteger:
+        if GetTypeData(Value.TypeInfo).OrdType = otULong then
+          Param.AsLongword := Value.AsType<Cardinal>
+        else
+          Param.AsInteger := Value.AsInteger;
+      tkInt64:
+        Param.AsLargeInt := Value.AsInt64;
+      tkFloat:
+        Param.AsExtended := Value.AsExtended;
+      tkString, tkLString, tkWString, tkUString:
+        Param.AsWideString := Value.AsString;
+      tkChar, tkWChar:
+        Param.AsWideString := Value.ToString;
+    else
+      raise EQueryException.CreateFmt('Unsupported FireDAC binding type: %s',
+        [string(Value.TypeInfo.Name)]);
+    end;
 end;
 
 function CompileQuery(const Query: IQuery; Dialect: TSqlDialect): ISqlResult;
 var
   Compiler: ICompiler;
 begin
-  if Query = nil then raise EArgumentNilException.Create('Query');
+  if Query = nil then
+    raise EArgumentNilException.Create('Query');
   Compiler := CreateCompiler(Dialect);
   Compiler.ParameterPrefix := ':p';
   Result := Compiler.Compile(Query);
@@ -136,11 +152,13 @@ var
   Blob: RawByteString;
   Buffer: Pointer;
 begin
-  if (Param.DataType <> ftBlob) or Param.IsNull then Exit(Param.Value);
+  if (Param.DataType <> ftBlob) or Param.IsNull then
+    Exit(Param.Value);
   // FireDAC exposes blobs as ANSI strings; export bytes without text conversion.
   Blob := Param.AsBlob;
-  Result := VarArrayCreate([0, Length(Blob)-1], varByte);
-  if Length(Blob) = 0 then Exit;
+  Result := VarArrayCreate([0, Length(Blob) - 1], varByte);
+  if Length(Blob) = 0 then
+    Exit;
   Buffer := VarArrayLock(Result);
   try
     Move(PAnsiChar(Blob)^, Buffer^, Length(Blob));
@@ -163,7 +181,7 @@ begin
   SetLength(Result.DataTypes, Compiled.Bindings.Count);
   Params := TFDParams.Create;
   try
-    for I := 0 to Compiled.Bindings.Count-1 do
+    for I := 0 to Compiled.Bindings.Count - 1 do
     begin
       Param := Params.Add;
       BindValue(Param, Compiled.Bindings[I], ftUnknown);
@@ -195,23 +213,25 @@ var
   Param: TFDParam;
   I: Integer;
 begin
-  if Target = nil then raise EArgumentNilException.Create('Target');
+  if Target = nil then
+    raise EArgumentNilException.Create('Target');
   Compiled := CompileQuery(Query, Dialect);
   // Validate bindings before closing or changing the caller's query.
   Params := TFDParams.Create;
   try
     Params.BindMode := Target.Params.BindMode;
-    for I := 0 to Compiled.Bindings.Count-1 do
+    for I := 0 to Compiled.Bindings.Count - 1 do
     begin
       Param := Params.Add;
-      Param.Name := 'p'+IntToStr(I);
-      Param.Position := I+1;
+      Param.Name := 'p' + IntToStr(I);
+      Param.Position := I + 1;
       Param.ParamType := ptInput;
-      BindValue(Param, Compiled.Bindings[I], Target.FormatOptions.DefaultParamDataType);
+      BindValue(Param, Compiled.Bindings[I],
+        Target.FormatOptions.DefaultParamDataType);
     end;
     Target.Close;
     Target.Unprepare;
-    Target.SQL.Text := Compiled.Sql;
+    Target.Sql.Text := Compiled.Sql;
     Target.Params.Assign(Params);
   finally
     Params.Free;

@@ -1,5 +1,16 @@
 """Replace explicitly marked generated Pascal sections without changing other code."""
 
+import re
+
+
+def pascal_tokens(source: str) -> list[str]:
+    """Ignore layout while preserving strings, comments, directives and tokens."""
+    pattern = (r"'(?:''|[^'])*'|//[^\r\n]*|\{[^}]*\}|\(\*.*?\*\)|"
+               r'\s+|[A-Za-z_][A-Za-z_0-9]*|\$[0-9A-Fa-f]+|'
+               r'\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?|:=|<>|<=|>=|\.\.|\(\.|\.\)|\S')
+    return [token for token in re.findall(pattern, source, re.DOTALL)
+            if not token.isspace()]
+
 
 def replace_section(source: str, name: str, generated: str, indent: str = '') -> str:
     begin = f'{indent}// BEGIN GENERATED: {name}'
@@ -14,10 +25,10 @@ def replace_section(source: str, name: str, generated: str, indent: str = '') ->
 
 
 def update_files(outputs: dict, check: bool = False) -> None:
-    """Check all outputs before writing; preserve UTF-8 BOMs and use Pascal CRLF."""
+    """Preserve existing Pascal layout, UTF-8 BOMs, and use CRLF when writing."""
     stale = []
     for path, content in outputs.items():
-        if not path.exists() or path.read_text(encoding='utf-8-sig') != content:
+        if not path.exists() or pascal_tokens(path.read_text(encoding='utf-8-sig')) != pascal_tokens(content):
             stale.append(path)
     if check and stale:
         raise SystemExit('Generated files are stale: ' + ', '.join(map(str, stale)))

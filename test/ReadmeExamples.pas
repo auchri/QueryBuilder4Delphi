@@ -17,11 +17,8 @@ implementation
 function PublishedBooks: IQuery;
 begin
   Result := TQuery.Create('Books');
-  Result.Select(['Id', 'Title'])
-    .WhereTrue('IsPublished')
-    .Where('Lang', 'de')
-    .OrderByDesc('PublishedAt')
-    .Limit(10);
+  Result.Select(['Id', 'Title']).WhereTrue('IsPublished').Where('Lang', 'de')
+    .OrderByDesc('PublishedAt').Limit(10);
 end;
 
 function BooksWithAuthors: IQuery;

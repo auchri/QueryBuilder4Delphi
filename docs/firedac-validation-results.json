@@ -11,7 +11,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "8f04c1fd4cf2f27e5b1791a2275b3ec7a37f5bc9a8230218faa77fca203d70f8"
+      "executableSha256": "b142a1e5dfceb5838e41d7574d871ef339f288be8ea17c2aec46e687b2f5351c"
     },
     {
       "platform": "Win64",
@@ -21,7 +21,7 @@
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "e431da7828c028add1b05340584ba2c2a65f59c416fe023faef5e9129627b320"
+      "executableSha256": "84466d43f1438bc4b9b9771a564258ea24265a8195c6ed44e919b94a57a59939"
     }
   ],
   "integrationDatabase": "SQLite :memory:, statically linked FireDAC driver"
