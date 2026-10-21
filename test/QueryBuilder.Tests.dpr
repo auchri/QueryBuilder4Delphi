@@ -19,6 +19,7 @@ uses
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
   QueryWrites.Tests in 'QueryWrites.Tests.pas',
   QueryModel.Tests in 'QueryModel.Tests.pas',
+  Oracle.Scenarios in 'Oracle.Scenarios.pas',
   QueryBuilder.Tests in 'QueryBuilder.Tests.pas';
 var Runner: ITestRunner; Results: IRunResults;
 begin
