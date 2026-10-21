@@ -17,7 +17,9 @@ No package or additional runtime libraries are required.
 ```pascal
 uses
   System.SysUtils, System.Rtti,
-  SqlKata, QueryBuilder4Delphi.Compilers;
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler;
 ```
 
 Queries, compilers, and results use **reference-counted interfaces**:
@@ -36,7 +38,9 @@ program BooksSql;
 {$APPTYPE CONSOLE}
 
 uses
-  System.SysUtils, SqlKata, QueryBuilder4Delphi.Compilers;
+  System.SysUtils, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler;
 
 var
   Q: IQuery;
@@ -227,9 +231,8 @@ Each dialect has its own class and Pascal unit under `src`:
 
 The dialect classes inherit from `TCompiler` and override pagination, date
 expressions, and other dialect-specific behavior. Compiler implementations
-do not use include files. `QueryBuilder4Delphi.Compilers` provides a facade
-for importing all compiler types. Alternatively, import
-`QueryBuilder4Delphi.Compilers.Compiler` and the required dialect unit directly.
+do not use include files. Import `QueryBuilder4Delphi.Compilers.Compiler`
+and the required dialect unit directly.
 Use the `QueryBuilder4Delphi.Compilers` prefix in compiler `uses` clauses.
 Calls such as `TSqlServerCompiler.Create` remain the same.
 `Create` returns `ICompiler` and preserves automatic lifetime
@@ -282,9 +285,11 @@ The query class `TQueryObject` and the `TQuery` factory are implemented in
 [QueryBuilder4Delphi.Query](src/QueryBuilder4Delphi.Query.pas). Shared interfaces,
 clauses, attributes, and value helpers live in
 [QueryBuilder4Delphi.Query.Core](src/QueryBuilder4Delphi.Query.Core.pas).
-The existing `SqlKata` unit remains a compatibility facade, so the examples
-above keep their existing imports. To import the implementation directly, use
-both `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query`.
+Import both `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query`.
+The old `SqlKata` and compiler facade units have been removed; existing
+applications must update their imports to the defining units. Legacy
+`T...CompilerObject`, `IConditionGroup`, `TConditionGroup`, `IJoin`, and `TJoin`
+aliases have also been removed. Use the compiler classes and `IQuery` directly.
 
 Regenerate the fluent forwarding methods with `python tools/generate_query.py`.
 Make semantic changes in the Pascal units and their corresponding tests.

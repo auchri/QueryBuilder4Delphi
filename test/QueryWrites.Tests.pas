@@ -24,8 +24,14 @@ implementation
 
 uses
   System.SysUtils, System.Rtti, System.Generics.Collections,
-  SqlKata, QueryBuilder4Delphi.Query.DataMapper,
-  QueryBuilder4Delphi.Compilers;
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Query.DataMapper,
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler,
+  QueryBuilder4Delphi.Compilers.PostgresCompiler,
+  QueryBuilder4Delphi.Compilers.MySqlCompiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.OracleCompiler,
+  QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 type
   TMappedData = class
@@ -34,12 +40,12 @@ type
     FName, FSecret: string;
     function GetIgnored: string;
   public
-    [SqlKata.Key('UserId')]
+    [QueryBuilder4Delphi.Query.Core.Key('UserId')]
     property Id: Integer read FId write FId;
-    [SqlKata.Column('DisplayName')]
+    [QueryBuilder4Delphi.Query.Core.Column('DisplayName')]
     property Name: string read FName write FName;
     property Secret: string write FSecret;
-    [SqlKata.Ignore]
+    [QueryBuilder4Delphi.Query.Core.Ignore]
     property Ignored: string read GetIgnored;
   end;
 

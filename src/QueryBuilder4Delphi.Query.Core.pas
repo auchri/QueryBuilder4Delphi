@@ -435,12 +435,6 @@ type
     property Variables: TDictionary<string,TValue> read GetVariables;
   end;
 
-  // Condition and join callbacks share the reference-counted query model.
-  IConditionGroup = IQuery;
-  TConditionGroup = IQuery;
-  IJoin = IQuery;
-  TJoin = IQuery;
-
   TSqlValues = record
     class function &Of<T>(const Values: array of T): TValues; static;
   end;

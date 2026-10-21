@@ -2,7 +2,7 @@ unit QueryBuilder4Delphi.Compilers.Compiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, System.Generics.Collections, SqlKata;
+uses System.SysUtils, System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
 
 type
   TEngineCodes = record
@@ -152,7 +152,6 @@ type
     property EngineCode: string read FEngineCode;
   end;
 
-  TCompilerObject = TCompiler;
 
 implementation
 

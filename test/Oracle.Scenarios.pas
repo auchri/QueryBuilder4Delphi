@@ -5,7 +5,7 @@ unit Oracle.Scenarios;
 interface
 
 uses
-  System.Rtti, System.Generics.Collections, SqlKata;
+  System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
 
 function BuildOracleQuery(const Name: string): IQuery;
 

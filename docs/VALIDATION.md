@@ -67,7 +67,7 @@ engine-scoped write replacement, OR/NOT flags for WHERE/HAVING pairs,
 ignored and unreadable RTTI properties, mapper callback failures, and key
 predicates for object updates.
 
-Eight query-model tests cover direct unit imports and facade type identity,
+Eight query-model tests cover direct imports and the concrete query factory,
 subclass cloning with independent state, engine-scoped fallback and removal,
 callback return validation and scope restoration, snapshots of subqueries,
 independent JOIN condition groups, Int64 pagination and negative limits,
@@ -94,3 +94,9 @@ combination of fluent overloads.
 The original temporary model smoke-test projects were replaced by the DUnitX
 project. Build outputs and detailed NUnit logs remain in `build/Win32` and
 `build/Win64` and are not checked in.
+
+The compatibility facade units and legacy type aliases are removed. Compilers,
+examples, generated scenarios, RTTI attributes, and all tests import the defining
+QueryBuilder4Delphi units directly. The factory regression checks concrete query
+creation, shared interface lifetime, and independent empty queries. Upstream
+SqlKata references remain only for attribution, history, and the C# oracle.

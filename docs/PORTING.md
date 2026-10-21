@@ -45,9 +45,9 @@ Completed work packages for compiler classes:
 
 11. Rename the compiler units and facade from `SqlKata.Compilers` to
     `QueryBuilder4Delphi.Compilers`, updating project references, tests, and
-    current API documentation. The old facade is no longer provided; use
-    `QueryBuilder4Delphi.Compilers` or its individual compiler units in all
-    compiler `uses` clauses.
+    API documentation. At this stage, imports used the renamed facade or
+    individual compiler units. Step 19 subsequently removes the renamed
+    facade too; current applications must import individual compiler units.
 
 Completed work packages for query writes:
 
@@ -67,7 +67,8 @@ Completed work packages for the query unit:
     `SqlKata.Query.inc` and move
     `TQueryObject` and the `TQuery` factory into `QueryBuilder4Delphi.Query`.
     Move shared interfaces, clauses, attributes, and value helpers into
-    `QueryBuilder4Delphi.Query.Core`. Keep `SqlKata` as a compatibility facade.
+    `QueryBuilder4Delphi.Query.Core`. Retain `SqlKata` as a compatibility facade
+    at this stage; step 19 subsequently removes it.
 15. Add eight query-model regression tests for direct imports, facade type
     identity, subclass cloning, scopes, callbacks, subqueries, joins,
     pagination, and value helpers. Update project references and documentation.
@@ -88,3 +89,16 @@ Completed work packages for the remaining includes:
     source consistency, and update the README and validation records.
     All 594 DUnitX tests pass on both platforms with zero build errors and
     warnings; all six Python generator tests and both `--check` commands pass.
+
+Completed work packages for removing compatibility layers:
+
+19. Start `codex/remove-compatibility` from `origin/main` at `ced5018`.
+    Remove `SqlKata.pas`, the compiler facade unit, compiler object aliases,
+    and condition/join aliases. Import defining units throughout the library.
+20. Migrate tests, RTTI attributes, examples, and the scenario generator to
+    direct imports. Replace facade checks with a concrete query factory test.
+21. Document the required import/type migration and rerun Win32/Win64 DUnitX
+    validation and generator consistency checks. Preserve upstream attribution
+    and the C# reference program.
+    All 594 DUnitX tests pass on each platform after full builds with zero
+    errors and warnings. Both generator checks and all six Python tests pass.

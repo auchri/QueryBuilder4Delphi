@@ -2,7 +2,7 @@ unit QueryBuilder4Delphi.Compilers.MySqlCompiler;
 
 interface
 
-uses System.SysUtils, System.Rtti, SqlKata, QueryBuilder4Delphi.Compilers.Compiler;
+uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
   TMySqlCompiler = class(TCompiler)

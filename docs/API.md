@@ -12,15 +12,13 @@ dialect compilers are classes; their inherited `Create` class function returns
 `ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
 Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
 with the Delphi `T` prefix omitted from the unit name.
-`QueryBuilder4Delphi.Compilers` re-exports the types as a facade.
 `TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
 `IQuery`, `TClause`, callbacks, attributes, and value types live in
 `QueryBuilder4Delphi.Query.Core`. Import both units to use the model directly.
-`SqlKata` remains a compatibility facade with aliases for the original types,
-clause-kind constants, and forwarding functions for the public value helpers.
-Existing source imports and fluent method signatures remain supported.
-Runtime RTTI unit names now identify the new defining units; rebuild dependent
-units and packages after updating the library.
+The `SqlKata` and `QueryBuilder4Delphi.Compilers` facade units are no longer
+provided. Import the defining units directly; rebuild dependent units and
+packages after updating the library. The fluent method signatures remain the
+same, but old imports and compatibility type names are intentionally removed.
 All include files have been removed. Generated fluent declarations and methods
 are regular Pascal source in marked sections of the two query units.
 `tools/generate_query.py` updates those sections without replacing handwritten
@@ -46,8 +44,9 @@ uses RTTI-accessible Delphi properties.
 the SQL text unchanged. These record constructors replace the `Expressions`
 helper class.
 
-`TConditionGroup` and `TJoin` are aliases of the shared fluent model `IQuery`,
-also named `IConditionGroup` and `IJoin`. The C# internal clause subclasses,
+Condition and join callbacks use `IQuery` directly. The former
+`IConditionGroup`, `TConditionGroup`, `IJoin`, and `TJoin` aliases have been
+removed. The C# internal clause subclasses,
 interfaces, separate `Wheres`/`Havings`/clause properties, and visitor and
 CompileContext extension interfaces are not reproduced with binary or type
 compatibility. Instead, the port exposes `TClause`, `Clauses`, `GetComponents`,
@@ -73,8 +72,8 @@ for initialization, calling `inherited` first. The inherited `Create` class
 function uses the receiving class and its virtual constructor, so
 `TCustomCompiler.Create` returns an `ICompiler` for the custom descendant.
 Do not replace it with an object-returning constructor or call `CreateInstance`
-from application code. `TCompilerObject` and `T...CompilerObject` remain type
-aliases for compatibility with earlier names.
+from application code. Derive from `TCompiler` or the named dialect class;
+the former `TCompilerObject` and `T...CompilerObject` aliases have been removed.
 
 [CompilerClasses.Tests.pas](../test/CompilerClasses.Tests.pas) demonstrates
 custom MySQL and SQL Server descendants. It checks that inherited dialect
