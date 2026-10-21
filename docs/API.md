@@ -12,10 +12,28 @@ not a port of `SqlKata.Execution` or an object result mapper.
 
 The adapter uses a fresh compiler with `ParameterPrefix = ':p'`. It builds
 and validates parameters before closing/unpreparing the target, then replaces
-SQL and parameters, binds by name, enables parameter expansion, and disables
-automatic parameter creation and macro/escape expansion. These resource
+SQL and parameters, binds by name, enables automatic parameter creation and
+parameter expansion, and disables macro/escape expansion. These resource
 settings remain on the target after the call. Compilation/binding errors
 leave the target intact; connection/execution errors propagate from FireDAC.
+
+`TFireDACAdapter.Compile(Query, Dialect)` returns a `TFireDACCommand` record:
+`Sql: string`, `Parameters: TArray<Variant>`, and
+`DataTypes: TArray<TFieldType>`. All arrays follow the compiler's binding
+order, including dialect-specific pagination parameters. Pass them to
+`TFDQuery.Open(Sql, Parameters, DataTypes)` or the corresponding `ExecSQL`
+overload, with `ParamCreate`/`ParamExpand` enabled and macro/escape expansion
+disabled. Compilation requires no target component or connection and does not
+execute SQL. Byte bindings become byte Variant arrays; the data-type array
+preserves typed NULLs and FireDAC-specific parameter types. Untyped NULLs use
+`ftWideString` because no target formatting options are available.
+
+`ToSql(Query, Dialect): string` and
+`GetParameters(Query, Dialect): TArray<Variant>` expose each part separately.
+They also default to SQL Server. Each call compiles independently; prefer
+`Compile` for a matching snapshot of SQL, values, and types. `ToSql` only
+generates SQL, whereas `Compile`/`GetParameters` also validate binding types.
+No macro placeholders are generated; user-supplied raw SQL remains unchanged.
 
 Bindings preserve strings, characters, integer values, Boolean, floats,
 Currency, `TDateTime`, `TGUID`, `TBcd`, binary `TBytes`, and supported scalar

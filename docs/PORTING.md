@@ -137,3 +137,9 @@ Completed work packages for optional FireDAC integration:
     Both suites pass on Win32 and Win64 after full Delphi 12 builds with zero
     errors and warnings: 603 core tests and 15 FireDAC tests per platform,
     with no reported test leaks. Both generators and six Python tests pass.
+28. Extend the FireDAC adapter with parameterized `ToSql`,
+    `GetParameters: TArray<Variant>`, and a combined `Compile` result including
+    data types. Enable automatic parameter creation in `Apply`, retain disabled
+    macro/escape expansion, and export binary values without text conversion.
+    All 24 FireDAC tests pass on each of Win32 and Win64 after full Delphi 12
+    builds with zero errors, warnings, hints, or reported test leaks.

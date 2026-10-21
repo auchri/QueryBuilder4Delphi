@@ -166,10 +166,43 @@ when it is `ftUnknown`. Specify `TFireDACNull` when the column requires a
 different type. `WhereNull` still generates `IS NULL` without a binding.
 
 Applying a query closes/unprepares the target, replaces SQL and parameters,
-sets binding by name, disables automatic parameter creation and FireDAC
-macro/escape expansion, and enables parameter expansion. SQL generation and
+sets binding by name, enables automatic parameter creation and parameter
+expansion, and disables FireDAC macro/escape expansion. SQL generation and
 binding validation finish before those changes. `Query.Compile` remains a
 preview; the adapter uses parameterized compiler results for execution.
+
+To obtain SQL and parameter values without changing a component, use
+`TFireDACAdapter.Compile`. It returns a `TFireDACCommand` with `Sql`,
+`Parameters: TArray<Variant>`, and `DataTypes: TArray<TFieldType>` in matching
+order. The generated SQL uses named parameters and requires no FireDAC macros.
+
+```pascal
+procedure LoadBooksFromCommand(FDQuery: TFDQuery);
+var
+  Command: TFireDACCommand;
+begin
+  Command := TFireDACAdapter.Compile(
+    TQuery.Create('Books').Where('Lang', 'de'));
+  FDQuery.ResourceOptions.ParamCreate := True;
+  FDQuery.ResourceOptions.ParamExpand := True;
+  FDQuery.ResourceOptions.MacroCreate := False;
+  FDQuery.ResourceOptions.MacroExpand := False;
+  FDQuery.ResourceOptions.EscapeExpand := False;
+  FDQuery.Open(Command.Sql, Command.Parameters, Command.DataTypes);
+end;
+```
+
+For writes, call `FDQuery.ExecSQL(Command.Sql, Command.Parameters,
+Command.DataTypes)`. Supplying `DataTypes` preserves explicit NULL types and
+binary/decimal types; for ordinary scalar values you can use the two-argument
+overload. Binary values are exported as byte Variant arrays. Untyped NULLs
+default to `ftWideString` when compiling without a target component.
+
+`TFireDACAdapter.ToSql(Query, Dialect)` returns just the parameterized SQL
+string; `GetParameters(Query, Dialect)` returns just the `TArray<Variant>`.
+Both default to SQL Server. Each call compiles the query afresh; use `Compile`
+when obtaining SQL and parameters together. Raw SQL fragments remain the
+caller's SQL; macro/escape expansion should stay disabled when executing them.
 
 The optional DUnitX project `test/QueryBuilder.FireDAC.Tests.dproj` tests
 parameter mapping for every dialect and actual CRUD/rollback behavior using
