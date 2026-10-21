@@ -6,25 +6,33 @@ uses
   DUnitX.TestFramework;
 
 type
+
   [TestFixture]
   TQueryWriteTests = class
   public
-    [Test] procedure WriteMethodsKeepFluentIdentity;
-    [Test] procedure InvalidMultirowInsertPreservesExistingData;
-    [Test] procedure InsertSelectKeepsIndependentSource;
-    [Test] procedure EngineSpecificWritesReplaceOnlyTheirOwnScope;
+    [Test]
+    procedure WriteMethodsKeepFluentIdentity;
+    [Test]
+    procedure InvalidMultirowInsertPreservesExistingData;
+    [Test]
+    procedure InsertSelectKeepsIndependentSource;
+    [Test]
+    procedure EngineSpecificWritesReplaceOnlyTheirOwnScope;
     [TestCase('Where', 'where')]
     [TestCase('Having', 'having')]
     procedure ConditionPairsPreserveBooleanFlags(const Component: string);
-    [Test] procedure MapperSkipsIgnoredAndUnreadableProperties;
-    [Test] procedure ObjectKeysAddPredicatesOnlyForUpdates;
+    [Test]
+    procedure MapperSkipsIgnoredAndUnreadableProperties;
+    [Test]
+    procedure ObjectKeysAddPredicatesOnlyForUpdates;
   end;
 
 implementation
 
 uses
   System.SysUtils, System.Rtti, System.Generics.Collections,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Query.DataMapper,
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.Query.DataMapper,
   QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.SqlServerCompiler,
   QueryBuilder4Delphi.Compilers.PostgresCompiler,
@@ -61,9 +69,11 @@ var
 begin
   Query := TQuery.Create('Users');
   Source := TQuery.Create('Authors').Select('Id');
-  Pairs := TArray<TPair<string, TValue>>.Create(TPair<string, TValue>.Create('Id', 1));
+  Pairs := TArray < TPair < string,
+    TValue >>.Create(TPair<string, TValue>.Create('Id', 1));
   Assert.IsTrue(Query.AsInsert(['Id'], [1]) = Query);
-  Assert.IsTrue(Query.AsInsert(['Id'], TRows.Create(TValues.Create(1))) = Query);
+  Assert.IsTrue(Query.AsInsert(['Id'], TRows.Create(TValues.Create(1)))
+    = Query);
   Assert.IsTrue(Query.AsInsert(['Id'], Source) = Query);
   Assert.IsTrue(Query.AsInsert(Pairs, True) = Query);
   Assert.IsTrue(Query.GetOne('insert', '').ReturnId);
@@ -83,7 +93,11 @@ var
 begin
   Query := TQuery.Create('Books').AsInsert(['Title'], ['Original']);
   Rows := TRows.Create(TValues.Create('First'), TValues.Create('Second', 2));
-  Assert.WillRaise(procedure begin Query.AsInsert(['Title'], Rows); end, EQueryException);
+  Assert.WillRaise(
+    procedure
+    begin
+      Query.AsInsert(['Title'], Rows);
+    end, EQueryException);
   Compiled := TSqliteCompiler.Create.Compile(Query);
   Assert.AreEqual('INSERT INTO "Books" ("Title") VALUES (@p0)', Compiled.Sql);
   Assert.AreEqual<NativeInt>(1, Compiled.Bindings.Count);
@@ -100,7 +114,7 @@ begin
   Source.ClearComponent('where').Where('Country', 'DE');
   Source := nil;
   Compiled := TSqliteCompiler.Create.Compile(Query);
-  Assert.AreEqual('INSERT INTO "Users" ("AuthorId") '+
+  Assert.AreEqual('INSERT INTO "Users" ("AuthorId") ' +
     'SELECT "Id" FROM "Authors" WHERE "Country" = @p0', Compiled.Sql);
   Assert.AreEqual('AT', Compiled.Bindings[0].AsString);
 end;
@@ -121,7 +135,8 @@ begin
   Assert.AreEqual('Default', Compiled.Bindings[0].AsString);
 end;
 
-procedure TQueryWriteTests.ConditionPairsPreserveBooleanFlags(const Component: string);
+procedure TQueryWriteTests.ConditionPairsPreserveBooleanFlags
+  (const Component: string);
 var
   Query: IQuery;
   Pairs, EmptyPairs: TArray<TPair<string, TValue>>;
@@ -129,8 +144,9 @@ var
   I: Integer;
 begin
   Query := TQuery.Create('Books');
-  Pairs := TArray<TPair<string, TValue>>.Create(
-    TPair<string, TValue>.Create('First', 1), TPair<string, TValue>.Create('Second', 2));
+  Pairs := TArray < TPair < string,
+    TValue >>.Create(TPair<string, TValue>.Create('First', 1),
+    TPair<string, TValue>.Create('Second', 2));
   if Component = 'where' then
     Query.Where('Seed', 0).&Or.&Not.Where(Pairs).Where('Tail', 3)
   else
@@ -177,15 +193,20 @@ begin
     Assert.AreEqual<NativeInt>(2, Length(Pairs));
     Assert.AreEqual('UserId', KeyName);
     Assert.AreEqual(42, KeyValue.AsInteger);
-    Assert.WillRaise(procedure begin Pairs := TQueryDataMapper.GetPairs(nil); end,
-      EArgumentNilException);
-    Assert.WillRaise(procedure begin
-      Pairs := TQueryDataMapper.GetPairs(Data,
-        procedure(Name: string; Value: TValue)
-        begin
-          raise EQueryException.Create('Key callback failed');
-        end);
-    end, EQueryException);
+    Assert.WillRaise(
+      procedure
+      begin
+        Pairs := TQueryDataMapper.GetPairs(nil);
+      end, EArgumentNilException);
+    Assert.WillRaise(
+      procedure
+      begin
+        Pairs := TQueryDataMapper.GetPairs(Data,
+          procedure(Name: string; Value: TValue)
+          begin
+            raise EQueryException.Create('Key callback failed');
+          end);
+      end, EQueryException);
   finally
     Data.Free;
   end;
@@ -219,6 +240,7 @@ begin
 end;
 
 initialization
-  TDUnitX.RegisterTestFixture(TQueryWriteTests);
+
+TDUnitX.RegisterTestFixture(TQueryWriteTests);
 
 end.

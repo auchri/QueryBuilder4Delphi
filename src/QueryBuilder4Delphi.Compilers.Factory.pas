@@ -19,12 +19,18 @@ uses
 function CreateCompiler(Dialect: TSqlDialect): ICompiler;
 begin
   case Dialect of
-    TSqlDialect.MSSql: Result := TSqlServerCompiler.Create;
-    TSqlDialect.MySql: Result := TMySqlCompiler.Create;
-    TSqlDialect.PostgreSql: Result := TPostgresCompiler.Create;
-    TSqlDialect.Sqlite: Result := TSqliteCompiler.Create;
-    TSqlDialect.Oracle: Result := TOracleCompiler.Create;
-    TSqlDialect.Firebird: Result := TFirebirdCompiler.Create;
+    TSqlDialect.MSSql:
+      Result := TSqlServerCompiler.Create;
+    TSqlDialect.MySql:
+      Result := TMySqlCompiler.Create;
+    TSqlDialect.PostgreSql:
+      Result := TPostgresCompiler.Create;
+    TSqlDialect.Sqlite:
+      Result := TSqliteCompiler.Create;
+    TSqlDialect.Oracle:
+      Result := TOracleCompiler.Create;
+    TSqlDialect.Firebird:
+      Result := TFirebirdCompiler.Create;
   else
     raise EQueryException.Create('Unsupported SQL dialect');
   end;

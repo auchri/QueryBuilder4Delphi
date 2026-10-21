@@ -14,16 +14,21 @@ type
   public
     class function AsAggregate(const Target: IQuery; const Aggregate: string;
       const Columns: array of string): IQuery; static;
-    class function AsInsert(const Target: IQuery; const Columns: array of string;
-      const Values: array of TValue): IQuery; overload; static;
-    class function AsInsert(const Target: IQuery; const Columns: array of string;
-      const Rows: TRows): IQuery; overload; static;
-    class function AsInsert(const Target: IQuery; const Columns: array of string;
-      const Source: IQuery): IQuery; overload; static;
     class function AsInsert(const Target: IQuery;
-      const Pairs: array of TPair<string, TValue>; ReturnId: Boolean): IQuery; overload; static;
-    class function AsUpdate(const Target: IQuery; const Columns: array of string;
-      const Values: array of TValue): IQuery; overload; static;
+      const Columns: array of string; const Values: array of TValue): IQuery;
+      overload; static;
+    class function AsInsert(const Target: IQuery;
+      const Columns: array of string; const Rows: TRows): IQuery;
+      overload; static;
+    class function AsInsert(const Target: IQuery;
+      const Columns: array of string; const Source: IQuery): IQuery;
+      overload; static;
+    class function AsInsert(const Target: IQuery;
+      const Pairs: array of TPair<string, TValue>; ReturnId: Boolean): IQuery;
+      overload; static;
+    class function AsUpdate(const Target: IQuery;
+      const Columns: array of string; const Values: array of TValue): IQuery;
+      overload; static;
     class function AsUpdate(const Target: IQuery;
       const Pairs: array of TPair<string, TValue>): IQuery; overload; static;
     class function AsDelete(const Target: IQuery): IQuery; static;
@@ -38,8 +43,9 @@ implementation
 uses
   System.RegularExpressions;
 
-class procedure TQueryWrites.SplitPairs(const Pairs: array of TPair<string, TValue>;
-  out Columns: TArray<string>; out Values: TValues);
+class procedure TQueryWrites.SplitPairs(const Pairs
+  : array of TPair<string, TValue>; out Columns: TArray<string>;
+  out Values: TValues);
 var
   I: Integer;
 begin
@@ -52,8 +58,8 @@ begin
   end;
 end;
 
-class function TQueryWrites.AsAggregate(const Target: IQuery; const Aggregate: string;
-  const Columns: array of string): IQuery;
+class function TQueryWrites.AsAggregate(const Target: IQuery;
+  const Aggregate: string; const Columns: array of string): IQuery;
 var
   Clause: TClause;
 begin
@@ -67,13 +73,14 @@ begin
   Result := Target;
 end;
 
-class function TQueryWrites.AsInsert(const Target: IQuery; const Columns: array of string;
-  const Values: array of TValue): IQuery;
+class function TQueryWrites.AsInsert(const Target: IQuery;
+  const Columns: array of string; const Values: array of TValue): IQuery;
 var
   Clause: TClause;
 begin
   if (Length(Columns) = 0) or (Length(Columns) <> Length(Values)) then
-    raise EQueryException.Create('Columns and values must be nonempty with equal counts');
+    raise EQueryException.Create
+      ('Columns and values must be nonempty with equal counts');
   Target.Remove('insert', Target.EngineScope);
   Clause := Target.Add('insert', ckInsert);
   Clause.Columns := CopyStrings(Columns);
@@ -82,8 +89,8 @@ begin
   Result := Target;
 end;
 
-class function TQueryWrites.AsInsert(const Target: IQuery; const Columns: array of string;
-  const Rows: TRows): IQuery;
+class function TQueryWrites.AsInsert(const Target: IQuery;
+  const Columns: array of string; const Rows: TRows): IQuery;
 var
   Row: TValues;
   Clause: TClause;
@@ -105,8 +112,8 @@ begin
   Result := Target;
 end;
 
-class function TQueryWrites.AsInsert(const Target: IQuery; const Columns: array of string;
-  const Source: IQuery): IQuery;
+class function TQueryWrites.AsInsert(const Target: IQuery;
+  const Columns: array of string; const Source: IQuery): IQuery;
 var
   Clause: TClause;
 begin
@@ -129,13 +136,14 @@ begin
   Target.GetOne('insert', Target.EngineScope).ReturnId := ReturnId;
 end;
 
-class function TQueryWrites.AsUpdate(const Target: IQuery; const Columns: array of string;
-  const Values: array of TValue): IQuery;
+class function TQueryWrites.AsUpdate(const Target: IQuery;
+  const Columns: array of string; const Values: array of TValue): IQuery;
 var
   Clause: TClause;
 begin
   if (Length(Columns) = 0) or (Length(Columns) <> Length(Values)) then
-    raise EQueryException.Create('Columns and values must be nonempty with equal counts');
+    raise EQueryException.Create
+      ('Columns and values must be nonempty with equal counts');
   Target.Remove('update', Target.EngineScope);
   Clause := Target.Add('update', ckInsert);
   Clause.Columns := CopyStrings(Columns);
@@ -160,8 +168,8 @@ begin
   Result := Target;
 end;
 
-class function TQueryWrites.AsIncrement(const Target: IQuery; const Column: string;
-  Value: Integer): IQuery;
+class function TQueryWrites.AsIncrement(const Target: IQuery;
+  const Column: string; Value: Integer): IQuery;
 var
   Clause: TClause;
 begin
@@ -173,8 +181,8 @@ begin
   Result := Target;
 end;
 
-class function TQueryWrites.AsDecrement(const Target: IQuery; const Column: string;
-  Value: Integer): IQuery;
+class function TQueryWrites.AsDecrement(const Target: IQuery;
+  const Column: string; Value: Integer): IQuery;
 begin
   Result := Target.AsIncrement(Column, -Value);
 end;

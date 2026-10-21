@@ -5,7 +5,8 @@ unit Oracle.Scenarios;
 interface
 
 uses
-  System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
+  System.Rtti, System.Generics.Collections, QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query;
 
 function BuildOracleQuery(const Name: string): IQuery;
 
@@ -13,76 +14,261 @@ implementation
 
 function BuildOracleQuery(const Name: string): IQuery;
 begin
-  if Name = 'all' then Exit(TQuery.Create('Books'));
-  if Name = 'columns' then Exit(TQuery.Create('Books as b').Select(['b.{Id,Title}', 'b.AuthorId as Writer']));
-  if Name = 'basic' then Exit(TQuery.Create('Books').Where('Id',145).Where('Lang','en'));
-  if Name = 'bool' then Exit(TQuery.Create('Books').WhereTrue('Published').OrWhereFalse('Hidden'));
-  if Name = 'boolvalue' then Exit(TQuery.Create('Books').Where('Published',True).Where('Hidden','!=',False));
-  if Name = 'null' then Exit(TQuery.Create('Books').Where('Deleted',TValue.Empty).OrWhere('AuthorId','!=',TValue.Empty));
-  if Name = 'not' then Exit(TQuery.Create('Books').WhereNot('Id',1).OrWhereNot('Lang','de'));
-  if Name = 'between' then Exit(TQuery.Create('Books').WhereBetween('Id',1,9).OrWhereNotBetween('Price',10,20));
-  if Name = 'in' then Exit(TQuery.Create('Books').WhereIn('Lang',['de','en']).WhereNotIn('Id',[1,2]));
-  if Name = 'induplicate' then Exit(TQuery.Create('Books').WhereIn('Id',[1,1,2,2,3]));
-  if Name = 'emptyin' then Exit(TQuery.Create('Books').WhereIn('Id',[]).OrWhereNotIn('Other',[]));
-  if Name = 'strings' then Exit(TQuery.Create('Books').WhereLike('Title','A%').WhereNotContains('Title','SQL').OrWhereStarts('Title','Delphi').WhereEnds('Title','!','!'));
-  if Name = 'columnscondition' then Exit(TQuery.Create('Books').WhereColumns('Created','<','Updated'));
-  if Name = 'nested' then Exit(TQuery.Create('Books').Where(function(Q:IQuery):IQuery begin Result:=Q.Where('Id',1).OrWhere('Id',2); end).WhereNot(function(Q:IQuery):IQuery begin Result:=Q.WhereNull('Title'); end));
-  if Name = 'emptynested' then Exit(TQuery.Create('Books').Where(function(Q:IQuery):IQuery begin Result:=Q; end).Where('Id',3));
-  if Name = 'raw' then Exit(TQuery.Create('Books').SelectRaw('coalesce([Price], ?) as [Amount]',[10]).WhereRaw('[Id] > ?',[2]).OrderByRaw('[Amount] + ?',[3]));
-  if Name = 'escapedraw' then Exit(TQuery.Create('Books').WhereRaw('[Text] = ? AND [Other] = \?',['a']));
-  if Name = 'group' then Exit(TQuery.Create('Books').Select('Category').SelectCount('Id as Count').GroupBy('Category').Having('Category','A').OrHavingNull('Category'));
-  if Name = 'havingnested' then Exit(TQuery.Create('Books').GroupBy('Id').Having(function(Q:IQuery):IQuery begin Result:=Q.Where('Id',1).OrWhere('Id',2); end));
-  if Name = 'havingcallback' then Exit(TQuery.Create('Books').GroupBy('Id').Having(function(Q:IQuery):IQuery begin Result:=Q.Having('Id',1).OrHaving('Id',2); end));
-  if Name = 'filter' then Exit(TQuery.Create('Books').SelectCount('Id as Published',function(Q:IQuery):IQuery begin Result:=Q.WhereTrue('Published'); end));
-  if Name = 'join' then Exit(TQuery.Create('Books').Join('Authors','Authors.Id','Books.AuthorId').Select(['Books.*','Authors.Name as AuthorName']));
-  if Name = 'joincallback' then Exit(TQuery.Create('Books').LeftJoin('Authors',function(Q:IQuery):IQuery begin Result:=Q.On('Authors.Id','Books.AuthorId').WhereTrue('Authors.Active'); end));
-  if Name = 'cross' then Exit(TQuery.Create('Books').CrossJoin('Languages'));
-  if Name = 'selectsub' then Exit(TQuery.Create('Books').Select(function(Q:IQuery):IQuery begin Result:=Q.&From('Authors').Select('Name').WhereColumns('Authors.Id','=','Books.AuthorId'); end,'Author'));
-  if Name = 'fromsub' then Exit(TQuery.Create.&From(function(Q:IQuery):IQuery begin Result:=Q.&From('Books').WhereTrue('Published'); end,'b').Where('b.Id',1));
-  if Name = 'insub' then Exit(TQuery.Create('Books').WhereIn('AuthorId',function(Q:IQuery):IQuery begin Result:=Q.&From('Authors').Select('Id').Where('Country','AT'); end));
-  if Name = 'exists' then Exit(TQuery.Create('Books').WhereExists(function(Q:IQuery):IQuery begin Result:=Q.&From('Authors').WhereColumns('Authors.Id','=','Books.AuthorId'); end));
-  if Name = 'notexists' then Exit(TQuery.Create('Books').WhereNotExists(function(Q:IQuery):IQuery begin Result:=Q.&From('Authors').Where('Active',True); end));
-  if Name = 'querycondition' then Exit(TQuery.Create('Books').Where('Price','>',function(Q:IQuery):IQuery begin Result:=Q.&From('Books').AsAvg('Price'); end));
-  if Name = 'cte' then Exit(TQuery.Create('published').&With('published',function(Q:IQuery):IQuery begin Result:=Q.&From('Books').WhereTrue('Published'); end).Where('Id',4));
-  if Name = 'ctedependency' then Exit(TQuery.Create('a').&With('a',function(Q:IQuery):IQuery begin Result:=Q.&From('b').&With('b',function(B:IQuery):IQuery begin Result:=B.&From('Books').Where('Id',7); end); end));
-  if Name = 'cteraw' then Exit(TQuery.Create('x').WithRaw('x','SELECT ? AS [Id]',[4]));
-  if Name = 'ctevalues' then Exit(TQuery.Create('x').&With('x',['Id','Name'],TRows.Create(TValues.Create(1,'A'),TValues.Create(2,'B'))));
-  if Name = 'union' then Exit(TQuery.Create('Books').Where('Lang','en').Union(function(Q:IQuery):IQuery begin Result:=Q.&From('Books').Where('Lang','de'); end));
-  if Name = 'intersect' then Exit(TQuery.Create('Books').Select('Id').IntersectAll(function(Q:IQuery):IQuery begin Result:=Q.&From('Orders').Select('BookId'); end));
-  if Name = 'except' then Exit(TQuery.Create('Books').Select('Id').&Except(function(Q:IQuery):IQuery begin Result:=Q.&From('Orders').Select('BookId'); end));
-  if Name = 'limit' then Exit(TQuery.Create('Books').Limit(10));
-  if Name = 'offset' then Exit(TQuery.Create('Books').Offset(20));
-  if Name = 'page' then Exit(TQuery.Create('Books').OrderByDesc('Id').ForPage(3,10));
-  if Name = 'limitoffset' then Exit(TQuery.Create('Books').Limit(10).Offset(20));
-  if Name = 'distinct' then Exit(TQuery.Create('Books').Distinct.Select('Lang').Limit(5));
-  if Name = 'random' then Exit(TQuery.Create('Books').OrderByRandom(42));
-  if Name = 'date_date' then Exit(TQuery.Create('Books').WhereDatePart('date','Created','>=','2025-01-01'));
-  if Name = 'date_time' then Exit(TQuery.Create('Books').WhereDatePart('time','Created','>=','13:14'));
-  if Name = 'date_year' then Exit(TQuery.Create('Books').WhereDatePart('year','Created','>=',2025));
-  if Name = 'date_month' then Exit(TQuery.Create('Books').WhereDatePart('month','Created','>=',10));
-  if Name = 'date_day' then Exit(TQuery.Create('Books').WhereDatePart('day','Created','>=',20));
-  if Name = 'date_hour' then Exit(TQuery.Create('Books').WhereDatePart('hour','Created','>=',13));
-  if Name = 'date_minute' then Exit(TQuery.Create('Books').WhereDatePart('minute','Created','>=',14));
-  if Name = 'date_second' then Exit(TQuery.Create('Books').WhereDatePart('second','Created','>=',15));
-  if Name = 'datenot' then Exit(TQuery.Create('Books').WhereNotDate('Created','2025-01-01'));
-  if Name = 'count' then Exit(TQuery.Create('Books').Where('Active',True).AsCount);
-  if Name = 'countdistinct' then Exit(TQuery.Create('Books').Where('Active',True).Distinct.AsCount(['Lang']));
-  if Name = 'countmulti' then Exit(TQuery.Create('Books').Where('Active',True).AsCount(['Id','Lang']));
-  if Name = 'sum' then Exit(TQuery.Create('Books').Where('Active',True).AsSum('Price'));
-  if Name = 'insert' then Exit(TQuery.Create('Users').AsInsert(['Name','CountryId'],['Jane',1]));
-  if Name = 'insertmany' then Exit(TQuery.Create('Users').AsInsert(['Name','CountryId'],TRows.Create(TValues.Create('Jane',1),TValues.Create('John',2))));
-  if Name = 'insertid' then Exit(TQuery.Create('Users').AsInsert([TPair<string,TValue>.Create('Name','Jane')],True));
-  if Name = 'update' then Exit(TQuery.Create('Users').Where('Id',1).AsUpdate(['Name','CountryId'],['Jane',2]));
-  if Name = 'increment' then Exit(TQuery.Create('Books').Where('Id',1).AsIncrement('Stock',2));
-  if Name = 'decrement' then Exit(TQuery.Create('Books').AsDecrement('Stock',3));
-  if Name = 'delete' then Exit(TQuery.Create('Users').Where('Id',1).AsDelete);
-  if Name = 'updatejoin' then Exit(TQuery.Create('Users as u').Join('Countries as c','c.Id','u.CountryId').Where('c.Name','AT').AsUpdate(['Active'],[True]));
-  if Name = 'deletejoin' then Exit(TQuery.Create('Users as u').Join('Countries as c','c.Id','u.CountryId').AsDelete);
-  if Name = 'variable' then Exit(TQuery.Create('Books').Define('id',7).Where('Id',TVariable.Create('id')));
-  if Name = 'literal' then Exit(TQuery.Create('Books').Where('Created',TUnsafeLiteral.Create('CURRENT_TIMESTAMP',False)));
-  if Name = 'engine' then Exit(TQuery.Create('Books').ForSqlServer(function(Q:IQuery):IQuery begin Result:=Q.Where('Engine','MSSQL'); end).ForPostgreSql(function(Q:IQuery):IQuery begin Result:=Q.Where('Engine','PG'); end).Where('Id',1));
-  if Name = 'when' then Exit(TQuery.Create('Books').When(False,function(Q:IQuery):IQuery begin Result:=Q.Where('Id',1); end,function(Q:IQuery):IQuery begin Result:=Q.Where('Id',2); end));
-  raise EQueryException.Create('Unknown scenario: '+Name);
+  if Name = 'all' then
+    Exit(TQuery.Create('Books'));
+  if Name = 'columns' then
+    Exit(TQuery.Create('Books as b').Select(['b.{Id,Title}',
+      'b.AuthorId as Writer']));
+  if Name = 'basic' then
+    Exit(TQuery.Create('Books').Where('Id', 145).Where('Lang', 'en'));
+  if Name = 'bool' then
+    Exit(TQuery.Create('Books').WhereTrue('Published').OrWhereFalse('Hidden'));
+  if Name = 'boolvalue' then
+    Exit(TQuery.Create('Books').Where('Published', True).Where('Hidden',
+      '!=', False));
+  if Name = 'null' then
+    Exit(TQuery.Create('Books').Where('Deleted', TValue.Empty)
+      .OrWhere('AuthorId', '!=', TValue.Empty));
+  if Name = 'not' then
+    Exit(TQuery.Create('Books').WhereNot('Id', 1).OrWhereNot('Lang', 'de'));
+  if Name = 'between' then
+    Exit(TQuery.Create('Books').WhereBetween('Id', 1, 9)
+      .OrWhereNotBetween('Price', 10, 20));
+  if Name = 'in' then
+    Exit(TQuery.Create('Books').WhereIn('Lang', ['de', 'en'])
+      .WhereNotIn('Id', [1, 2]));
+  if Name = 'induplicate' then
+    Exit(TQuery.Create('Books').WhereIn('Id', [1, 1, 2, 2, 3]));
+  if Name = 'emptyin' then
+    Exit(TQuery.Create('Books').WhereIn('Id', []).OrWhereNotIn('Other', []));
+  if Name = 'strings' then
+    Exit(TQuery.Create('Books').WhereLike('Title', 'A%')
+      .WhereNotContains('Title', 'SQL').OrWhereStarts('Title', 'Delphi')
+      .WhereEnds('Title', '!', '!'));
+  if Name = 'columnscondition' then
+    Exit(TQuery.Create('Books').WhereColumns('Created', '<', 'Updated'));
+  if Name = 'nested' then
+    Exit(TQuery.Create('Books').Where(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Id', 1).OrWhere('Id', 2);
+      end).WhereNot(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereNull('Title');
+      end));
+  if Name = 'emptynested' then
+    Exit(TQuery.Create('Books').Where(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q;
+      end).Where('Id', 3));
+  if Name = 'raw' then
+    Exit(TQuery.Create('Books').SelectRaw('coalesce([Price], ?) as [Amount]',
+      [10]).WhereRaw('[Id] > ?', [2]).OrderByRaw('[Amount] + ?', [3]));
+  if Name = 'escapedraw' then
+    Exit(TQuery.Create('Books').WhereRaw('[Text] = ? AND [Other] = \?', ['a']));
+  if Name = 'group' then
+    Exit(TQuery.Create('Books').Select('Category').SelectCount('Id as Count')
+      .GroupBy('Category').Having('Category', 'A').OrHavingNull('Category'));
+  if Name = 'havingnested' then
+    Exit(TQuery.Create('Books').GroupBy('Id').Having(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Id', 1).OrWhere('Id', 2);
+      end));
+  if Name = 'havingcallback' then
+    Exit(TQuery.Create('Books').GroupBy('Id').Having(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Having('Id', 1).OrHaving('Id', 2);
+      end));
+  if Name = 'filter' then
+    Exit(TQuery.Create('Books').SelectCount('Id as Published',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereTrue('Published');
+      end));
+  if Name = 'join' then
+    Exit(TQuery.Create('Books').Join('Authors', 'Authors.Id', 'Books.AuthorId')
+      .Select(['Books.*', 'Authors.Name as AuthorName']));
+  if Name = 'joincallback' then
+    Exit(TQuery.Create('Books').LeftJoin('Authors',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.On('Authors.Id', 'Books.AuthorId')
+          .WhereTrue('Authors.Active');
+      end));
+  if Name = 'cross' then
+    Exit(TQuery.Create('Books').CrossJoin('Languages'));
+  if Name = 'selectsub' then
+    Exit(TQuery.Create('Books').Select(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Authors').Select('Name').WhereColumns('Authors.Id',
+          '=', 'Books.AuthorId');
+      end, 'Author'));
+  if Name = 'fromsub' then
+    Exit(TQuery.Create.&From(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Books').WhereTrue('Published');
+      end, 'b').Where('b.Id', 1));
+  if Name = 'insub' then
+    Exit(TQuery.Create('Books').WhereIn('AuthorId',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Authors').Select('Id').Where('Country', 'AT');
+      end));
+  if Name = 'exists' then
+    Exit(TQuery.Create('Books').WhereExists(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Authors').WhereColumns('Authors.Id', '=',
+          'Books.AuthorId');
+      end));
+  if Name = 'notexists' then
+    Exit(TQuery.Create('Books').WhereNotExists(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Authors').Where('Active', True);
+      end));
+  if Name = 'querycondition' then
+    Exit(TQuery.Create('Books').Where('Price', '>',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Books').AsAvg('Price');
+      end));
+  if Name = 'cte' then
+    Exit(TQuery.Create('published').&With('published',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Books').WhereTrue('Published');
+      end).Where('Id', 4));
+  if Name = 'ctedependency' then
+    Exit(TQuery.Create('a').&With('a',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('b').&With('b',
+          function(B: IQuery): IQuery
+          begin
+            Result := B.&From('Books').Where('Id', 7);
+          end);
+      end));
+  if Name = 'cteraw' then
+    Exit(TQuery.Create('x').WithRaw('x', 'SELECT ? AS [Id]', [4]));
+  if Name = 'ctevalues' then
+    Exit(TQuery.Create('x').&With('x', ['Id', 'Name'],
+      TRows.Create(TValues.Create(1, 'A'), TValues.Create(2, 'B'))));
+  if Name = 'union' then
+    Exit(TQuery.Create('Books').Where('Lang', 'en').Union(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Books').Where('Lang', 'de');
+      end));
+  if Name = 'intersect' then
+    Exit(TQuery.Create('Books').Select('Id').IntersectAll(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Orders').Select('BookId');
+      end));
+  if Name = 'except' then
+    Exit(TQuery.Create('Books').Select('Id').&Except(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.&From('Orders').Select('BookId');
+      end));
+  if Name = 'limit' then
+    Exit(TQuery.Create('Books').Limit(10));
+  if Name = 'offset' then
+    Exit(TQuery.Create('Books').Offset(20));
+  if Name = 'page' then
+    Exit(TQuery.Create('Books').OrderByDesc('Id').ForPage(3, 10));
+  if Name = 'limitoffset' then
+    Exit(TQuery.Create('Books').Limit(10).Offset(20));
+  if Name = 'distinct' then
+    Exit(TQuery.Create('Books').Distinct.Select('Lang').Limit(5));
+  if Name = 'random' then
+    Exit(TQuery.Create('Books').OrderByRandom(42));
+  if Name = 'date_date' then
+    Exit(TQuery.Create('Books').WhereDatePart('date', 'Created', '>=',
+      '2025-01-01'));
+  if Name = 'date_time' then
+    Exit(TQuery.Create('Books').WhereDatePart('time', 'Created', '>=',
+      '13:14'));
+  if Name = 'date_year' then
+    Exit(TQuery.Create('Books').WhereDatePart('year', 'Created', '>=', 2025));
+  if Name = 'date_month' then
+    Exit(TQuery.Create('Books').WhereDatePart('month', 'Created', '>=', 10));
+  if Name = 'date_day' then
+    Exit(TQuery.Create('Books').WhereDatePart('day', 'Created', '>=', 20));
+  if Name = 'date_hour' then
+    Exit(TQuery.Create('Books').WhereDatePart('hour', 'Created', '>=', 13));
+  if Name = 'date_minute' then
+    Exit(TQuery.Create('Books').WhereDatePart('minute', 'Created', '>=', 14));
+  if Name = 'date_second' then
+    Exit(TQuery.Create('Books').WhereDatePart('second', 'Created', '>=', 15));
+  if Name = 'datenot' then
+    Exit(TQuery.Create('Books').WhereNotDate('Created', '2025-01-01'));
+  if Name = 'count' then
+    Exit(TQuery.Create('Books').Where('Active', True).AsCount);
+  if Name = 'countdistinct' then
+    Exit(TQuery.Create('Books').Where('Active', True)
+      .Distinct.AsCount(['Lang']));
+  if Name = 'countmulti' then
+    Exit(TQuery.Create('Books').Where('Active', True).AsCount(['Id', 'Lang']));
+  if Name = 'sum' then
+    Exit(TQuery.Create('Books').Where('Active', True).AsSum('Price'));
+  if Name = 'insert' then
+    Exit(TQuery.Create('Users').AsInsert(['Name', 'CountryId'], ['Jane', 1]));
+  if Name = 'insertmany' then
+    Exit(TQuery.Create('Users').AsInsert(['Name', 'CountryId'],
+      TRows.Create(TValues.Create('Jane', 1), TValues.Create('John', 2))));
+  if Name = 'insertid' then
+    Exit(TQuery.Create('Users').AsInsert([TPair<string, TValue>.Create('Name',
+      'Jane')], True));
+  if Name = 'update' then
+    Exit(TQuery.Create('Users').Where('Id', 1).AsUpdate(['Name', 'CountryId'],
+      ['Jane', 2]));
+  if Name = 'increment' then
+    Exit(TQuery.Create('Books').Where('Id', 1).AsIncrement('Stock', 2));
+  if Name = 'decrement' then
+    Exit(TQuery.Create('Books').AsDecrement('Stock', 3));
+  if Name = 'delete' then
+    Exit(TQuery.Create('Users').Where('Id', 1).AsDelete);
+  if Name = 'updatejoin' then
+    Exit(TQuery.Create('Users as u').Join('Countries as c', 'c.Id',
+      'u.CountryId').Where('c.Name', 'AT').AsUpdate(['Active'], [True]));
+  if Name = 'deletejoin' then
+    Exit(TQuery.Create('Users as u').Join('Countries as c', 'c.Id',
+      'u.CountryId').AsDelete);
+  if Name = 'variable' then
+    Exit(TQuery.Create('Books').Define('id', 7).Where('Id',
+      TVariable.Create('id')));
+  if Name = 'literal' then
+    Exit(TQuery.Create('Books').Where('Created',
+      TUnsafeLiteral.Create('CURRENT_TIMESTAMP', False)));
+  if Name = 'engine' then
+    Exit(TQuery.Create('Books').ForSqlServer(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Engine', 'MSSQL');
+      end).ForPostgreSql(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Engine', 'PG');
+      end).Where('Id', 1));
+  if Name = 'when' then
+    Exit(TQuery.Create('Books').When(False,
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Id', 1);
+      end,
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.Where('Id', 2);
+      end));
+  raise EQueryException.Create('Unknown scenario: ' + Name);
 end;
 
 end.
