@@ -10,6 +10,16 @@ type
   TQueryModelTests = class
   public
     [Test] procedure FactoryCreatesConcreteQuery;
+    [Test] procedure CompileDefaultsToMSSql;
+    [TestCase('MSSql', '0')]
+    [TestCase('MySql', '1')]
+    [TestCase('PostgreSql', '2')]
+    [TestCase('Sqlite', '3')]
+    [TestCase('Oracle', '4')]
+    [TestCase('Firebird', '5')]
+    procedure CompileSelectsDialect(DialectIndex: Integer);
+    [Test] procedure CompilePropagatesErrors;
+    [Test] procedure CompileInlinesValues;
     [Test] procedure ClonePreservesSubclassAndIndependentState;
     [Test] procedure ScopedClausesKeepFallbackAndRemovalRules;
     [Test] procedure CallbacksRejectReplacementAndRestoreScope;
@@ -23,7 +33,14 @@ implementation
 
 uses
   System.SysUtils, System.Rtti, System.TypInfo,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqlServerCompiler,
+  QueryBuilder4Delphi.Compilers.MySqlCompiler,
+  QueryBuilder4Delphi.Compilers.PostgresCompiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.OracleCompiler,
+  QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
 type
   TCustomQuery = class(QueryBuilder4Delphi.Query.TQueryObject)
@@ -49,6 +66,63 @@ begin
   Assert.IsTrue((Empty as TQueryObject).ClassType = TQueryObject);
   Assert.IsFalse(Empty.HasComponent('from'));
   Assert.IsTrue(Shared.HasComponent('from'));
+end;
+
+procedure TQueryModelTests.CompileDefaultsToMSSql;
+begin
+  Assert.AreEqual('SELECT [Title] FROM [Books]',
+    TQuery.Create('Books').Select('Title').Compile);
+end;
+
+procedure TQueryModelTests.CompileSelectsDialect(DialectIndex: Integer);
+const
+  Engines: array[TSqlDialect] of string =
+    ('sqlsrv', 'mysql', 'postgres', 'sqlite', 'oracle', 'firebird');
+var
+  Dialect, EngineDialect: TSqlDialect;
+  Query: IQuery;
+  Compiler: ICompiler;
+  Expected: string;
+begin
+  Dialect := TSqlDialect(DialectIndex);
+  case Dialect of
+    TSqlDialect.MSSql: Compiler := TSqlServerCompiler.Create;
+    TSqlDialect.MySql: Compiler := TMySqlCompiler.Create;
+    TSqlDialect.PostgreSql: Compiler := TPostgresCompiler.Create;
+    TSqlDialect.Sqlite: Compiler := TSqliteCompiler.Create;
+    TSqlDialect.Oracle: Compiler := TOracleCompiler.Create;
+    TSqlDialect.Firebird: Compiler := TFirebirdCompiler.Create;
+  end;
+  Query := TQuery.Create('Books').Select('Title').Where('Id', 42)
+    .OrderBy('Title').Limit(2).Offset(1);
+  for EngineDialect := Low(TSqlDialect) to High(TSqlDialect) do
+    Query.&For(Engines[EngineDialect],
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.SelectRaw(IntToStr(Ord(EngineDialect)));
+      end);
+  Expected := Compiler.Compile(Query).ToString;
+  Assert.AreEqual(Expected, Query.Compile(Dialect));
+  Assert.AreEqual(Expected, Query.Compile(Dialect));
+  Assert.AreEqual('', Query.EngineScope);
+  Assert.AreEqual<NativeInt>(7, Length(Query.GetComponents('select')));
+end;
+
+procedure TQueryModelTests.CompilePropagatesErrors;
+begin
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create('Books').WhereRaw('Id = ?', []).Compile;
+    end, EQueryException);
+end;
+
+procedure TQueryModelTests.CompileInlinesValues;
+begin
+  Assert.AreEqual('SELECT * FROM [Books] WHERE [Title] = ''O''''Reilly'' AND [Id] = 42',
+    TQuery.Create('Books').Where('Title', 'O''Reilly').Where('Id', 42).Compile);
+  Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (''New Book'')',
+    TQuery.Create('Books').AsInsert(['Title'], ['New Book']).Compile);
 end;
 
 procedure TQueryModelTests.ClonePreservesSubclassAndIndependentState;
