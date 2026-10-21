@@ -55,6 +55,8 @@ type
   ICompiler = interface
     ['{B86643F2-4FE8-465C-BD67-8F8D635EF4CD}']
     function GetEngineCode: string;
+    function GetParameterPrefix: string;
+    procedure SetParameterPrefix(const Value: string);
     function GetSupportsFilterClause: Boolean;
     procedure SetSupportsFilterClause(const Value: Boolean);
     function GetOmitSelectInsideExists: Boolean;
@@ -74,6 +76,7 @@ type
     function CompileLower(const Value: string): string;
     function CompileUpper(const Value: string): string;
     property EngineCode: string read GetEngineCode;
+    property ParameterPrefix: string read GetParameterPrefix write SetParameterPrefix;
     property SupportsFilterClause: Boolean read GetSupportsFilterClause write SetSupportsFilterClause;
     property OmitSelectInsideExists: Boolean read GetOmitSelectInsideExists write SetOmitSelectInsideExists;
     property UseLegacyPagination: Boolean read GetUseLegacyPagination write SetUseLegacyPagination;
@@ -120,6 +123,8 @@ type
     function JoinTarget(Clause: TClause): string;
   public
     function GetEngineCode: string;
+    function GetParameterPrefix: string;
+    procedure SetParameterPrefix(const Value: string);
     function GetSupportsFilterClause: Boolean;
     procedure SetSupportsFilterClause(const Value: Boolean);
     function GetOmitSelectInsideExists: Boolean;
@@ -144,6 +149,7 @@ type
     function CompileLower(const Value: string): string;
     function CompileUpper(const Value: string): string;
     property EngineCode: string read FEngineCode;
+    property ParameterPrefix: string read GetParameterPrefix write SetParameterPrefix;
   end;
 
 
@@ -151,6 +157,12 @@ implementation
 
 uses System.StrUtils, System.TypInfo, System.Variants, System.RegularExpressions,
   QueryBuilder4Delphi.Query;
+
+function TCompiler.GetParameterPrefix: string;
+begin Result := FParameterPrefix; end;
+
+procedure TCompiler.SetParameterPrefix(const Value: string);
+begin FParameterPrefix := Value; end;
 
 function TSqlResult.GetRawSql: string;
 begin Result := RawSql; end;
@@ -317,12 +329,14 @@ end;
 function TCompiler.Resolve(Context: TCompileContext; const Value: TValue): TValue;
 begin
   Result := Value;
+  if Value.IsEmpty then Exit;
   if Value.IsType<TVariable> then Result := Context.FindVariable(Value.AsType<TVariable>.Name)
   else if Value.IsType<TUnsafeLiteral> then Result := Value.AsType<TUnsafeLiteral>.Value;
 end;
 function TCompiler.Parameter(Context: TCompileContext; const Value: TValue): string;
 begin
-  if Value.IsType<TUnsafeLiteral> then Exit(Value.AsType<TUnsafeLiteral>.Value);
+  if not Value.IsEmpty and Value.IsType<TUnsafeLiteral> then
+    Exit(Value.AsType<TUnsafeLiteral>.Value);
   Context.Bindings.Add(Resolve(Context, Value)); Result := '?';
 end;
 function TCompiler.Parameterize(Context: TCompileContext; const Values: array of TValue): string;

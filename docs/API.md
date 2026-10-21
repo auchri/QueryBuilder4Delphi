@@ -1,5 +1,62 @@
 # API mapping and limitations
 
+## Optional FireDAC execution
+
+`QueryBuilder4Delphi.FireDAC` contains `TFireDACAdapter.Apply`, `Open`, and
+`ExecSQL`. They accept a caller-owned `TFDQuery`, an `IQuery`, and a dialect
+(SQL Server by default). `Apply` transfers SQL and typed parameters without
+preparing or executing; `Open` opens a result set; `ExecSQL` returns
+`RowsAffected`. The caller configures the connection and database driver and
+controls transactions and component lifetime. This is an optional adapter,
+not a port of `SqlKata.Execution` or an object result mapper.
+
+The adapter uses a fresh compiler with `ParameterPrefix = ':p'`. It builds
+and validates parameters before closing/unpreparing the target, then replaces
+SQL and parameters, preserving the target's resource/format options and
+parameter binding mode (`pbByName` or `pbByNumber`). `Apply` creates its own
+parameter collection even when `ParamCreate` is disabled. The caller configures
+FireDAC preprocessing: enable `ParamExpand` for parameterized execution and,
+when using automatic parameter creation, `ParamCreate`; disable macro/escape
+expansion if SQL should pass through unchanged. Compilation/binding errors
+leave the target intact; connection/execution errors propagate from FireDAC.
+
+`TFireDACAdapter.Compile(Query, Dialect)` returns a `TFireDACCommand` record:
+`Sql: string`, `Parameters: TArray<Variant>`, and
+`DataTypes: TArray<TFieldType>`. All arrays follow the compiler's binding
+order, including dialect-specific pagination parameters. Pass them to
+`TFDQuery.Open(Sql, Parameters, DataTypes)` or the corresponding `ExecSQL`
+overload, with `ParamCreate`/`ParamExpand` enabled and macro/escape expansion
+disabled. Compilation requires no target component or connection and does not
+execute SQL. Byte bindings become byte Variant arrays; the data-type array
+preserves typed NULLs and FireDAC-specific parameter types. Untyped NULLs use
+`ftWideString` because no target formatting options are available.
+
+`ToSql(Query, Dialect): string` and
+`GetParameters(Query, Dialect): TArray<Variant>` expose each part separately.
+They also default to SQL Server. Each call compiles independently; prefer
+`Compile` for a matching snapshot of SQL, values, and types. `ToSql` only
+generates SQL, whereas `Compile`/`GetParameters` also validate binding types.
+No macro placeholders are generated; user-supplied raw SQL remains unchanged.
+
+Bindings preserve strings, characters, integer values, Boolean, floats,
+Currency, `TDateTime`, `TGUID`, `TBcd`, binary `TBytes`, and supported scalar
+Variants. UInt64 above High(Int64) uses FMTBCD to avoid overflow. Other records,
+objects, interfaces, and unsupported arrays are rejected instead of being
+silently converted to text. Raw query array expansion still occurs in the
+compiler before binding.
+
+`TFireDACNull.Create(TFieldType)` represents a typed NULL; `ftUnknown` is
+rejected by its constructor. Untyped NULL (`TValue.Empty`, Variant Null/Empty)
+uses the target's `DefaultParamDataType` or `ftWideString` if it is unknown.
+The adapter cannot infer a column type without database metadata. Prefer a
+typed NULL when the target column needs a particular data type.
+`TFireDACNull` is interpreted by the adapter; generic `Query.Compile` previews
+do not interpret this FireDAC-specific record.
+
+The parameter compiler also treats `TValue.Empty` as a bound NULL for writes
+and raw bindings. Previously, `TValue.IsType<TUnsafeLiteral>` accepted an empty
+value and emitted an empty literal; the new regression prevents that loss.
+
 ## Public fluent API
 
 The upstream public `Query` method names are available on `IQuery`, except for
@@ -20,6 +77,11 @@ default settings and returns `Compiler.Compile(Query).ToString`, including
 substituted values. It preserves the query, propagates compiler errors, and
 requires no compiler unit imports in calling code. Use `ICompiler.Compile`
 when you need SQL and bindings separately or custom compiler settings.
+
+`CreateCompiler(Dialect)` in `QueryBuilder4Delphi.Compilers.Factory` creates
+the corresponding reference-counted compiler. `ICompiler.ParameterPrefix`
+configures generated named markers (for example, `':p'` produces `:p0`).
+The default compiler prefixes remain unchanged.
 
 `TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
 `IQuery`, `TClause`, callbacks, attributes, and value types live in

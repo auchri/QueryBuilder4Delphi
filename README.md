@@ -4,15 +4,18 @@ A Delphi port of the SqlKata query builder, based on local C# commit
 `df4a2377750d34fc057c81886b481e7309ef975e`.
 Targets **Delphi 12 or later on Windows, Win32 and Win64**.
 
-The library builds SQL and parameter lists. `SqlKata.Execution`, FireDAC,
-database connections, result mapping, `Get`, `First`, and `Paginate` are outside
-the scope of this pilot. `ForPage` is supported: it generates LIMIT/OFFSET or
+The core library builds SQL and parameter lists. An optional FireDAC adapter
+applies queries and bindings to an existing `TFDQuery`. `SqlKata.Execution`,
+connection management, object result mapping, `Get`, `First`, and `Paginate`
+are outside the scope of this pilot. `ForPage` generates LIMIT/OFFSET or
 the equivalent SQL for the selected dialect.
 
 ## Installation
 
-Add `src` to the Delphi search path. The library requires only the Delphi RTL.
+Add `src` to the Delphi search path. The core requires only the Delphi RTL.
 No package or additional runtime libraries are required.
+Import `QueryBuilder4Delphi.FireDAC` only when using the optional adapter;
+that unit additionally requires FireDAC and `Data.DB`.
 
 ```pascal
 uses
@@ -110,6 +113,116 @@ separate.
 an engine-code string is needed. Custom compilers can still define their own
 string codes for `For` and `SetEngineScope`. The former `TEngineCodes` record
 has been removed.
+
+## Optional FireDAC adapter
+
+Use an existing `TFDQuery` with its `Connection` configured for the selected
+database. The adapter does not own the query or connection. The dialect
+defaults to SQL Server; pass another `TSqlDialect` explicitly when needed.
+The adapter preserves the component's options and parameter binding mode.
+Configure preprocessing in your application or the Object Inspector before
+calling these examples: enable `ParamExpand` and, for automatic parameter
+creation, `ParamCreate`; disable `MacroCreate`, `MacroExpand`, and
+`EscapeExpand` when SQL should be passed without macro/escape processing.
+
+```pascal
+uses
+  FireDAC.Comp.Client,
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.FireDAC;
+
+procedure LoadBooks(FDQuery: TFDQuery);
+begin
+  TFireDACAdapter.Open(FDQuery,
+    TQuery.Create('Books').Select(['Id', 'Title']).Where('Lang', 'de'));
+end;
+
+function RenameBook(FDQuery: TFDQuery): Int64;
+begin
+  Result := TFireDACAdapter.ExecSQL(FDQuery,
+    TQuery.Create('Books').Where('Id', 1).AsUpdate(['Title'], ['Revised']));
+end;
+```
+
+`Apply(Target, Query, Dialect)` transfers parameterized SQL and typed bindings
+without preparing or executing the statement. You can then call `Target.Open`
+or `Target.ExecSQL` yourself. `Open` also opens the dataset; `ExecSQL` executes
+the statement and returns FireDAC's `RowsAffected`. Connection setup, driver
+linkage, transaction boundaries, and dataset lifetime remain with the caller.
+
+All six dialects use FireDAC's `:p0`, `:p1`, etc. syntax. Supported values are
+strings and characters, integers including Int64 and UInt64, Boolean,
+floating-point numbers, Currency, `TDateTime`, `TGUID`, `TBcd`, `TBytes`, and
+supported scalar Variants. UInt64 values above High(Int64) use FMTBCD.
+Unsupported value types raise an exception before the target is changed.
+
+For a NULL with an explicit parameter type, import `Data.DB` and use
+`TFireDACNull.Create(ftCurrency)` (or another `TFieldType`) as a binding:
+
+```pascal
+TFireDACAdapter.ExecSQL(FDQuery,
+  TQuery.Create('Books').Where('Id', 1)
+    .AsUpdate(['Price'], [TFireDACNull.Create(ftCurrency)]));
+```
+
+`TValue.Empty` and Variant Null/Empty use
+`Target.FormatOptions.DefaultParamDataType`, falling back to `ftWideString`
+when it is `ftUnknown`. Specify `TFireDACNull` when the column requires a
+different type. `WhereNull` still generates `IS NULL` without a binding.
+
+Applying a query closes/unprepares the target, replaces SQL and parameters,
+and preserves its resource/format options and parameter binding mode.
+`Apply` supplies parameters even when automatic parameter creation is disabled.
+SQL generation and binding validation finish before those changes.
+`Query.Compile` remains a
+preview; the adapter uses parameterized compiler results for execution.
+
+To obtain SQL and parameter values without changing a component, use
+`TFireDACAdapter.Compile`. It returns a `TFireDACCommand` with `Sql`,
+`Parameters: TArray<Variant>`, and `DataTypes: TArray<TFieldType>` in matching
+order. The generated SQL uses named parameters and requires no FireDAC macros.
+
+```pascal
+procedure LoadBooksFromCommand(FDQuery: TFDQuery);
+var
+  Command: TFireDACCommand;
+begin
+  Command := TFireDACAdapter.Compile(
+    TQuery.Create('Books').Where('Lang', 'de'));
+  FDQuery.Open(Command.Sql, Command.Parameters, Command.DataTypes);
+end;
+```
+
+For example, the caller can configure a component once during initialization:
+
+```pascal
+FDQuery.ResourceOptions.ParamCreate := True;
+FDQuery.ResourceOptions.ParamExpand := True;
+FDQuery.ResourceOptions.MacroCreate := False;
+FDQuery.ResourceOptions.MacroExpand := False;
+FDQuery.ResourceOptions.EscapeExpand := False;
+```
+
+For writes, call `FDQuery.ExecSQL(Command.Sql, Command.Parameters,
+Command.DataTypes)`. Supplying `DataTypes` preserves explicit NULL types and
+binary/decimal types; for ordinary scalar values you can use the two-argument
+overload. Binary values are exported as byte Variant arrays. Untyped NULLs
+default to `ftWideString` when compiling without a target component.
+
+`TFireDACAdapter.ToSql(Query, Dialect)` returns just the parameterized SQL
+string; `GetParameters(Query, Dialect)` returns just the `TArray<Variant>`.
+Both default to SQL Server. Each call compiles the query afresh; use `Compile`
+when obtaining SQL and parameters together. Raw SQL fragments remain the
+caller's SQL; macro/escape expansion should stay disabled when executing them.
+
+The optional DUnitX project `test/QueryBuilder.FireDAC.Tests.dproj` tests
+parameter mapping for every dialect and actual CRUD/rollback behavior using
+statically linked SQLite in memory. After building it for both platforms:
+
+```powershell
+./tools/build.ps1 -Suite FireDAC -TestsOnly
+python tools/record_validation.py --suite FireDAC
+```
 
 ## More tested examples
 

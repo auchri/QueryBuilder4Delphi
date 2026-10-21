@@ -1,7 +1,8 @@
 # Porting plan
 
 Source: SqlKata, local commit df4a2377750d34fc057c81886b481e7309ef975e.
-Target: Delphi 12 or later, Windows Win32/Win64. No execution layer.
+Target: Delphi 12 or later, Windows Win32/Win64. No SqlKata.Execution port.
+An optional FireDAC adapter was subsequently added at the user's request.
 Queries, compilers, and SQL results use reference-counted interfaces.
 The initial class-based API was migrated at the user's explicit request.
 Supplied subqueries are copied. Callback queries are released internally.
@@ -121,3 +122,30 @@ Completed work packages for query compilation:
     in the existing regression cases. Update API migration guidance.
     All 603 tests pass on each of Win32 and Win64 after full builds with zero
     errors and warnings; both generator checks and six Python tests pass.
+
+Completed work packages for optional FireDAC integration:
+
+25. Start `codex/firedac-adapter` from `origin/main` at `0f17149`, after PR #6
+    was merged. Share dialect compiler creation, expose configurable named
+    parameter prefixes, and correct empty write bindings to compile as NULL.
+26. Add the optional `QueryBuilder4Delphi.FireDAC` unit with `Apply`, `Open`,
+    and `ExecSQL`. Bind values with their types, support explicit typed NULLs,
+    and preserve caller ownership of components, connections and transactions.
+27. Add a separate FireDAC DUnitX project with 15 parameter and integration
+    cases, using statically linked SQLite in memory. Extend build/validation
+    tooling to select the optional suite. Document usage and supported types.
+    Both suites pass on Win32 and Win64 after full Delphi 12 builds with zero
+    errors and warnings: 603 core tests and 15 FireDAC tests per platform,
+    with no reported test leaks. Both generators and six Python tests pass.
+28. Extend the FireDAC adapter with parameterized `ToSql`,
+    `GetParameters: TArray<Variant>`, and a combined `Compile` result including
+    data types. Enable automatic parameter creation in `Apply`, retain disabled
+    macro/escape expansion, and export binary values without text conversion.
+    All 24 FireDAC tests pass on each of Win32 and Win64 after full Delphi 12
+    builds with zero errors, warnings, hints, or reported test leaks.
+29. Preserve caller-owned FireDAC resource/format options and parameter binding
+    mode. Remove the preprocessing changes introduced in steps 26/28 and move
+    configuration guidance into the application examples. Add two regression
+    cases covering enabled/disabled preprocessing and both binding modes;
+    execute SQLite CRUD with positional binding. All 26 FireDAC tests pass
+    on Win32 and Win64 with no build warnings or reported test leaks.

@@ -24,6 +24,42 @@ The machine-readable summary, including SHA-256 hashes, is available in
 `tools/record_validation.py` can regenerate this summary from new successful
 test runs; update the validation date in the script for a new validation run.
 
+## Optional FireDAC suite
+
+The separate `test/QueryBuilder.FireDAC.Tests.dproj` project requires FireDAC.
+It was fully built for Win32 and Win64 using Delphi 12, with zero errors and
+warnings. All 26 tests passed on each platform with no reported test leaks.
+The core project does not import FireDAC.
+
+The export cases verify `ToSql`, `GetParameters`, and the combined `Compile`
+result for all six dialects with FireDAC automatic parameter creation enabled.
+They also cover empty parameter arrays, nil arguments, Variant types, typed
+and untyped NULLs, UInt64 decimal precision, binary byte arrays, and direct
+`TFDQuery.Open`/`ExecSQL` execution of exported commands using SQLite.
+Two option-preservation cases exercise binding by name and by position, all
+five preprocessing flags enabled and disabled, and reuse with no parameters.
+SQLite CRUD also executes with caller-selected positional binding. The test
+fixture explicitly configures preprocessing; the adapter preserves it.
+
+Six cases verify parameterized SQL and binding order for every dialect,
+including Firebird's pagination bindings. Further cases cover string, integer,
+unsigned integer, Boolean, date/time, Currency, float, GUID, BCD, binary and
+Variant bindings; typed and untyped NULL; replacing parameters on reuse;
+nil arguments; and rejecting unsupported values before changing the target.
+SQLite in-memory tests actually execute INSERT, SELECT, UPDATE and DELETE,
+verify affected row counts, roll back a caller-owned transaction, and preserve
+literal macro/escape characters. SQLite is statically linked for these tests;
+no database server or external SQLite DLL is required.
+
+The suite also exposed an empty-value bug in the core parameter compiler.
+`TValue.Empty` now creates a bound NULL rather than an empty unsafe literal.
+The core SQL preview regression and FireDAC NULL case cover this correction.
+
+Results and executable architectures/hashes are recorded in
+[firedac-validation-results.json](firedac-validation-results.json). Run
+`tools/build.ps1 -Suite FireDAC -TestsOnly` after rebuilding the optional
+project, then `python tools/record_validation.py --suite FireDAC`.
+
 ## Reference comparison
 
 The C# outputs come directly from local source commit
@@ -95,9 +131,11 @@ the tested behavior and reference coverage.
 
 ## Limitations
 
-Validation covers SQL generation and library runtime behavior with Delphi 12
-on Win32/Win64. No database servers were contacted, and no SqlKata.Execution
-features were ported. Newer Delphi versions were not run locally. The suite
+Validation covers SQL generation, library runtime behavior, and the optional
+FireDAC adapter with Delphi 12 on Win32/Win64. Only SQLite was used for actual
+database execution; other dialects were checked for SQL and parameter mapping.
+No database servers were contacted, and the SqlKata.Execution layer was not
+ported. Newer Delphi versions were not run locally. The suite
 does not prove the validity of every possible SQL fragment or every
 combination of fluent overloads.
 

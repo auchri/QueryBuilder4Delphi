@@ -4,12 +4,22 @@ import hashlib
 import json
 import struct
 import xml.etree.ElementTree as ET
+import argparse
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--suite', choices=['Core', 'FireDAC'], default='Core')
+args = parser.parse_args()
 
 root = Path(__file__).resolve().parents[1]
 results = []
 for platform, machine in [('Win32', 0x14c), ('Win64', 0x8664)]:
-    folder = root / 'build' / platform
-    exe = (folder / 'QueryBuilder.Tests.exe').read_bytes()
+    folder = root / 'build'
+    project = 'QueryBuilder.Tests'
+    if args.suite == 'FireDAC':
+        folder /= 'FireDAC'
+        project = 'QueryBuilder.FireDAC.Tests'
+    folder /= platform
+    exe = (folder / (project+'.exe')).read_bytes()
     pe = struct.unpack_from('<I', exe, 0x3c)[0]
     assert exe[:2] == b'MZ' and exe[pe:pe+4] == b'PE\0\0'
     assert struct.unpack_from('<H', exe, pe+4)[0] == machine, 'Wrong executable architecture'
@@ -30,5 +40,10 @@ summary = dict(date='2026-10-21', compiler='Delphi 12 Community Edition, RAD Stu
                additionalTests=51,
                goldenSha256=hashlib.sha256((root / 'test/golden.json').read_bytes()).hexdigest(),
                results=results)
-(root / 'docs/validation-results.json').write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8', newline='\n')
+filename = 'validation-results.json'
+if args.suite == 'FireDAC':
+    filename = 'firedac-validation-results.json'
+    summary = {key: summary[key] for key in ['date', 'compiler', 'buildMethod', 'results']}
+    summary['integrationDatabase'] = 'SQLite :memory:, statically linked FireDAC driver'
+(root / 'docs' / filename).write_text(json.dumps(summary, indent=2)+'\n', encoding='utf-8', newline='\n')
 print(json.dumps(summary, indent=2))

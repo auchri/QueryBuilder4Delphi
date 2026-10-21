@@ -125,6 +125,8 @@ begin
     TQuery.Create('Books').Where('Title', 'O''Reilly').Where('Id', 42).Compile);
   Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (''New Book'')',
     TQuery.Create('Books').AsInsert(['Title'], ['New Book']).Compile);
+  Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (NULL)',
+    TQuery.Create('Books').AsInsert(['Title'], [TValue.Empty]).Compile);
 end;
 
 procedure TQueryModelTests.ClonePreservesSubclassAndIndependentState;
