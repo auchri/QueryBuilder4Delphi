@@ -13,7 +13,16 @@ dialect compilers are classes; their inherited `Create` class function returns
 Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
 with the Delphi `T` prefix omitted from the unit name.
 `QueryBuilder4Delphi.Compilers` re-exports the types as a facade.
-The query model is in `SqlKata`.
+`TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
+`IQuery`, `TClause`, callbacks, attributes, and value types live in
+`QueryBuilder4Delphi.Query.Core`. Import both units to use the model directly.
+`SqlKata` remains a compatibility facade with aliases for the original types,
+clause-kind constants, and forwarding functions for the public value helpers.
+Existing source imports and fluent method signatures remain supported.
+Runtime RTTI unit names now identify the new defining units; rebuild dependent
+units and packages after updating the library.
+`SqlKata.Query.inc` and `SqlKata.Writes.inc` have been removed. The generated
+fluent declaration and implementation includes remain in use.
 `EngineCodes` is named `TEngineCodes`.
 
 Write operations delegate to the stateless `TQueryWrites` class in
