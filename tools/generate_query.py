@@ -1,9 +1,15 @@
 """Generate repetitive Delphi fluent wrappers. Run from the repository root.
 
-The semantic implementations live in src/QueryBuilder4Delphi.Query.pas and QueryBuilder4Delphi.Query.Core.pas. This generator only
-produces declarations and forwarding methods, keeping Where/Having symmetric.
+Update marked declarations and method implementations in the regular query
+units, keeping Where/Having symmetric. Use --check to verify without writing.
 """
 from pathlib import Path
+import argparse
+from generated_sections import replace_section, update_files
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--check', action='store_true')
+args = parser.parse_args()
 
 decl, impl = [], []
 
@@ -81,6 +87,13 @@ for name in ['Union','Except','Intersect']:
 for name,engine in [('ForSqlServer','sqlsrv'),('ForPostgreSql','postgres'),('ForMySql','mysql'),('ForSqlite','sqlite'),('ForOracle','oracle'),('ForFirebird','firebird')]:
     method(name,'const Callback: TQueryCallback',f"  Result := &For('{engine}', Callback);")
 
-Path('src/SqlKata.Fluent.Declarations.inc').write_text('\n'.join(decl)+'\n',encoding='utf-8',newline='\r\n')
-Path('src/SqlKata.Fluent.Implementation.inc').write_text('\n'.join(impl),encoding='utf-8',newline='\r\n')
+outputs = {}
+for name in ['QueryBuilder4Delphi.Query.Core.pas', 'QueryBuilder4Delphi.Query.pas']:
+    path = Path('src') / name
+    content = replace_section(path.read_text(encoding='utf-8-sig'),
+                              'fluent declarations', '\n'.join(decl), '    ')
+    if name == 'QueryBuilder4Delphi.Query.pas':
+        content = replace_section(content, 'fluent implementation', '\n'.join(impl))
+    outputs[path] = content
+update_files(outputs, args.check)
 
