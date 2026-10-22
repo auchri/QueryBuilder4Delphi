@@ -1,27 +1,27 @@
 {
-  "date": "2026-10-21",
+  "date": "2026-10-22",
   "compiler": "Delphi 12 Community Edition, RAD Studio 23.0",
   "buildMethod": "IDE: Project / Build, Base configuration, zero warnings",
   "results": [
     {
       "platform": "Win32",
       "peMachine": "0x14c",
-      "tests": 26,
-      "passed": 26,
+      "tests": 24,
+      "passed": 24,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "b142a1e5dfceb5838e41d7574d871ef339f288be8ea17c2aec46e687b2f5351c"
+      "executableSha256": "41a9ba7e82def79661ce30a5559cc7ce955800410a20d45ba4b5934753df7832"
     },
     {
       "platform": "Win64",
       "peMachine": "0x8664",
-      "tests": 26,
-      "passed": 26,
+      "tests": 24,
+      "passed": 24,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "84466d43f1438bc4b9b9771a564258ea24265a8195c6ed44e919b94a57a59939"
+      "executableSha256": "0b75b68263d5e370dbf2e59cde4ebbe196a31ca2d4bbc8dff18680b32c647dd4"
     }
   ],
   "integrationDatabase": "SQLite :memory:, statically linked FireDAC driver"

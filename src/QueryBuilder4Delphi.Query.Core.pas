@@ -16,6 +16,33 @@ type
   end;
 
   IQuery = interface;
+  TQueryExecutionMode = (emAuto, emRows, emCommand);
+
+  // Cursor starts before the first row; indices are zero based.
+  // NULL is TValue.Empty. RowsAffected = -1 means unknown.
+  IQueryResult = interface
+    ['{09A2718A-2A84-4E10-9C65-E85FB4EF2508}']
+    function Next: Boolean;
+    function GetHasResultSet: Boolean;
+    function GetRowsAffected: Int64;
+    function GetColumnCount: Integer;
+    function GetColumnName(Index: Integer): string;
+    function GetColumnIndex(const Name: string): Integer;
+    function GetValue(Index: Integer): TValue; overload;
+    function GetValue(const Name: string): TValue; overload;
+    function IsNull(Index: Integer): Boolean;
+    property HasResultSet: Boolean read GetHasResultSet;
+    property RowsAffected: Int64 read GetRowsAffected;
+    property ColumnCount: Integer read GetColumnCount;
+    property ColumnNames[Index: Integer]: string read GetColumnName;
+  end;
+
+  IQueryExecutor = interface
+    ['{6793FB16-8CA0-4785-AB75-63C8DE7BC09A}']
+    function Execute(const Query: IQuery; Mode: TQueryExecutionMode = emAuto)
+      : IQueryResult;
+  end;
+
   TQueryCallback = reference to function(Query: IQuery): IQuery;
   TValues = TArray<TValue>;
   TRows = TArray<TValues>;
@@ -60,7 +87,9 @@ type
   end;
 
   IQuery = interface
-    ['{03A7DA22-0598-40E2-95FB-462812EDCA03}']
+    ['{408F2E7B-CA64-4B3A-B88D-972214A15CAA}']
+    function Execute(const Executor: IQueryExecutor;
+      Mode: TQueryExecutionMode = emAuto): IQueryResult;
     function GetEngineScope: string;
     procedure PutEngineScope(const Value: string);
     function GetQueryAlias: string;

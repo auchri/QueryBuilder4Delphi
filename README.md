@@ -4,7 +4,7 @@ A Delphi port of the SqlKata query builder, based on local C# commit
 `df4a2377750d34fc057c81886b481e7309ef975e`.
 Targets **Delphi 12 or later on Windows, Win32 and Win64**.
 
-The core library builds SQL and parameter lists. An optional FireDAC adapter
+The core library builds SQL and parameter lists. An optional FireDAC executor
 applies queries and bindings to an existing `TFDQuery`. `SqlKata.Execution`,
 connection management, object result mapping, `Get`, `First`, and `Paginate`
 are outside the scope of this pilot. `ForPage` generates LIMIT/OFFSET or
@@ -14,7 +14,7 @@ the equivalent SQL for the selected dialect.
 
 Add `src` to the Delphi search path. The core requires only the Delphi RTL.
 No package or additional runtime libraries are required.
-Import `QueryBuilder4Delphi.FireDAC` only when using the optional adapter;
+Import `QueryBuilder4Delphi.Providers.FireDAC` only when using the optional provider;
 that unit additionally requires FireDAC and `Data.DB`.
 
 ```pascal
@@ -114,114 +114,141 @@ an engine-code string is needed. Custom compilers can still define their own
 string codes for `For` and `SetEngineScope`. The former `TEngineCodes` record
 has been removed.
 
-## Optional FireDAC adapter
+## Execution and optional FireDAC provider
 
-Use an existing `TFDQuery` with its `Connection` configured for the selected
-database. The adapter does not own the query or connection. The dialect
-defaults to SQL Server; pass another `TSqlDialect` explicitly when needed.
-The adapter preserves the component's options and parameter binding mode.
-Configure preprocessing in your application or the Object Inspector before
-calling these examples: enable `ParamExpand` and, for automatic parameter
-creation, `ParamCreate`; disable `MacroCreate`, `MacroExpand`, and
-`EscapeExpand` when SQL should be passed without macro/escape processing.
+The query describes the operation; the compiler generates parameterized SQL;
+`IQueryExecutor` executes it and `IQueryResult` exposes its rows. The contracts
+live beside `IQuery` in `QueryBuilder4Delphi.Query.Core`, avoiding circular unit
+references. They use only RTL types. `QueryBuilder4Delphi.Execution` supplies
+`TQueryExecutor`, a reusable compiler/dialect implementation for providers.
+FireDAC is confined to `QueryBuilder4Delphi.Providers.FireDAC` and its
+`.Parameters` unit. Core and compiler projects need neither FireDAC nor Data.DB.
+The former adapter unit and its static API have been removed (breaking change).
 
-```pascal
+```delphi
 uses
-  FireDAC.Comp.Client,
+  System.SysUtils, FireDAC.Comp.Client,
   QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
-  QueryBuilder4Delphi.FireDAC;
+  QueryBuilder4Delphi.Providers.FireDAC;
 
-procedure LoadBooks(FDQuery: TFDQuery);
-begin
-  TFireDACAdapter.Open(FDQuery,
-    TQuery.Create('Books').Select(['Id', 'Title']).Where('Lang', 'de'));
-end;
-
-function RenameBook(FDQuery: TFDQuery): Int64;
-begin
-  Result := TFireDACAdapter.ExecSQL(FDQuery,
-    TQuery.Create('Books').Where('Id', 1).AsUpdate(['Title'], ['Revised']));
-end;
-```
-
-`Apply(Target, Query, Dialect)` transfers parameterized SQL and typed bindings
-without preparing or executing the statement. You can then call `Target.Open`
-or `Target.ExecSQL` yourself. `Open` also opens the dataset; `ExecSQL` executes
-the statement and returns FireDAC's `RowsAffected`. Connection setup, driver
-linkage, transaction boundaries, and dataset lifetime remain with the caller.
-
-All six dialects use FireDAC's `:p0`, `:p1`, etc. syntax. Supported values are
-strings and characters, integers including Int64 and UInt64, Boolean,
-floating-point numbers, Currency, `TDateTime`, `TGUID`, `TBcd`, `TBytes`, and
-supported scalar Variants. UInt64 values above High(Int64) use FMTBCD.
-Unsupported value types raise an exception before the target is changed.
-
-For a NULL with an explicit parameter type, import `Data.DB` and use
-`TFireDACNull.Create(ftCurrency)` (or another `TFieldType`) as a binding:
-
-```pascal
-TFireDACAdapter.ExecSQL(FDQuery,
-  TQuery.Create('Books').Where('Id', 1)
-    .AsUpdate(['Price'], [TFireDACNull.Create(ftCurrency)]));
-```
-
-`TValue.Empty` and Variant Null/Empty use
-`Target.FormatOptions.DefaultParamDataType`, falling back to `ftWideString`
-when it is `ftUnknown`. Specify `TFireDACNull` when the column requires a
-different type. `WhereNull` still generates `IS NULL` without a binding.
-
-Applying a query closes/unprepares the target, replaces SQL and parameters,
-and preserves its resource/format options and parameter binding mode.
-`Apply` supplies parameters even when automatic parameter creation is disabled.
-SQL generation and binding validation finish before those changes.
-`Query.Compile` remains a
-preview; the adapter uses parameterized compiler results for execution.
-
-To obtain SQL and parameter values without changing a component, use
-`TFireDACAdapter.Compile`. It returns a `TFireDACCommand` with `Sql`,
-`Parameters: TArray<Variant>`, and `DataTypes: TArray<TFieldType>` in matching
-order. The generated SQL uses named parameters and requires no FireDAC macros.
-
-```pascal
-procedure LoadBooksFromCommand(FDQuery: TFDQuery);
+procedure PrintBooks(Connection: TFDConnection);
 var
-  Command: TFireDACCommand;
+  Executor: IQueryExecutor;
+  Rows: IQueryResult;
 begin
-  Command := TFireDACAdapter.Compile(
-    TQuery.Create('Books').Where('Lang', 'de'));
-  FDQuery.Open(Command.Sql, Command.Parameters, Command.DataTypes);
+  // Connection is already configured and connected by the application.
+  Executor := TFireDACQueryExecutor.Create(Connection, TSqlDialect.MSSql);
+  Rows := TQuery.Create('Books').Select(['Id', 'Title'])
+    .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
+  while Rows.Next do
+    if not Rows.IsNull(1) then
+      Writeln(Rows.GetValue('Title').AsString);
+end;
+
+procedure ChangeBook(Connection: TFDConnection);
+var
+  Executor: IQueryExecutor;
+  Command: IQueryResult;
+begin
+  Executor := TFireDACQueryExecutor.Create(Connection, TSqlDialect.MSSql);
+  Connection.StartTransaction;
+  try
+    Command := TQuery.Create('Books')
+      .AsInsert(['Id', 'Title'], [42, 'New book']).Execute(Executor);
+    Writeln(Command.RowsAffected);
+    Command := TQuery.Create('Books').Where('Id', 42)
+      .AsUpdate(['Title'], ['Changed book']).Execute(Executor);
+    Command := TQuery.Create('Books').Where('Id', 42).AsDelete.Execute(Executor);
+    Command := nil;
+    Connection.Commit;
+  except
+    Connection.Rollback;
+    raise;
+  end;
 end;
 ```
 
-For example, the caller can configure a component once during initialization:
+`Execute(Executor, emAuto)` uses query metadata: select/aggregate opens rows;
+insert/update/delete executes a command. WITH clauses do not change this rule.
+For a single statement containing RETURNING/OUTPUT supplied through raw
+extensions use `emRows` explicitly; `emCommand` explicitly expects no rows.
+The compiler must itself support the requested SQL syntax/dialect. Execution
+adds no RETURNING/OUTPUT rewriting. SQL prefixes are never parsed to choose a
+mode. Unknown methods require an explicit mode. A mismatched explicit mode is
+reported by FireDAC; database exception types/messages propagate unchanged.
 
-```pascal
-FDQuery.ResourceOptions.ParamCreate := True;
-FDQuery.ResourceOptions.ParamExpand := True;
-FDQuery.ResourceOptions.MacroCreate := False;
-FDQuery.ResourceOptions.MacroExpand := False;
-FDQuery.ResourceOptions.EscapeExpand := False;
-```
+Only single-statement execution is supported. Raw snippets must not contain
+batches or additional SQL statements. If a server procedure yields multiple
+resultsets, only its first result is exposed; further results/output parameters
+are not accessible. No `NextResult` API is offered. `AsInsert(..., True)`
+(identity/ReturnId) is rejected before execution in every mode because existing
+compilers can append another statement. Retrieve identities separately in the
+same caller-managed transaction, or use supported single-statement SQL.
+`TUnsafeLiteral` and raw expressions remain explicit caller SQL escape hatches;
+ordinary values always use bound parameters and never `RawSql` interpolation.
 
-For writes, call `FDQuery.ExecSQL(Command.Sql, Command.Parameters,
-Command.DataTypes)`. Supplying `DataTypes` preserves explicit NULL types and
-binary/decimal types; for ordinary scalar values you can use the two-argument
-overload. Binary values are exported as byte Variant arrays. Untyped NULLs
-default to `ftWideString` when compiling without a target component.
+Results begin **before the first row**. `Next` advances once and returns false
+for an empty/exhausted result; subsequent calls remain false. Reading values
+before the first or after the last row raises `EQueryException`. Metadata is
+available before iteration. Indices are zero based and remain reliable for
+duplicate column names. Name lookup is case insensitive; missing or ambiguous
+names raise `EQueryException` (FireDAC may disambiguate names itself).
+`GetValue` returns `TValue.Empty` for SQL NULL; use `IsNull`/`IsEmpty` before
+conversion. NULL never becomes zero, false, or an empty string. Commands have
+`HasResultSet=False`; all row/column access, including `Next`, raises.
+`RowsAffected` is the provider count captured on execution, or **-1** when
+unknown, including SELECTs for which the driver supplies no count.
 
-`TFireDACAdapter.ToSql(Query, Dialect)` returns just the parameterized SQL
-string; `GetParameters(Query, Dialect)` returns just the `TArray<Variant>`.
-Both default to SQL Server. Each call compiles the query afresh; use `Compile`
-when obtaining SQL and parameters together. Raw SQL fragments remain the
-caller's SQL; macro/escape expansion should stay disabled when executing them.
+Result values use string, Integer/Cardinal/Int64, Boolean, Double, Currency,
+TDateTime, TGUID, TBcd, TBytes or the Variant's corresponding TValue type.
+BCD is preserved as TBcd; binary/BLOB reads copy bytes without text conversion.
+Unsupported field types raise a descriptive exception on access. FireDAC's
+field definitions determine the exact Delphi type (SQLite has dynamic typing).
+Timestamp offsets and nested datasets are not converted implicitly.
 
-The optional DUnitX project `test/QueryBuilder.FireDAC.Tests.dproj` tests
-parameter mapping for every dialect and actual CRUD/rollback behavior using
-statically linked SQLite in memory. After building it for both platforms:
+The parameter binder retains Unicode, signed/unsigned integers (large UInt64
+as exact BCD), Boolean, floating point, Currency, TDateTime, GUID, TBcd, TBytes,
+scalar Variant and NULL support. Unsupported bindings fail before allocating a
+query. Import `QueryBuilder4Delphi.Providers.FireDAC.Parameters` plus `Data.DB`
+for `TFireDACNull.Create(ftCurrency)` or another explicit NULL field type.
+Untyped NULL defaults to ftWideString; ftUnknown is not a valid typed NULL.
+All dialects use named `:p0`, `:p1`, ... parameters. Provider-created queries
+have parameter expansion enabled, macro/escape expansion disabled, and no
+caller-owned TFDQuery options to overwrite.
+
+Queries, executors and results are reference counted. Execution compiles a
+clone, leaving the original query intact. Each result exclusively owns its
+own TFDQuery, so another execution cannot invalidate it. Releasing the final
+result interface closes the cursor and frees that query, including early loop
+exit. Execution exceptions free temporary parameters/queries. Results retain
+neither the source query nor the executor; there are no reference cycles.
+The **caller-owned connection must outlive the executor and all its results**.
+Never free/disconnect it while results are in use. Executors do not connect,
+configure, own or free connections, or explicitly begin/commit/rollback
+transactions. FireDAC's configured automatic transaction behavior still
+applies; start an explicit transaction when the application needs control.
+Executors and cursors are not thread safe; follow your driver's thread rules.
+
+A custom provider (for example an external TDanaQueryExecutor) can implement
+`IQueryExecutor` directly, or derive from `TQueryExecutor`, call inherited
+`Create(Dialect)`, and override `ExecuteCompiled(const Statement: ISqlResult;
+Mode: TQueryExecutionMode): IQueryResult`. Consume `Statement.Sql` and ordered
+`Statement.Bindings` (named `p0`, `p1`, ...), then return an implementation of
+`IQueryResult` with the cursor, NULL, type and ownership semantics above.
+No FireDAC or private adapter dependency needs to enter the core repository.
+
+Future object mapping can consume only `IQueryResult`: names, TValue type
+information, NULL and sequential iteration are already available for single
+objects, lists and streaming. Delphi interfaces cannot declare generic
+methods; a future record facade holding IQueryResult can offer `ToList<T>`,
+`First<T>` or `Single<T>` without changing providers. No result object mapper
+is implemented here. The existing Query.DataMapper remains solely for write
+query construction from object properties.
+
+Run the separate FireDAC SQLite in-memory suite after rebuilding:
 
 ```powershell
-./tools/build.ps1 -Suite FireDAC -TestsOnly
-python tools/record_validation.py --suite FireDAC
+./tools/build.ps1 -Suite FireDAC -TestsOnly -Platform Both
 ```
 
 ## More tested examples

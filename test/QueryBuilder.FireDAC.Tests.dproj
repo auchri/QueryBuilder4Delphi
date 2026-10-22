@@ -30,8 +30,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\src\QueryBuilder4Delphi.FireDAC.pas"/>
+        <DCCReference Include="..\src\QueryBuilder4Delphi.Providers.FireDAC.pas"/>
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.Factory.pas"/>
+        <DCCReference Include="ExecutionExamples.pas"/>
         <DCCReference Include="FireDAC.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
