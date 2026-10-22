@@ -4,9 +4,11 @@ program QueryBuilderFireDACTests;
 uses
   System.SysUtils, System.IOUtils,
   DUnitX.TestFramework, DUnitX.Loggers.Console, DUnitX.Loggers.XML.NUnit,
-  QueryBuilder4Delphi.FireDAC in '..\src\QueryBuilder4Delphi.FireDAC.pas',
+  QueryBuilder4Delphi.Providers.FireDAC
+    in '..\src\QueryBuilder4Delphi.Providers.FireDAC.pas',
   QueryBuilder4Delphi.Compilers.Factory
     in '..\src\QueryBuilder4Delphi.Compilers.Factory.pas',
+  ExecutionExamples in 'ExecutionExamples.pas',
   FireDAC.Tests in 'FireDAC.Tests.pas';
 
 var

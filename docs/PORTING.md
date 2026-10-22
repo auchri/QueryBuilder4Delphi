@@ -123,43 +123,41 @@ Completed work packages for query compilation:
     All 603 tests pass on each of Win32 and Win64 after full builds with zero
     errors and warnings; both generator checks and six Python tests pass.
 
-Completed work packages for optional FireDAC integration:
+Execution replaces the former optional adapter API. See README and API.md for
+provider units, migration, cursor semantics, ownership and provider extension.
+The previous adapter facade and command export helpers have been removed.
+Parameterized compilation remains available through ICompiler/ISqlResult.
 
-25. Start `codex/firedac-adapter` from `origin/main` at `0f17149`, after PR #6
-    was merged. Share dialect compiler creation, expose configurable named
-    parameter prefixes, and correct empty write bindings to compile as NULL.
-26. Add the optional `QueryBuilder4Delphi.FireDAC` unit with `Apply`, `Open`,
-    and `ExecSQL`. Bind values with their types, support explicit typed NULLs,
-    and preserve caller ownership of components, connections and transactions.
-27. Add a separate FireDAC DUnitX project with 15 parameter and integration
-    cases, using statically linked SQLite in memory. Extend build/validation
-    tooling to select the optional suite. Document usage and supported types.
-    Both suites pass on Win32 and Win64 after full Delphi 12 builds with zero
-    errors and warnings: 603 core tests and 15 FireDAC tests per platform,
-    with no reported test leaks. Both generators and six Python tests pass.
-28. Extend the FireDAC adapter with parameterized `ToSql`,
-    `GetParameters: TArray<Variant>`, and a combined `Compile` result including
-    data types. Enable automatic parameter creation in `Apply`, retain disabled
-    macro/escape expansion, and export binary values without text conversion.
-    All 24 FireDAC tests pass on each of Win32 and Win64 after full Delphi 12
-    builds with zero errors, warnings, hints, or reported test leaks.
-29. Preserve caller-owned FireDAC resource/format options and parameter binding
-    mode. Remove the preprocessing changes introduced in steps 26/28 and move
-    configuration guidance into the application examples. Add two regression
-    cases covering enabled/disabled preprocessing and both binding modes;
-    execute SQLite CRUD with positional binding. All 26 FireDAC tests pass
-    on Win32 and Win64 with no build warnings or reported test leaks.
+The execution contracts are colocated with IQuery to avoid circular units.
+The Fluent Execute member is outside generated sections and survives both
+query generator regeneration and formatting. No generator change is needed.
+The generic executor compiles a clone with a configured dialect; FireDAC
+execution, binding and resource ownership are isolated in optional units.
 
-Completed work packages for source formatting:
+PR #9 review follow-up keeps this architecture. TQueryExecutor now offers a
+protected virtual CreateCompiler and an optional parameter prefix; FireDAC
+retains :pN and validates the compiled named/ordered binding convention.
+TQueryNull/TQueryValueType carry small provider-neutral NULL hints and column
+categories, including for all-NULL columns. IQueryResult has a new interface
+GUID for GetColumnType. Optional TFireDACNull remains for exact driver types.
+No compiler-factory hierarchy, mapper or database-specific external bridge was
+introduced. Execution.ProviderExample.pas compiles without Data.DB/FireDAC.
 
-30. Start `codex/format-source` from merged `origin/main` at `adb4994`.
-    Format all 22 Delphi source/test files using the installed Delphi 12
-    `Formatter.exe` and `Formatter_Default.config`. Verify formatter idempotence
-    and unchanged tokens, literals, comments, and directives apart from
-    case-insensitive identifier spelling.
-31. Add `tools/format.ps1` and preserve formatted generated code by comparing
-    Pascal tokens rather than layout. Add two generator regressions and
-    document the formatting workflow. Both generator checks and all eight
-    Python tests pass. Full Delphi 12 builds have zero errors/warnings/hints;
-    all 603 core and 26 FireDAC tests pass on each of Win32 and Win64 with no
-    reported test leaks.
+Decimal reads use AsBCD with FMTBcd storage preferred over Currency-backed
+fields; standard timestamp records preserve fractions and timezone offsets.
+Opaque Oracle timestamp/interval formats still fail explicitly.
+
+The subsequent SQL-scanner simplification removes ValidateSingleStatement,
+all keyword/statement-count heuristics and the executor's scanner dependency.
+SqlCodeMask remains solely for raw/intermediate placeholder processing; it
+masks quoted text/comments without validating SQL syntax. ReturnId rejection
+and execution modes still use query metadata. Public query, executor, result
+and compiler interfaces, parameter conventions and FireDAC ownership do not
+change. The one-resultset restriction remains the caller/provider contract.
+
+Structured parameter emission could eventually avoid rescanning generated
+SQL, but would need to carry token positions through composed fragments,
+subqueries, CTE reordering and dialect rewrites. Raw SQL would still need an
+explicit placeholder convention. Retaining the existing small scanner avoids
+that compiler-wide redesign and preserves current binding order and golden SQL.
+See VALIDATION.md for final platform results and live-server test limits.

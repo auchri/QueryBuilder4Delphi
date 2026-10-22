@@ -15,7 +15,51 @@ type
     function EngineCode: string;
   end;
 
+  // Broad value categories, shared by typed NULLs and result metadata.
+  // qtUnknown is valid metadata, but not a typed NULL hint.
+  TQueryValueType = (qtUnknown, qtString, qtInteger, qtInt64, qtBoolean,
+    qtFloat, qtCurrency, qtDecimal, qtDateTime, qtTimestamp, qtTimestampOffset,
+    qtGuid, qtBinary);
+
+  TQueryNull = record
+  private
+    FValueType: TQueryValueType;
+  public
+    constructor Create(ValueType: TQueryValueType);
+    class operator Implicit(const Value: TQueryNull): TValue;
+    property ValueType: TQueryValueType read FValueType;
+  end;
+
   IQuery = interface;
+  TQueryExecutionMode = (emAuto, emRows, emCommand);
+
+  // Cursor starts before the first row; indices are zero based.
+  // NULL is TValue.Empty. RowsAffected = -1 means unknown.
+  IQueryResult = interface
+    ['{33A2DB10-1BA7-4089-95D1-78A86D2D88DC}']
+    function Next: Boolean;
+    function GetHasResultSet: Boolean;
+    function GetRowsAffected: Int64;
+    function GetColumnCount: Integer;
+    function GetColumnName(Index: Integer): string;
+    function GetColumnType(Index: Integer): TQueryValueType;
+    function GetColumnIndex(const Name: string): Integer;
+    function GetValue(Index: Integer): TValue; overload;
+    function GetValue(const Name: string): TValue; overload;
+    function IsNull(Index: Integer): Boolean; overload;
+    function IsNull(const Name: string): Boolean; overload;
+    property HasResultSet: Boolean read GetHasResultSet;
+    property RowsAffected: Int64 read GetRowsAffected;
+    property ColumnCount: Integer read GetColumnCount;
+    property ColumnNames[Index: Integer]: string read GetColumnName;
+  end;
+
+  IQueryExecutor = interface
+    ['{6793FB16-8CA0-4785-AB75-63C8DE7BC09A}']
+    function Execute(const Query: IQuery; Mode: TQueryExecutionMode = emAuto)
+      : IQueryResult;
+  end;
+
   TQueryCallback = reference to function(Query: IQuery): IQuery;
   TValues = TArray<TValue>;
   TRows = TArray<TValues>;
@@ -60,7 +104,9 @@ type
   end;
 
   IQuery = interface
-    ['{03A7DA22-0598-40E2-95FB-462812EDCA03}']
+    ['{408F2E7B-CA64-4B3A-B88D-972214A15CAA}']
+    function Execute(const Executor: IQueryExecutor;
+      Mode: TQueryExecutionMode = emAuto): IQueryResult;
     function GetEngineScope: string;
     procedure PutEngineScope(const Value: string);
     function GetQueryAlias: string;
@@ -650,6 +696,19 @@ implementation
 
 uses
   System.Variants;
+
+constructor TQueryNull.Create(ValueType: TQueryValueType);
+begin
+  if not(ValueType in [qtString .. qtBinary]) then
+    raise EQueryException.Create
+      ('A typed NULL requires a supported value type');
+  FValueType := ValueType;
+end;
+
+class operator TQueryNull.Implicit(const Value: TQueryNull): TValue;
+begin
+  Result := TValue.From<TQueryNull>(Value);
+end;
 
 function TSqlDialectHelper.EngineCode: string;
 const

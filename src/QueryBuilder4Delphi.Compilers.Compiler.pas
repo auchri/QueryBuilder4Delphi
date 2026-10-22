@@ -178,7 +178,7 @@ implementation
 
 uses System.StrUtils, System.TypInfo, System.Variants,
   System.RegularExpressions,
-  QueryBuilder4Delphi.Query;
+  QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Sql.Lexer;
 
 function TCompiler.GetParameterPrefix: string;
 begin
@@ -275,7 +275,7 @@ var
   V: Variant;
   D: TDateTime;
 begin
-  if Value.IsEmpty then
+  if Value.IsEmpty or Value.IsType<TQueryNull>(False) then
     Exit('NULL');
   if Value.TypeInfo = TypeInfo(TDateTime) then
   begin
@@ -309,16 +309,19 @@ end;
 
 // Preserve escaped question marks exactly as in the C# Helper.ReplaceAll.
 function ReplaceParameters(const Sql: string; const Bindings: TList<TValue>;
-  const Prefix: string; InlineValues: Boolean): string;
+  const Prefix: string; InlineValues: Boolean;
+  BackslashEscapes: Boolean = False): string;
 var
   I, N: Integer;
+  Mask: TArray<Boolean>;
 begin
+  Mask := SqlCodeMask(Sql, BackslashEscapes);
   Result := '';
   I := 1;
   N := 0;
   while I <= Length(Sql) do
   begin
-    if (Sql[I] = '?') and ((I = 1) or (Sql[I - 1] <> '\')) then
+    if Mask[I - 1] and (Sql[I] = '?') and ((I = 1) or (Sql[I - 1] <> '\')) then
     begin
       if N >= Bindings.Count then
         raise EQueryException.Create('Not enough bindings');
@@ -545,13 +548,15 @@ var
   I, N, J: Integer;
   V: TValue;
   S: string;
+  Mask: TArray<Boolean>;
 begin
   Result := '';
   N := 0;
   S := WrapIdentifiers(Sql);
+  Mask := SqlCodeMask(S, FEngineCode = 'mysql');
   for I := 1 to Length(S) do
   begin
-    if (S[I] = '?') and ((I = 1) or (S[I - 1] <> '\')) then
+    if Mask[I - 1] and (S[I] = '?') and ((I = 1) or (S[I - 1] <> '\')) then
     begin
       if N >= Length(Values) then
         raise EQueryException.Create('Not enough raw bindings');
@@ -602,7 +607,7 @@ begin
     end;
     Result.Bindings.AddRange(Context.Bindings);
     Result.Sql := ReplaceParameters(Result.RawSql, Result.Bindings,
-      FParameterPrefix, False);
+      FParameterPrefix, False, FEngineCode = 'mysql');
     for N := 0 to Result.Bindings.Count - 1 do
       Result.NamedBindings.Add(FParameterPrefix + IntToStr(N),
         Result.Bindings[N]);
@@ -789,7 +794,8 @@ begin
     ckBasic:
       begin
         V := C.Value;
-        if V.IsEmpty or ((V.Kind = tkVariant) and VarIsNull(V.AsVariant)) then
+        if (V.IsEmpty and (V.TypeInfo <> TypeInfo(TBytes))) or
+          ((V.Kind = tkVariant) and VarIsNull(V.AsVariant)) then
         begin
           Result := Wrap(C.Name) + ' IS ';
           if Neg or (C.Op <> '=') then

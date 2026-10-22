@@ -35,6 +35,8 @@ type
   public
     constructor Create(const Table: string = ''; const Comment: string = '');
     destructor Destroy; override;
+    function Execute(const Executor: IQueryExecutor;
+      Mode: TQueryExecutionMode = emAuto): IQueryResult;
     function Clone: IQuery; virtual;
     function NewQuery: IQuery; virtual;
     function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
@@ -730,6 +732,17 @@ begin
   for C in Source.Clauses do
     FClauses.Add(C.Clone);
   Result := Self;
+end;
+
+function TQueryObject.Execute(const Executor: IQueryExecutor;
+  Mode: TQueryExecutionMode): IQueryResult;
+var
+  Query: IQuery;
+begin
+  Query := Self;
+  if Executor = nil then
+    raise EArgumentNilException.Create('Executor');
+  Result := Executor.Execute(Query, Mode);
 end;
 
 function TQueryObject.NewQuery: IQuery;
