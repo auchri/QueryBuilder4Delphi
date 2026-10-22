@@ -28,13 +28,11 @@ type
     [Test]
     procedure CompilerExtension;
     [Test]
-    procedure RejectsEmptyCompilerOutput;
+    procedure DelegatesCompilerSql;
     [Test]
-    procedure QuotedSqlBoundaries;
+    procedure RawParameterScanning;
     [Test]
     procedure TypedNullContract;
-    [Test]
-    procedure RejectsBatches;
     [TestCase('MSSql', '0')]
     [TestCase('MySql', '1')]
     [TestCase('PostgreSql', '2')]
@@ -51,7 +49,8 @@ uses
   System.SysUtils,
   QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Execution, QueryBuilder4Delphi.Compilers.Compiler,
-  QueryBuilder4Delphi.Compilers.SqliteCompiler, QueryBuilder4Delphi.Sql.Lexer,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler,
+  QueryBuilder4Delphi.Compilers.Factory,
   Execution.Mock;
 
 type
@@ -71,24 +70,25 @@ type
   end;
 
 type
-  TEmptyCompiler = class(TSqliteCompiler)
+  TCommandCompiler = class(TSqliteCompiler)
   public
     function Compile(Query: IQuery): ISqlResult; overload; override;
   end;
 
-  TEmptyExecutor = class(TMockQueryExecutor)
+  TCommandExecutor = class(TMockQueryExecutor)
   protected
     function CreateCompiler: ICompiler; override;
   end;
 
-function TEmptyCompiler.Compile(Query: IQuery): ISqlResult;
+function TCommandCompiler.Compile(Query: IQuery): ISqlResult;
 begin
   Result := TSqlResult.Create;
+  Result.Sql := 'EXEC dbo.RebuildBookIndex;';
 end;
 
-function TEmptyExecutor.CreateCompiler: ICompiler;
+function TCommandExecutor.CreateCompiler: ICompiler;
 begin
-  Result := TEmptyCompiler.Create;
+  Result := TCommandCompiler.Create;
 end;
 
 function TMockExecutor.ExecuteCompiled(const Statement: ISqlResult;
@@ -346,52 +346,67 @@ begin
   Assert.AreEqual(1, M.Values[0].AsInteger);
 end;
 
-procedure TExecutionTests.RejectsEmptyCompilerOutput;
+procedure TExecutionTests.DelegatesCompilerSql;
 var
   E: IQueryExecutor;
+  M: TCommandExecutor;
 begin
-  E := TEmptyExecutor.Create(TSqlDialect.Sqlite);
-  Assert.WillRaise(
-    procedure
-    begin
-      TQuery.Create('Books').Execute(E);
-    end, EQueryException);
+  M := TCommandExecutor.Create(TSqlDialect.MSSql);
+  E := M;
+  TQuery.Create('Books').Execute(E, emCommand);
+  Assert.AreEqual('EXEC dbo.RebuildBookIndex;', M.Sql);
+  Assert.IsTrue(M.LastMode = emCommand);
 end;
 
-procedure TExecutionTests.QuotedSqlBoundaries;
+procedure TExecutionTests.RawParameterScanning;
+var
+  C: ICompiler;
+  S: ISqlResult;
+  procedure Check(const Raw: string; const Values: array of TValue;
+  const Expected: string);
+  var
+    I: Integer;
+  begin
+    S := C.Compile(TQuery.Create.SelectRaw(Raw, Values));
+    Assert.AreEqual('SELECT ' + Expected, S.Sql);
+    Assert.AreEqual<NativeInt>(Length(Values), S.Bindings.Count);
+    for I := 0 to High(Values) do
+    begin
+      Assert.AreEqual(Values[I].ToString, S.Bindings[I].ToString);
+      Assert.AreEqual(Values[I].ToString, S.NamedBindings[':p' + IntToStr(I)
+        ].ToString);
+    end;
+  end;
+
 begin
-  ValidateSingleStatement('SELECT ''a'''';b'', "c;d", [e;f], `g;h`');
-  ValidateSingleStatement('SELECT 1 /* ; /* nested */ ; */ -- ;');
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT 1 EXEC SomeProcedure');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT ''open');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT 1 /* open');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT $$open');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT 1 UPDATE Books SET X=1');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT 1 UNION SELECT 2 DELETE FROM Books');
-    end, EQueryException);
+  C := TSqliteCompiler.Create;
+  C.ParameterPrefix := ':p';
+  Check('?', [11], ':p0');
+  Check('''Warum?'', ''it''''s ?'', "a?""b", `c?``d`, ? /* ? /* ? */ */ -- ?' +
+    #10 + ', ?', [11, 22],
+    '''Warum?'', ''it''''s ?'', "a?""b", `c?``d`, :p0 /* ? /* ? */ */ -- ?' +
+    #10 + ', :p1');
+  C := CreateCompiler(TSqlDialect.PostgreSql);
+  C.ParameterPrefix := ':p';
+  Check('$$why ? '' $$, $tag$what ?$tag$, E''it\''s ?'', ?', [33],
+    '$$why ? '' $$, $tag$what ?$tag$, E''it\''s ?'', :p0');
+  C := CreateCompiler(TSqlDialect.Oracle);
+  C.ParameterPrefix := ':p';
+  Check('q''\[it''s ?\]'', q''!why ?!'', ?', [44],
+    'q''[it''s ?]'', q''!why ?!'', :p0');
+  C := CreateCompiler(TSqlDialect.PostgreSql);
+  C.ParameterPrefix := ':p';
+  Check('doc \? ''key'', doc \?| keys, doc \?& keys, ?', [55],
+    'doc \? ''key'', doc \?| keys, doc \?& keys, :p0');
+  // Incomplete SQL reaches the database; this scanner only finds bindings.
+  Check('''unfinished ?', [], '''unfinished ?');
+  Check('1 /* unfinished ?', [], '1 /* unfinished ?');
+  C := CreateCompiler(TSqlDialect.MSSql);
+  C.ParameterPrefix := ':p';
+  Check('[a?]]b], ?', [66], '[a?]]b], :p0');
+  C := CreateCompiler(TSqlDialect.MySql);
+  C.ParameterPrefix := ':p';
+  Check('''it\''s ?'', ?', [77], '''it\''s ?'', :p0');
 end;
 
 procedure TExecutionTests.TypedNullContract;
@@ -418,39 +433,6 @@ begin
   Assert.AreEqual('', M.Values[1].AsString);
   Assert.IsTrue(M.Values[2].IsType<TBytes>);
   Assert.IsTrue(M.Values[3].IsEmpty);
-end;
-
-procedure TExecutionTests.RejectsBatches;
-var
-  E: IQueryExecutor;
-begin
-  E := TMockQueryExecutor.Create(TSqlDialect.Sqlite);
-  Assert.WillRaise(
-    procedure
-    begin
-      TQuery.Create.SelectRaw('1; DELETE FROM Books').Execute(E);
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      TQuery.Create.SelectRaw('1 DELETE FROM Books').Execute(E);
-    end, EQueryException);
-  ValidateSingleStatement('SELECT ''a;b''; -- trailing comment');
-  ValidateSingleStatement('SELECT 1 UNION ALL SELECT 2');
-  ValidateSingleStatement('INSERT INTO T SELECT 1');
-  ValidateSingleStatement('WITH T AS (SELECT 1) SELECT * FROM T');
-  ValidateSingleStatement('SELECT $$a;b$$');
-  ValidateSingleStatement('SELECT q''!a;b!'' FROM dual');
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement(' -- empty');
-    end, EQueryException);
-  Assert.WillRaise(
-    procedure
-    begin
-      ValidateSingleStatement('SELECT 1; SELECT 2');
-    end, EQueryException);
 end;
 
 procedure TExecutionTests.ParameterContract(DialectIndex: Integer);

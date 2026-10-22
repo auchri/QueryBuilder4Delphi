@@ -76,8 +76,6 @@ type
     [Test]
     procedure RejectsParameterConventionMismatch;
     [Test]
-    procedure RejectsBatchBeforeSideEffects;
-    [Test]
     procedure DmlReturning;
     [Test]
     procedure InvalidAndMismatchedModes;
@@ -822,23 +820,6 @@ begin
     begin
       TFireDACParameterBinder.Bind(nil);
     end, EArgumentNilException);
-end;
-
-procedure TFireDACExecutionTests.RejectsBatchBeforeSideEffects;
-var
-  Before: Integer;
-  R: IQueryResult;
-begin
-  Before := FConnection.DataSetCount;
-  Assert.WillRaise(
-    procedure
-    begin
-      TQuery.Create.SelectRaw('1; DELETE FROM Books').Execute(FExecutor);
-    end, EQueryException);
-  Assert.AreEqual(Before, FConnection.DataSetCount);
-  R := TQuery.Create('Books').AsCount.Execute(FExecutor);
-  Assert.IsTrue(R.Next);
-  Assert.AreEqual<Int64>(2, R.GetValue(0).AsInt64);
 end;
 
 procedure TFireDACExecutionTests.DmlReturning;

@@ -145,9 +145,19 @@ introduced. Execution.ProviderExample.pas compiles without Data.DB/FireDAC.
 
 Decimal reads use AsBCD with FMTBcd storage preferred over Currency-backed
 fields; standard timestamp records preserve fractions and timezone offsets.
-Opaque Oracle timestamp/interval formats still fail explicitly. A shared
-lexical mask protects raw bindings in literals/comments and guards single
-query execution, including common SQL Server batches without semicolons.
-This is a conservative query-builder guard, not a general SQL parser.
-See VALIDATION.md for the 622 core / 38 FireDAC cases on each platform and the
-limits of native field fixtures versus live server integration.
+Opaque Oracle timestamp/interval formats still fail explicitly.
+
+The subsequent SQL-scanner simplification removes ValidateSingleStatement,
+all keyword/statement-count heuristics and the executor's scanner dependency.
+SqlCodeMask remains solely for raw/intermediate placeholder processing; it
+masks quoted text/comments without validating SQL syntax. ReturnId rejection
+and execution modes still use query metadata. Public query, executor, result
+and compiler interfaces, parameter conventions and FireDAC ownership do not
+change. The one-resultset restriction remains the caller/provider contract.
+
+Structured parameter emission could eventually avoid rescanning generated
+SQL, but would need to carry token positions through composed fragments,
+subqueries, CTE reordering and dialect rewrites. Raw SQL would still need an
+explicit placeholder convention. Retaining the existing small scanner avoids
+that compiler-wide redesign and preserves current binding order and golden SQL.
+See VALIDATION.md for final platform results and live-server test limits.

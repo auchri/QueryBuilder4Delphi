@@ -10,17 +10,17 @@ Edition license. Full builds were therefore performed with IDE Project > Build
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 622 | 622 | 0 | 0 |
-| Core | Win64 | 622 | 622 | 0 | 0 |
-| FireDAC | Win32 | 38 | 38 | 0 | 0 |
-| FireDAC | Win64 | 38 | 38 | 0 | 0 |
+| Core | Win32 | 621 | 621 | 0 | 0 |
+| Core | Win64 | 621 | 621 | 0 | 0 |
+| FireDAC | Win32 | 37 | 37 | 0 | 0 |
+| FireDAC | Win64 | 37 | 37 | 0 | 0 |
 
 All four full builds reported zero errors, warnings and hints.
 ReportMemoryLeaksOnShutdown is enabled in both projects. Resource tests also
 check the connection's dataset count after failed commands and early release.
 The JSON reports record executable hashes and verified x86/x64 PE headers.
 
-The 603 existing core tests remain unchanged. Nineteen provider-free execution
+The 603 existing core tests remain unchanged. Eighteen provider-free execution
 tests verify delegation, custom compiler creation and parameter prefixes,
 parameter ordering across all six dialects, cloning, method-based modes,
 nil arguments and ReturnId rejection. A reusable in-memory mock verifies
@@ -29,7 +29,7 @@ access, duplicate names, NULL versus empty binary values, RowsAffected and
 independent executor/result lifetimes. The external-provider example is
 compiled in the core project. No FireDAC or Data.DB units are linked into it.
 
-The 38 optional cases use statically linked SQLite :memory: or native field
+The 37 optional cases use statically linked SQLite :memory: or native field
 fixtures and exercise
 SELECT (including empty results, WHERE and CTE), INSERT/UPDATE/DELETE and
 RowsAffected, repeated queries and simultaneous cursors, metadata/index/name
@@ -55,6 +55,17 @@ injected.
 Actual server-specific execution for MSSql/MySQL/PostgreSQL/Oracle/Firebird
 was not tested; their existing compilation regressions and binding cases run.
 Multiple resultsets and ReturnId batches are outside this version's contract.
+
+The SQL-scanner simplification removes the core and SQLite batch-rejection
+cases. Compiler SQL passthrough (EXEC with an explicit command mode) and raw
+parameter regressions replace the former empty-output/statement-boundary
+checks. The raw cases verify doubled quotes, quoted identifiers, nested block
+and line comments, PostgreSQL dollar/E strings, Oracle q strings, MySQL
+backslash quoting, explicitly escaped question-mark operators and exact :pN
+SQL/named/ordered bindings. Incomplete text is no longer syntax-validated by
+the scanner. The 603 prior core regressions and existing SELECT/DML integration
+cases remain. Public contracts and parameter conventions are unchanged;
+syntax and statement-count heuristics are deliberately absent from execution.
 
 Both generator checks pass (including 69 paired Oracle scenario definitions).
 All eight Python generator regression tests pass. The first Python run failed

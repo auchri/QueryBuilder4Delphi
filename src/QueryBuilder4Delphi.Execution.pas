@@ -26,8 +26,7 @@ type
 implementation
 
 uses
-  System.SysUtils, QueryBuilder4Delphi.Compilers.Factory,
-  QueryBuilder4Delphi.Sql.Lexer;
+  System.SysUtils, QueryBuilder4Delphi.Compilers.Factory;
 
 constructor TQueryExecutor.Create(Dialect: TSqlDialect;
   const ParameterPrefix: string);
@@ -80,7 +79,6 @@ begin
   Statement := Compiler.Compile(Snapshot);
   if Statement = nil then
     raise EQueryException.Create('The compiler returned nil SQL');
-  ValidateSingleStatement(Statement.Sql, Compiler.EngineCode = 'mysql');
   Result := ExecuteCompiled(Statement, Mode);
 end;
 

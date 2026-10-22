@@ -63,23 +63,22 @@ adds no RETURNING/OUTPUT rewriting. SQL prefixes are never parsed to choose a
 mode. Unknown methods require an explicit mode. A mismatched explicit mode is
 reported by FireDAC; database exception types/messages propagate unchanged.
 
-Only single-statement execution is supported. A lexical check rejects a
-semicolon followed by another statement before any database call, respecting
-quoted text/identifiers, -- and /* */ comments, PostgreSQL dollar quotes and
-Oracle q-quotes. One trailing semicolon (and comments) is allowed. Raw snippets
-must not contain batches, client batch commands, or calls known to return
-multiple resultsets. A conservative top-level DML-root check also rejects
-adjacent SELECT/INSERT/UPDATE/DELETE statements without semicolons; UNION,
-INSERT SELECT, CTEs, ON CONFLICT DO UPDATE and SELECT FOR UPDATE are allowed.
-Procedural SQL, EXEC/CALL, DDL, transaction-control statements and MERGE
-are rejected by this query execution path. Use the application's database
-adapter directly for those operations. The check
-is not a full SQL parser and cannot inspect server-side functions or triggers.
-Only the first cursor is accessible; additional results and output parameters
-are unsupported. No `NextResult` API is offered. `AsInsert(..., True)`
-(identity/ReturnId) is rejected before execution in every mode because existing
-compilers can append another statement. Retrieve identities separately in the
-same caller-managed transaction, or use supported single-statement SQL.
+Execution exposes at most one resultset. There is no NextResult API and
+output parameters are unsupported. The executor passes the compiler's SQL and
+bindings to the provider without scanning SQL keywords, counting statements,
+or validating SQL syntax. emAuto uses query metadata only; explicit modes
+handle provider-specific commands and RETURNING/OUTPUT when supported by the
+compiler and driver. The database validates SQL syntax.
+
+Raw fragments and custom compilers are caller-controlled SQL escape hatches.
+They must satisfy this one-result contract; submitting a batch or procedure
+that produces additional resultsets does not make those results accessible.
+The library does not detect such commands or guarantee rejection before side
+effects. Use the application's adapter directly when multiple resultsets or
+output parameters are needed. `AsInsert(..., True)` (identity/ReturnId) is
+still rejected from query metadata before execution because existing compilers
+can append an identity statement. Retrieve identities separately in the same
+caller-managed transaction, or use supported single-statement SQL.
 `TUnsafeLiteral` and raw expressions remain explicit caller SQL escape hatches;
 ordinary values always use bound parameters and never `RawSql` interpolation.
 
@@ -154,7 +153,16 @@ ISqlResult.NamedBindings contains exactly :p0 ... :pN for the ordered Bindings,
 then binds Values[I] to p<I> using pbByName. A compiler with another convention
 is rejected by FireDAC. Raw '?' placeholders are expanded only outside quoted
 text/identifiers and comments; repeated variables get distinct ordered bindings.
-Placeholder-like text inside a string literal is left intact. Execution never
+Placeholder-like text inside a string literal is left intact. The small
+SqlCodeMask scanner exists only for parameter processing; it skips quoted
+identifiers, doubled quotes, comments, PostgreSQL dollar/E strings and Oracle
+q strings, with the existing MySQL backslash mode. It does not validate SQL:
+unfinished quoted text/comments are masked to the end, while binding-count
+checks still reject unmatched values. Outside quoted text, use the existing
+`\?` raw escape to mark a non-parameter question mark, including dialect
+operators; no operator/keyword heuristic is applied. As before, executable
+Sql preserves this escape and ToString preview removes it. Ensure the chosen
+compiler/driver supports the resulting raw syntax. Execution never
 uses SQL previews or interpolates values into SQL. Provider-owned queries have
 parameter expansion enabled, macro/escape expansion disabled, and empty-string
 to NULL conversion disabled. There is no existing TFDQuery to overwrite.
