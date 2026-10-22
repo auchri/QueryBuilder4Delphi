@@ -10,22 +10,27 @@ Edition license. Full builds were therefore performed with IDE Project > Build
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 606 | 606 | 0 | 0 |
-| Core | Win64 | 606 | 606 | 0 | 0 |
-| FireDAC | Win32 | 24 | 24 | 0 | 0 |
-| FireDAC | Win64 | 24 | 24 | 0 | 0 |
+| Core | Win32 | 622 | 622 | 0 | 0 |
+| Core | Win64 | 622 | 622 | 0 | 0 |
+| FireDAC | Win32 | 38 | 38 | 0 | 0 |
+| FireDAC | Win64 | 38 | 38 | 0 | 0 |
 
 All four full builds reported zero errors, warnings and hints.
 ReportMemoryLeaksOnShutdown is enabled in both projects. Resource tests also
 check the connection's dataset count after failed commands and early release.
 The JSON reports record executable hashes and verified x86/x64 PE headers.
 
-The 603 existing core tests remain unchanged. Three additional provider-free
-execution tests verify delegation, dialect SQL, parameterization, cloning,
-method-based modes, nil arguments and ReturnId rejection. No FireDAC units
-are linked into the core test project.
+The 603 existing core tests remain unchanged. Nineteen provider-free execution
+tests verify delegation, custom compiler creation and parameter prefixes,
+parameter ordering across all six dialects, cloning, method-based modes,
+nil arguments and ReturnId rejection. A reusable in-memory mock verifies
+sequential cursors, metadata (including entirely NULL columns), index/name
+access, duplicate names, NULL versus empty binary values, RowsAffected and
+independent executor/result lifetimes. The external-provider example is
+compiled in the core project. No FireDAC or Data.DB units are linked into it.
 
-The 24 optional cases use statically linked SQLite :memory: and exercise
+The 38 optional cases use statically linked SQLite :memory: or native field
+fixtures and exercise
 SELECT (including empty results, WHERE and CTE), INSERT/UPDATE/DELETE and
 RowsAffected, repeated queries and simultaneous cursors, metadata/index/name
 errors, duplicate column access by index, NULL, Unicode, Boolean, dates,
@@ -35,6 +40,18 @@ Further tests cover invalid SQL, unsupported values/Variant arrays, explicit
 modes, disconnected/nil arguments, early release, executor lifetime and rollback
 of a caller-owned transaction. The documented PrintBooks/ChangeBook examples
 are compiled in test/ExecutionExamples.pas as part of the optional project.
+Review-follow-up regressions cover five exact BCD values (including
+123456789.12345678, negatives, very large decimals and leading/trailing zeros),
+FMTBcd memory-table storage, rejection of an unsafe Currency-backed BCD schema,
+native timestamp/offset fractions, Single/Extended and Oracle CLOB accessors.
+Decimal and timestamp precision checks use controlled field accessors and
+TFDMemTable, not SQLite numeric storage as a precision oracle. Additional cases
+cover portable typed NULL hints, all-NULL field metadata, empty strings/blobs
+versus NULL, compiler/provider parameter mismatch, quoted question marks,
+CTE/subquery bindings and explicit emRows for DML RETURNING. Failure cases
+verify cleanup after binding, SQL execution and mode errors; result creation
+ownership was also checked by code inspection. Allocation failures were not
+injected.
 Actual server-specific execution for MSSql/MySQL/PostgreSQL/Oracle/Firebird
 was not tested; their existing compilation regressions and binding cases run.
 Multiple resultsets and ReturnId batches are outside this version's contract.
@@ -44,7 +61,11 @@ All eight Python generator regression tests pass. The first Python run failed
 during temporary-directory cleanup under the sandbox's system temp path;
 rerunning with TMP/TEMP set to build/python-temp passed all eight.
 Delphi Formatter.exe was applied to source/test Pascal files. Execute is outside
-the generated sections and both generator checks retain it unchanged.
+the generated sections and both generator checks retain it unchanged. A second
+formatter pass was byte-for-byte idempotent across all 30 immediate Pascal
+source/test files. git diff --check passed. Source/documentation searches found
+no remaining references to the removed adapter symbol; the core source has no
+FireDAC or Data.DB dependencies. Untracked IDE history files were excluded.
 
 Commands used after the IDE builds:
 

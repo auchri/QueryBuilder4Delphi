@@ -133,3 +133,21 @@ The Fluent Execute member is outside generated sections and survives both
 query generator regeneration and formatting. No generator change is needed.
 The generic executor compiles a clone with a configured dialect; FireDAC
 execution, binding and resource ownership are isolated in optional units.
+
+PR #9 review follow-up keeps this architecture. TQueryExecutor now offers a
+protected virtual CreateCompiler and an optional parameter prefix; FireDAC
+retains :pN and validates the compiled named/ordered binding convention.
+TQueryNull/TQueryValueType carry small provider-neutral NULL hints and column
+categories, including for all-NULL columns. IQueryResult has a new interface
+GUID for GetColumnType. Optional TFireDACNull remains for exact driver types.
+No compiler-factory hierarchy, mapper or database-specific external bridge was
+introduced. Execution.ProviderExample.pas compiles without Data.DB/FireDAC.
+
+Decimal reads use AsBCD with FMTBcd storage preferred over Currency-backed
+fields; standard timestamp records preserve fractions and timezone offsets.
+Opaque Oracle timestamp/interval formats still fail explicitly. A shared
+lexical mask protects raw bindings in literals/comments and guards single
+query execution, including common SQL Server batches without semicolons.
+This is a conservative query-builder guard, not a general SQL parser.
+See VALIDATION.md for the 622 core / 38 FireDAC cases on each platform and the
+limits of native field fixtures versus live server integration.

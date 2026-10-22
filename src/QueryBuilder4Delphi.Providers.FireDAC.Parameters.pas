@@ -34,6 +34,38 @@ begin
   Result := TValue.From<TFireDACNull>(Value);
 end;
 
+function NullFieldType(ValueType: TQueryValueType): TFieldType;
+begin
+  case ValueType of
+    qtString:
+      Result := ftWideString;
+    qtInteger:
+      Result := ftInteger;
+    qtInt64:
+      Result := ftLargeint;
+    qtBoolean:
+      Result := ftBoolean;
+    qtFloat:
+      Result := ftFloat;
+    qtCurrency:
+      Result := ftCurrency;
+    qtDecimal:
+      Result := ftFMTBcd;
+    qtDateTime:
+      Result := ftDateTime;
+    qtTimestamp:
+      Result := ftTimeStamp;
+    qtTimestampOffset:
+      Result := ftTimeStampOffset;
+    qtGuid:
+      Result := ftGuid;
+    qtBinary:
+      Result := ftBlob;
+  else
+    raise EQueryException.Create('Unsupported typed NULL value type');
+  end;
+end;
+
 procedure BindNull(Param: TFDParam; DataType: TFieldType);
 begin
   if DataType = ftUnknown then
@@ -52,12 +84,19 @@ var
   Bytes: TBytes;
   Blob: RawByteString;
 begin
-  if Value.IsEmpty then
+  // IsEmpty also means a typed zero-length dynamic array in Delphi.
+  // Only an untyped TValue.Empty denotes an untyped SQL NULL.
+  if Value.Kind = tkUnknown then
   begin
     BindNull(Param, DefaultNullType);
     Exit;
   end;
-  if Value.IsType<TFireDACNull> then
+  if Value.IsType<TQueryNull>(False) then
+  begin
+    BindNull(Param, NullFieldType(Value.AsType<TQueryNull>.ValueType));
+    Exit;
+  end;
+  if Value.IsType<TFireDACNull>(False) then
   begin
     BindNull(Param, Value.AsType<TFireDACNull>.DataType);
     Exit;
@@ -85,11 +124,11 @@ begin
     Param.AsDateTime := Value.AsType<TDateTime>
   else if Value.TypeInfo = TypeInfo(Currency) then
     Param.AsCurrency := Value.AsType<Currency>
-  else if Value.IsType<TGUID> then
+  else if Value.IsType<TGUID>(False) then
     Param.AsGUID := Value.AsType<TGUID>
-  else if Value.IsType<TBcd> then
+  else if Value.IsType<TBcd>(False) then
     Param.AsFMTBCD := Value.AsType<TBcd>
-  else if Value.IsType<TBytes> then
+  else if Value.IsType<TBytes>(False) then
   begin
     Bytes := Value.AsType<TBytes>;
     SetString(Blob, PAnsiChar(Pointer(Bytes)), Length(Bytes));
@@ -130,6 +169,15 @@ var
   I: Integer;
   Param: TFDParam;
 begin
+  if Statement = nil then
+    raise EArgumentNilException.Create('Statement');
+  // FireDAC uses :pN. A custom compiler must honor that convention here.
+  if Statement.NamedBindings.Count <> Statement.Bindings.Count then
+    raise EQueryException.Create('Named/ordered binding count mismatch');
+  for I := 0 to Statement.Bindings.Count - 1 do
+    if not Statement.NamedBindings.ContainsKey(':p' + IntToStr(I)) then
+      raise EQueryException.Create
+        ('FireDAC requires compiler parameter names :p0, :p1, ...');
   Result := TFDParams.Create;
   try
     Result.BindMode := pbByName;

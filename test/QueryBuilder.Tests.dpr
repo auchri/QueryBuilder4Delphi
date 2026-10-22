@@ -24,6 +24,8 @@ uses
     in '..\src\QueryBuilder4Delphi.Compilers.OracleCompiler.pas',
   QueryBuilder4Delphi.Compilers.FirebirdCompiler
     in '..\src\QueryBuilder4Delphi.Compilers.FirebirdCompiler.pas',
+  Execution.ProviderExample in 'Execution.ProviderExample.pas',
+  Execution.Mock in 'Execution.Mock.pas',
   Execution.Tests in 'Execution.Tests.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
   QueryWrites.Tests in 'QueryWrites.Tests.pas',

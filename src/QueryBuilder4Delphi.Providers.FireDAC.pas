@@ -23,7 +23,8 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.Rtti, Data.DB, Data.FmtBcd,
-  FireDAC.Stan.Param, QueryBuilder4Delphi.Providers.FireDAC.Parameters;
+  FireDAC.Stan.Param, QueryBuilder4Delphi.Providers.FireDAC.Parameters,
+  QueryBuilder4Delphi.Providers.FireDAC.Values;
 
 type
   TFireDACQueryResult = class(TInterfacedObject, IQueryResult)
@@ -42,6 +43,7 @@ type
     function GetRowsAffected: Int64;
     function GetColumnCount: Integer;
     function GetColumnName(Index: Integer): string;
+    function GetColumnType(Index: Integer): TQueryValueType;
     function GetColumnIndex(const Name: string): Integer;
     function GetValue(Index: Integer): TValue; overload;
     function GetValue(const Name: string): TValue; overload;
@@ -72,6 +74,10 @@ begin
     Query := TFDQuery.Create(nil);
     try
       Query.Connection := FConnection;
+      // Prefer TBcd storage to Currency for driver decimal values.
+      Query.FormatOptions.MaxBcdPrecision := 0;
+      Query.FormatOptions.MaxBcdScale := 0;
+      Query.FormatOptions.StrsEmpty2Null := False;
       Query.ResourceOptions.ParamCreate := False;
       Query.ResourceOptions.ParamExpand := True;
       Query.ResourceOptions.MacroCreate := False;
@@ -98,11 +104,11 @@ end;
 constructor TFireDACQueryResult.Create(Query: TFDQuery; HasRows: Boolean);
 begin
   inherited Create;
-  FQuery := Query;
   FHasRows := HasRows;
   FRowsAffected := Query.RowsAffected;
   if FRowsAffected < 0 then
     FRowsAffected := -1;
+  FQuery := Query;
 end;
 
 destructor TFireDACQueryResult.Destroy;
@@ -200,61 +206,15 @@ begin
   Result := GetValue(GetColumnIndex(Name));
 end;
 
-function TFireDACQueryResult.GetValue(Index: Integer): TValue;
-var
-  F: TField;
-  Stream: TMemoryStream;
-  Bytes: TBytes;
+function TFireDACQueryResult.GetColumnType(Index: Integer): TQueryValueType;
 begin
-  F := Field(Index);
-  if F.IsNull then
-    Exit(TValue.Empty);
-  case F.DataType of
-    ftString, ftWideString, ftFixedChar, ftFixedWideChar, ftMemo, ftWideMemo,
-      ftFmtMemo:
-      Result := TValue.From<string>(F.AsString);
-    ftSmallint, ftInteger, ftWord, ftShortint, ftByte:
-      Result := TValue.From<Integer>(F.AsInteger);
-    ftLongWord:
-      Result := TValue.From<Cardinal>(F.AsLongWord);
-    ftLargeint, ftAutoInc:
-      Result := TValue.From<Int64>(F.AsLargeInt);
-    ftBoolean:
-      Result := TValue.From<Boolean>(F.AsBoolean);
-    ftFloat, ftSingle, ftExtended:
-      Result := TValue.From<Double>(F.AsFloat);
-    ftCurrency:
-      Result := TValue.From<Currency>(F.AsCurrency);
-    ftBCD:
-      Result := TValue.From<TBcd>(CurrencyToBcd(F.AsCurrency));
-    ftFMTBcd:
-      Result := TValue.From<TBcd>(TFMTBCDField(F).AsBCD);
-    ftDate, ftTime, ftDateTime, ftTimeStamp:
-      Result := TValue.From<TDateTime>(F.AsDateTime);
-    ftGuid:
-      Result := TValue.From<TGUID>(StringToGUID(F.AsString));
-    ftBytes, ftVarBytes:
-      Result := TValue.From<TBytes>(F.AsBytes);
-    ftBlob, ftGraphic, ftTypedBinary, ftOraBlob:
-      begin
-        Stream := TMemoryStream.Create;
-        try
-          TBlobField(F).SaveToStream(Stream);
-          SetLength(Bytes, Stream.Size);
-          if Length(Bytes) > 0 then
-            Move(Stream.Memory^, Bytes[0], Length(Bytes));
-          Result := TValue.From<TBytes>(Bytes);
-        finally
-          Stream.Free;
-        end;
-      end;
-    ftVariant:
-      Result := TValue.FromVariant(F.Value);
-  else
-    raise EQueryException.CreateFmt
-      ('Unsupported result field type %d for column %s',
-      [Ord(F.DataType), F.FieldName]);
-  end;
+  CheckIndex(Index);
+  Result := TFireDACFieldReader.ValueType(FQuery.Fields[Index]);
+end;
+
+function TFireDACQueryResult.GetValue(Index: Integer): TValue;
+begin
+  Result := TFireDACFieldReader.ReadValue(Field(Index));
 end;
 
 end.

@@ -61,6 +61,30 @@ type
     procedure EmptyBinaryAndTypedNullExecution;
     [Test]
     procedure CursorAfterLast;
+    [TestCase('Positive', '123456789.12345678')]
+    [TestCase('Negative', '-123456789.12345678')]
+    [TestCase('Large', '1234567890123456789012345678.12345678')]
+    [TestCase('LeadingZero', '0.00000001')]
+    [TestCase('TrailingZeros', '-000123.45000000')]
+    procedure ExactDecimal(const Text: string);
+    [Test]
+    procedure ExactTimestampsAndFloats;
+    [Test]
+    procedure OracleClobAndUnsupportedTypes;
+    [Test]
+    procedure PortableNullsAndEmptyValues;
+    [Test]
+    procedure RejectsParameterConventionMismatch;
+    [Test]
+    procedure RejectsBatchBeforeSideEffects;
+    [Test]
+    procedure DmlReturning;
+    [Test]
+    procedure InvalidAndMismatchedModes;
+    [Test]
+    procedure RejectsLossyBcdDefinition;
+    [Test]
+    procedure LiteralAndNestedBindings;
 
   end;
 
@@ -68,13 +92,107 @@ implementation
 
 uses
   DUnitX.Assert, System.Generics.Collections, System.SysUtils, System.Classes,
-  System.Rtti, System.Variants, Data.DB, Data.FmtBcd,
+  System.Rtti, System.TypInfo, System.Variants, Data.DB, Data.FmtBcd,
+  Data.SqlTimSt,
   FireDAC.Stan.Param, FireDAC.Stan.Def, FireDAC.Stan.Async, FireDAC.DApt,
   FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.ConsoleUI.Wait,
   QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.Factory,
   QueryBuilder4Delphi.Providers.FireDAC,
-  QueryBuilder4Delphi.Providers.FireDAC.Parameters;
+  QueryBuilder4Delphi.Providers.FireDAC.Parameters,
+  QueryBuilder4Delphi.Providers.FireDAC.Values,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler;
+
+type
+  TExactBCDField = class(TBCDField)
+  protected
+    function GetIsNull: Boolean; override;
+    function GetAsBCD: TBcd; override;
+    function GetAsCurrency: Currency; override;
+  public
+    Decimal: TBcd;
+  end;
+
+  TOracleTextField = class(TStringField)
+  public
+    constructor Create(AOwner: TComponent); override;
+  protected
+    function GetIsNull: Boolean; override;
+    function GetAsString: string; override;
+  end;
+
+  TUnsupportedField = class(TField)
+  public
+    constructor Create(AOwner: TComponent); override;
+  protected
+    function GetIsNull: Boolean; override;
+  end;
+
+  TReturningCompiler = class(TSqliteCompiler)
+  public
+    function Compile(Query: IQuery): ISqlResult; overload; override;
+  end;
+
+  TReturningExecutor = class(TFireDACQueryExecutor)
+  protected
+    function CreateCompiler: ICompiler; override;
+  end;
+
+function TExactBCDField.GetIsNull: Boolean;
+begin
+  Result := False;
+end;
+
+function TExactBCDField.GetAsBCD: TBcd;
+begin
+  Result := Decimal;
+end;
+
+function TExactBCDField.GetAsCurrency: Currency;
+begin
+  raise EQueryException.Create
+    ('Currency conversion must never be used for BCD');
+end;
+
+constructor TOracleTextField.Create(AOwner: TComponent);
+begin
+  inherited;
+  SetDataType(ftOraClob);
+end;
+
+function TOracleTextField.GetIsNull: Boolean;
+begin
+  Result := False;
+end;
+
+function TOracleTextField.GetAsString: string;
+begin
+  Result := 'Oracle CLOB ' + #$03A9;
+end;
+
+constructor TUnsupportedField.Create(AOwner: TComponent);
+begin
+  inherited;
+  SetDataType(ftOraInterval);
+end;
+
+function TUnsupportedField.GetIsNull: Boolean;
+begin
+  Result := False;
+end;
+
+function TReturningCompiler.Compile(Query: IQuery): ISqlResult;
+begin
+  Result := inherited Compile(Query);
+  Result.Sql := Result.Sql + ' RETURNING Id';
+  Result.RawSql := Result.RawSql + ' RETURNING Id';
+end;
+
+function TReturningExecutor.CreateCompiler: ICompiler;
+begin
+  Result := TReturningCompiler.Create;
+  Result.ParameterPrefix := ':p';
+end;
 
 procedure TFireDACExecutionTests.Setup;
 begin
@@ -393,6 +511,7 @@ var
   B: TBcd;
 begin
   C := CreateCompiler;
+  C.ParameterPrefix := ':p';
   G := StringToGUID('{03629984-43D7-41EE-8028-EE7774970E92}');
   B := StrToBcd('12345.6789', TFormatSettings.Invariant);
   P := TFireDACParameterBinder.Bind
@@ -427,6 +546,7 @@ var
   P: TFDParams;
 begin
   C := CreateCompiler;
+  C.ParameterPrefix := ':p';
   P := TFireDACParameterBinder.Bind
     (C.Compile(TQuery.Create('Typed').AsInsert(['Empty', 'Typed', 'VariantNull',
     'VariantInt', 'VariantString'], [TValue.Empty,
@@ -455,6 +575,18 @@ begin
     begin
       TQuery.Create('Books').Where('Id', TValue.From<Variant>(V))
         .Execute(FExecutor);
+    end, EQueryException);
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create('Books').AsInsert(['Id'], [TValue.From<TObject>(nil)])
+        .Execute(FExecutor);
+    end, EQueryException);
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create('Books').AsInsert(['Id'],
+        [TValue.From < TArray < Integer >> (nil)]).Execute(FExecutor);
     end, EQueryException);
   Assert.IsTrue(FConnection.Connected);
   Assert.WillRaise(
@@ -502,6 +634,279 @@ begin
     end, EQueryException);
   Assert.IsFalse(R.Next);
   Assert.AreEqual(2, R.ColumnCount);
+end;
+
+procedure TFireDACExecutionTests.ExactDecimal(const Text: string);
+var
+  M: TFDMemTable;
+  F: TExactBCDField;
+  B, Actual: TBcd;
+begin
+  B := StrToBcd(Text, TFormatSettings.Invariant);
+  F := TExactBCDField.Create(nil);
+  try
+    F.Decimal := B;
+    Actual := TFireDACFieldReader.ReadValue(F).AsType<TBcd>;
+    Assert.IsTrue(BcdCompare(B, Actual) = 0);
+    Assert.AreEqual(Integer(B.Precision), Integer(Actual.Precision));
+    Assert.AreEqual(Integer(B.SignSpecialPlaces),
+      Integer(Actual.SignSpecialPlaces));
+  finally
+    F.Free;
+  end;
+  M := TFDMemTable.Create(nil);
+  try
+    with M.FieldDefs.AddFieldDef do
+    begin
+      Name := 'Exact';
+      DataType := ftFMTBcd;
+      Precision := 38;
+      Size := 8;
+    end;
+    M.CreateDataSet;
+    Assert.IsTrue(TFireDACFieldReader.ValueType(M.Fields[0]) = qtDecimal);
+    M.Append;
+    Assert.IsTrue(M.Fields[0].IsNull);
+    Assert.IsTrue(TFireDACFieldReader.ReadValue(M.Fields[0]).TypeInfo = nil);
+    M.FieldByName('Exact').AsBCD := B;
+    M.Post;
+    Actual := TFireDACFieldReader.ReadValue(M.Fields[0]).AsType<TBcd>;
+    Assert.IsTrue(BcdCompare(B, Actual) = 0);
+    Assert.IsTrue(TFireDACFieldReader.ValueType(M.Fields[0]) = qtDecimal);
+  finally
+    M.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.ExactTimestampsAndFloats;
+var
+  M: TFDMemTable;
+  Stamp, ReadStamp: TSQLTimeStamp;
+  Offset, ReadOffset: TSQLTimeStampOffset;
+  V: TValue;
+begin
+  Stamp := DateTimeToSQLTimeStamp(EncodeDate(2026, 10, 22));
+  Stamp.Fractions := 123456789;
+  Offset := DateTimeToSQLTimeStampOffset(EncodeDate(2026, 10, 22), -5, -30);
+  Offset.Fractions := 987654321;
+  M := TFDMemTable.Create(nil);
+  try
+    M.FieldDefs.Add('Stamp', ftTimeStamp);
+    M.FieldDefs.Add('Offset', ftTimeStampOffset);
+    M.FieldDefs.Add('SingleValue', ftSingle);
+    M.FieldDefs.Add('ExtendedValue', ftExtended);
+    M.CreateDataSet;
+    M.Append;
+    M.Fields[0].AsSQLTimeStamp := Stamp;
+    M.Fields[1].AsSQLTimeStampOffset := Offset;
+    M.Fields[2].AsSingle := 1.25;
+    M.Fields[3].AsExtended := 1.234567890123456789;
+    M.Post;
+    ReadStamp := TFireDACFieldReader.ReadValue(M.Fields[0])
+      .AsType<TSQLTimeStamp>;
+    ReadOffset := TFireDACFieldReader.ReadValue(M.Fields[1])
+      .AsType<TSQLTimeStampOffset>;
+    Assert.AreEqual<Cardinal>(Stamp.Fractions, ReadStamp.Fractions);
+    Assert.AreEqual<Cardinal>(Offset.Fractions, ReadOffset.Fractions);
+    Assert.AreEqual<SmallInt>(Offset.TimeZoneHour, ReadOffset.TimeZoneHour);
+    Assert.AreEqual<SmallInt>(Offset.TimeZoneMinute, ReadOffset.TimeZoneMinute);
+    V := TFireDACFieldReader.ReadValue(M.Fields[2]);
+    Assert.IsTrue(V.IsType<Single>);
+    V := TFireDACFieldReader.ReadValue(M.Fields[3]);
+    Assert.IsTrue(V.IsType<Extended>);
+    Assert.AreEqual<Extended>(M.Fields[3].AsExtended, V.AsType<Extended>);
+  finally
+    M.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.OracleClobAndUnsupportedTypes;
+var
+  F: TOracleTextField;
+  U: TUnsupportedField;
+begin
+  F := TOracleTextField.Create(nil);
+  try
+    Assert.AreEqual('Oracle CLOB ' + #$03A9, TFireDACFieldReader.ReadValue(F)
+      .AsString);
+  finally
+    F.Free;
+  end;
+  U := TUnsupportedField.Create(nil);
+  try
+    Assert.WillRaise(
+      procedure
+      begin
+        TFireDACFieldReader.ReadValue(U);
+      end, EQueryException);
+    Assert.IsTrue(TFireDACFieldReader.ValueType(U) = qtUnknown);
+  finally
+    U.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.PortableNullsAndEmptyValues;
+var
+  C: ICompiler;
+  P: TFDParams;
+  R: IQueryResult;
+  K: TQueryValueType;
+  Expected: array [TQueryValueType] of TFieldType;
+begin
+  Expected[qtString] := ftWideString;
+  Expected[qtInteger] := ftInteger;
+  Expected[qtInt64] := ftLargeint;
+  Expected[qtBoolean] := ftBoolean;
+  Expected[qtFloat] := ftFloat;
+  Expected[qtCurrency] := ftCurrency;
+  Expected[qtDecimal] := ftFMTBcd;
+  Expected[qtDateTime] := ftDateTime;
+  Expected[qtTimestamp] := ftTimeStamp;
+  Expected[qtTimestampOffset] := ftTimeStampOffset;
+  Expected[qtGuid] := ftGuid;
+  Expected[qtBinary] := ftBlob;
+  C := CreateCompiler;
+  C.ParameterPrefix := ':p';
+  for K := qtString to qtBinary do
+  begin
+    P := TFireDACParameterBinder.Bind
+      (C.Compile(TQuery.Create('Books').Where('Price', TQueryNull.Create(K))));
+    try
+      Assert.IsTrue(P[0].DataType = Expected[K]);
+      Assert.IsTrue(P[0].IsNull);
+      Assert.IsTrue(P[0].Bound);
+    finally
+      P.Free;
+    end;
+  end;
+  P := TFireDACParameterBinder.Bind
+    (C.Compile(TQuery.Create('Books').AsInsert(['Title', 'Payload', 'Price'],
+    ['', TValue.From<TBytes>(nil), TQueryNull.Create(qtDecimal)])));
+  try
+    Assert.IsFalse(P[0].IsNull, 'Empty string parameter became NULL');
+    Assert.IsFalse(P[1].IsNull, 'Empty byte parameter became NULL');
+    Assert.IsTrue(P[2].IsNull);
+  finally
+    P.Free;
+  end;
+  TQuery.Create('Books').Where('Id', 1).AsUpdate(['Title', 'Payload', 'Price'],
+    ['', TValue.From<TBytes>(nil), TQueryNull.Create(qtDecimal)])
+    .Execute(FExecutor);
+  R := TQuery.Create('Books').Where('Id', 1).Execute(FExecutor);
+  Assert.AreEqual(4, R.ColumnCount);
+  Assert.IsTrue(R.Next);
+  Assert.IsFalse(R.IsNull(R.GetColumnIndex('Title')),
+    'Empty string result became NULL');
+  Assert.AreEqual('', R.GetValue('Title').AsString);
+  Assert.IsFalse(R.IsNull(R.GetColumnIndex('Payload')),
+    'Empty BLOB result became NULL');
+  Assert.AreEqual<NativeInt>(0, Length(R.GetValue('Payload').AsType<TBytes>));
+  Assert.IsTrue(R.GetValue('Price').IsEmpty);
+end;
+
+procedure TFireDACExecutionTests.RejectsParameterConventionMismatch;
+var
+  C: ICompiler;
+  S: ISqlResult;
+begin
+  C := CreateCompiler;
+  C.ParameterPrefix := ':Parameter';
+  S := C.Compile(TQuery.Create('Books').Where('Id', 1));
+  Assert.WillRaise(
+    procedure
+    begin
+      TFireDACParameterBinder.Bind(S);
+    end, EQueryException);
+  Assert.WillRaise(
+    procedure
+    begin
+      TFireDACParameterBinder.Bind(nil);
+    end, EArgumentNilException);
+end;
+
+procedure TFireDACExecutionTests.RejectsBatchBeforeSideEffects;
+var
+  Before: Integer;
+  R: IQueryResult;
+begin
+  Before := FConnection.DataSetCount;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create.SelectRaw('1; DELETE FROM Books').Execute(FExecutor);
+    end, EQueryException);
+  Assert.AreEqual(Before, FConnection.DataSetCount);
+  R := TQuery.Create('Books').AsCount.Execute(FExecutor);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual<Int64>(2, R.GetValue(0).AsInt64);
+end;
+
+procedure TFireDACExecutionTests.DmlReturning;
+var
+  E: IQueryExecutor;
+  R: IQueryResult;
+begin
+  E := TReturningExecutor.Create(FConnection, TSqlDialect.SQLite);
+  R := TQuery.Create('Books').Where('Id', 1).AsUpdate(['Title'], ['Returned'])
+    .Execute(E, emRows);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual<Int64>(1, R.GetValue(0).AsInt64);
+  Assert.IsFalse(R.Next);
+end;
+
+procedure TFireDACExecutionTests.InvalidAndMismatchedModes;
+var
+  Before: Integer;
+begin
+  Before := FConnection.DataSetCount;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create.Execute(FExecutor);
+    end);
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create('Books').Execute(FExecutor, emCommand);
+    end);
+  Assert.AreEqual(Before, FConnection.DataSetCount);
+end;
+
+procedure TFireDACExecutionTests.RejectsLossyBcdDefinition;
+var
+  F: TExactBCDField;
+begin
+  F := TExactBCDField.Create(nil);
+  try
+    F.Size := 8;
+    F.Decimal := StrToBcd('123456789.12345678', TFormatSettings.Invariant);
+    Assert.WillRaise(
+      procedure
+      begin
+        TFireDACFieldReader.ReadValue(F);
+      end, EQueryException);
+  finally
+    F.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.LiteralAndNestedBindings;
+var
+  R: IQueryResult;
+begin
+  R := TQuery.Create.SelectRaw
+    ('''literal ? :p0'' as Literal, ? as Bound /* ? */', ['value'])
+    .Execute(FExecutor);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual('literal ? :p0', R.GetValue('Literal').AsString);
+  Assert.AreEqual('value', R.GetValue('Bound').AsString);
+  R := nil;
+  R := TQuery.Create('b').&With('b', TQuery.Create('Books').Where('Title',
+    'Alpha')).WhereIn('Id', TQuery.Create('Books').Select('Id').Where('Id', 1))
+    .Execute(FExecutor);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual('Alpha', R.GetValue('Title').AsString);
+  Assert.IsFalse(R.Next);
 end;
 
 initialization
