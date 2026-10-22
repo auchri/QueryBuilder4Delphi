@@ -47,7 +47,8 @@ type
     function GetColumnIndex(const Name: string): Integer;
     function GetValue(Index: Integer): TValue; overload;
     function GetValue(const Name: string): TValue; overload;
-    function IsNull(Index: Integer): Boolean;
+    function IsNull(Index: Integer): Boolean; overload;
+    function IsNull(const Name: string): Boolean; overload;
   end;
 
 constructor TFireDACQueryExecutor.Create(Connection: TFDConnection;
@@ -194,6 +195,11 @@ begin
     end;
   if Result < 0 then
     raise EQueryException.CreateFmt('Column not found: %s', [Name]);
+end;
+
+function TFireDACQueryResult.IsNull(const Name: string): Boolean;
+begin
+  Result := IsNull(GetColumnIndex(Name));
 end;
 
 function TFireDACQueryResult.IsNull(Index: Integer): Boolean;

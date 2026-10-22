@@ -29,6 +29,8 @@ type
     [Test]
     procedure NullAndBinary;
     [Test]
+    procedure NamedNullAccess;
+    [Test]
     procedure MetadataErrorsAndDuplicates;
     [Test]
     procedure TransactionRollback;
@@ -326,6 +328,47 @@ begin
   Assert.AreEqual(255, Integer(B[2]));
 end;
 
+procedure TFireDACExecutionTests.NamedNullAccess;
+var
+  R: IQueryResult;
+  procedure CheckCursorError;
+  begin
+    Assert.WillRaise(
+      procedure
+      begin
+        R.IsNull(1);
+      end, EQueryException);
+    Assert.WillRaise(
+      procedure
+      begin
+        R.IsNull('Title');
+      end, EQueryException);
+  end;
+
+begin
+  FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
+  R := Rows;
+  CheckCursorError;
+  Assert.IsTrue(R.Next);
+  Assert.IsTrue(R.IsNull('Title'));
+  Assert.IsTrue(R.IsNull(1) = R.IsNull('tItLe'));
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.GetValue('missing');
+    end, EQueryException, 'Column not found: missing');
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.IsNull('missing');
+    end, EQueryException, 'Column not found: missing');
+  Assert.IsTrue(R.Next);
+  Assert.IsFalse(R.IsNull('Title'));
+  Assert.IsTrue(R.IsNull(1) = R.IsNull('TITLE'));
+  Assert.IsFalse(R.Next);
+  CheckCursorError;
+end;
+
 procedure TFireDACExecutionTests.MetadataErrorsAndDuplicates;
 var
   R: IQueryResult;
@@ -351,6 +394,26 @@ begin
   Assert.IsTrue(R.Next);
   Assert.AreEqual<Int64>(1, R.GetValue(0).AsInt64);
   Assert.AreEqual<Int64>(2, R.GetValue(1).AsInt64);
+  // FireDAC can disambiguate duplicate aliases into distinct field names.
+  // If aliases remain ambiguous, both name APIs must reject them identically.
+  if SameText(R.GetColumnName(0), R.GetColumnName(1)) then
+  begin
+    Assert.WillRaiseWithMessage(
+      procedure
+      begin
+        R.GetValue('X');
+      end, EQueryException, 'Ambiguous column name: X; use its index');
+    Assert.WillRaiseWithMessage(
+      procedure
+      begin
+        R.IsNull('X');
+      end, EQueryException, 'Ambiguous column name: X; use its index');
+  end
+  else
+  begin
+    Assert.IsTrue(R.IsNull(0) = R.IsNull(R.GetColumnName(0)));
+    Assert.IsTrue(R.IsNull(1) = R.IsNull(R.GetColumnName(1)));
+  end;
 end;
 
 procedure TFireDACExecutionTests.TransactionRollback;

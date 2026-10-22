@@ -18,6 +18,8 @@ type
     [Test]
     procedure ResultContract;
     [Test]
+    procedure NamedNullAccess;
+    [Test]
     procedure EmptyBinaryIsNotNull;
     [Test]
     procedure EmptyResult;
@@ -225,6 +227,52 @@ begin
     end, EQueryException);
 end;
 
+procedure TExecutionTests.NamedNullAccess;
+var
+  M: TMockQueryExecutor;
+  E: IQueryExecutor;
+  R: IQueryResult;
+  procedure CheckCursorError;
+  begin
+    Assert.WillRaise(
+      procedure
+      begin
+        R.IsNull(1);
+      end, EQueryException);
+    Assert.WillRaise(
+      procedure
+      begin
+        R.IsNull('Title');
+      end, EQueryException);
+  end;
+
+begin
+  M := TMockQueryExecutor.Create(TSqlDialect.Sqlite);
+  E := M;
+  M.Data := TRows.Create(TValues.Create(1, TValue.Empty, TValue.Empty),
+    TValues.Create(2, 'Beta', TValue.Empty));
+  R := TQuery.Create('Books').Execute(E);
+  CheckCursorError;
+  Assert.IsTrue(R.Next);
+  Assert.IsTrue(R.IsNull('Title'));
+  Assert.IsTrue(R.IsNull(1) = R.IsNull('tItLe'));
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.GetValue('missing');
+    end, EQueryException, 'Column not found: missing');
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.IsNull('missing');
+    end, EQueryException, 'Column not found: missing');
+  Assert.IsTrue(R.Next);
+  Assert.IsFalse(R.IsNull('Title'));
+  Assert.IsTrue(R.IsNull(1) = R.IsNull('TITLE'));
+  Assert.IsFalse(R.Next);
+  CheckCursorError;
+end;
+
 procedure TExecutionTests.EmptyBinaryIsNotNull;
 var
   M: TMockQueryExecutor;
@@ -282,6 +330,16 @@ begin
     begin
       R.GetValue('X');
     end, EQueryException);
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.IsNull('x');
+    end, EQueryException, 'Ambiguous column name: x');
+  Assert.WillRaiseWithMessage(
+    procedure
+    begin
+      R.GetValue('x');
+    end, EQueryException, 'Ambiguous column name: x');
   Assert.IsTrue(R.Next);
   Assert.AreEqual<Int64>(1, R.GetValue(0).AsInt64);
   Assert.AreEqual('Alpha', R.GetValue(1).AsString);

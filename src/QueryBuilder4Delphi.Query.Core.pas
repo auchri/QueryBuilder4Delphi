@@ -46,7 +46,8 @@ type
     function GetColumnIndex(const Name: string): Integer;
     function GetValue(Index: Integer): TValue; overload;
     function GetValue(const Name: string): TValue; overload;
-    function IsNull(Index: Integer): Boolean;
+    function IsNull(Index: Integer): Boolean; overload;
+    function IsNull(const Name: string): Boolean; overload;
     property HasResultSet: Boolean read GetHasResultSet;
     property RowsAffected: Int64 read GetRowsAffected;
     property ColumnCount: Integer read GetColumnCount;

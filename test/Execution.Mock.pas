@@ -33,7 +33,8 @@ type
     function GetColumnIndex(const Name: string): Integer;
     function GetValue(Index: Integer): TValue; overload;
     function GetValue(const Name: string): TValue; overload;
-    function IsNull(Index: Integer): Boolean;
+    function IsNull(Index: Integer): Boolean; overload;
+    function IsNull(const Name: string): Boolean; overload;
   end;
 
   TMockQueryExecutor = class(TQueryExecutor)
@@ -156,6 +157,11 @@ end;
 function TMockQueryResult.GetValue(const Name: string): TValue;
 begin
   Result := GetValue(GetColumnIndex(Name));
+end;
+
+function TMockQueryResult.IsNull(const Name: string): Boolean;
+begin
+  Result := IsNull(GetColumnIndex(Name));
 end;
 
 function TMockQueryResult.IsNull(Index: Integer): Boolean;

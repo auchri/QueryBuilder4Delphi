@@ -141,7 +141,7 @@ begin
   Rows := TQuery.Create('Books').Select(['Id', 'Title'])
     .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
   while Rows.Next do
-    if not Rows.IsNull(1) then
+    if not Rows.IsNull('Title') then
       Writeln(Rows.GetValue('Title').AsString);
 end;
 
@@ -202,8 +202,11 @@ before the first or after the last row raises `EQueryException`. Metadata is
 available before iteration. Indices are zero based and remain reliable for
 duplicate column names. Name lookup is case insensitive; missing or ambiguous
 names raise `EQueryException` (FireDAC may disambiguate names itself).
-`GetValue` returns `TValue.Empty` (no TypeInfo) for SQL NULL. Use `IsNull`
-before conversion. Delphi also reports `TValue.IsEmpty=True` for a typed empty
+`GetValue` returns `TValue.Empty` (no TypeInfo) for SQL NULL. Check
+`IsNull(Index: Integer)` or `IsNull(const Name: string)` before conversion.
+Both overloads use the same NULL/cursor rules. Name access reuses GetColumnIndex,
+with the same case-insensitive lookup and missing/ambiguous-name exceptions as
+GetValue(Name). Delphi also reports `TValue.IsEmpty=True` for a typed empty
 dynamic array: an empty TBytes still has TypeInfo(TBytes) and IsNull=False.
 Do not use TValue.IsEmpty alone as a SQL NULL test. NULL never becomes zero,
 false, an empty string, or empty binary data. Commands have

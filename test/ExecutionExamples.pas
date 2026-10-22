@@ -19,7 +19,7 @@ begin
   Rows := TQuery.Create('Books').Select(['Id', 'Title'])
     .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
   while Rows.Next do
-    if not Rows.IsNull(1) then
+    if not Rows.IsNull('Title') then
       Writeln(Rows.GetValue('Title').AsString);
 end;
 
