@@ -9,6 +9,7 @@ uses
   QueryBuilder4Delphi.Compilers.Factory
     in '..\src\QueryBuilder4Delphi.Compilers.Factory.pas',
   ExecutionExamples in 'ExecutionExamples.pas',
+  MappingExamples in 'MappingExamples.pas',
   FireDAC.Tests in 'FireDAC.Tests.pas';
 
 var

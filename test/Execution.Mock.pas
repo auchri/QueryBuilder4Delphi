@@ -20,6 +20,9 @@ type
     procedure RequireRows;
   public
     class var LiveCount: Integer;
+  public
+    ColumnNameReads: Integer;
+    ColumnIndexLookups: Integer;
     constructor Create(const Names: TArray<string>;
       const Types: TArray<TQueryValueType>; const Rows: TRows; HasRows: Boolean;
       Affected: Int64);
@@ -58,7 +61,7 @@ type
 
 implementation
 
-uses System.SysUtils;
+uses System.SysUtils, System.SyncObjs;
 
 constructor TMockQueryResult.Create(const Names: TArray<string>;
   const Types: TArray<TQueryValueType>; const Rows: TRows; HasRows: Boolean;
@@ -71,12 +74,12 @@ begin
   FHasRows := HasRows;
   FAffected := Affected;
   FPosition := -1;
-  Inc(LiveCount);
+  TInterlocked.Increment(LiveCount);
 end;
 
 destructor TMockQueryResult.Destroy;
 begin
-  Dec(LiveCount);
+  TInterlocked.Decrement(LiveCount);
   inherited;
 end;
 
@@ -119,6 +122,7 @@ end;
 
 function TMockQueryResult.GetColumnName(Index: Integer): string;
 begin
+  Inc(ColumnNameReads);
   CheckIndex(Index);
   Result := FNames[Index];
 end;
@@ -133,6 +137,7 @@ function TMockQueryResult.GetColumnIndex(const Name: string): Integer;
 var
   I: Integer;
 begin
+  Inc(ColumnIndexLookups);
   RequireRows;
   Result := -1;
   for I := 0 to High(FNames) do

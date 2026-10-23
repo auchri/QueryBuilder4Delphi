@@ -1,7 +1,52 @@
 # Validation: October 23, 2026
 
+## Core object mapping
+
+The object mapping change was built in Delphi 12 Community Edition (RAD Studio
+23.0), using IDE Project > Build, Base configuration, on Win32 and Win64. All
+four builds completed with zero warnings/errors. The command-line build was
+attempted and rejected by the Community Edition license; the actual rebuilt
+executables were run through `tools/build.ps1 -TestsOnly`.
+
+| Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
+| --- | --- | ---: | ---: | --- | ---: |
+| Core | Win32 | 652 | 652 | 0/0/0 | 0 |
+| Core | Win64 | 652 | 652 | 0/0/0 | 0 |
+| FireDAC/SQLite | Win32 | 40 | 40 | 0/0/0 | 0 |
+| FireDAC/SQLite | Win64 | 40 | 40 | 0/0/0 | 0 |
+
+The existing 632 core and 39 integration cases pass. Twenty provider-free
+mapping cases check actual scalar values, public/published RTTI, attributes,
+aliases, partial projections, ignored/extra columns, repeated/reordered schemas,
+ambiguity, SQL NULL versus typed empty bytes, checked conversions, missing RTTI,
+setter exception preservation, first/empty/cursor behavior and object ownership.
+Destructor counts verify cleanup after a failure on row three and a failed
+FirstOrDefault. A 64-iteration parallel mapping case exercises shared metadata
+and different schemas. Instrumented mock counters verify column names are read
+once per result and no per-row name lookup occurs. The mock's lifetime counter
+uses interlocked updates for the concurrency case. Both executable shutdown
+reports were also checked: no unexpected RTL memory leaks were reported.
+
+The additional SQLite case executes the compiled examples in MappingExamples.pas
+through IQueryExecutor and IQuery.Execute, checking list values, aliases,
+reordered columns, single/empty results and rejection of SQL NULL. It runs
+against SQLite :memory: using the existing optional FireDAC provider.
+
+The JSON reports record current executable hashes and verified x86/x64 PE
+headers. Both generator checks and all eight Python generator regression tests
+pass. Delphi Formatter was applied to changed Pascal files; git diff --check
+passes. Query.Core, Query.DataMapper, Execution, SQL compilers and provider
+implementations are unchanged. The mapper has no FireDAC, ADO or Data.DB imports.
+
+SQL NULL, nullable types, binary/record/object mapping and advanced conversions
+remain unsupported as documented in [Object Mapping](OBJECT_MAPPING.md).
+Allocation failures and runtime package unloading were not exercised; mapped
+classes must remain loaded while their cached RTTI is in use.
+
+## Earlier compiler-factory validation
+
 Compiler-factory class update (issue #10), based on merged documentation main. Earlier
-test counts and binary hashes are superseded by this validation run.
+test counts and binary hashes are superseded by the object mapping run above.
 
 Delphi 12 Community Edition (RAD Studio 23.0), Windows. Command-line compilation
 was attempted with tools/build.ps1 and rejected by the installed Community

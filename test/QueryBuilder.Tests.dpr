@@ -27,6 +27,7 @@ uses
   Execution.ProviderExample in 'Execution.ProviderExample.pas',
   Execution.Mock in 'Execution.Mock.pas',
   Execution.Tests in 'Execution.Tests.pas',
+  Mapping.Tests in 'Mapping.Tests.pas',
   DocumentationExamples in 'DocumentationExamples.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
   QueryWrites.Tests in 'QueryWrites.Tests.pas',
