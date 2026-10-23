@@ -177,13 +177,11 @@ OFFSET :p0 ROWS
 FETCH NEXT :p1 ROWS ONLY
 ```
 
-Bindings (in order):
+Bindings:
 
-```json
-{
-  ":p0": 20,
-  ":p1": 10
-}
+```text
+:p0 = 20
+:p1 = 10
 ```
 <!-- /mssql:OffsetBooks -->
 
@@ -290,12 +288,10 @@ GROUP BY [AuthorId]
 HAVING COUNT(*) >= :p0
 ```
 
-Bindings (in order):
+Bindings:
 
-```json
-{
-  ":p0": 5
-}
+```text
+:p0 = 5
 ```
 <!-- /mssql:AuthorTotals -->
 
@@ -362,12 +358,10 @@ WHERE [AuthorId] IN (
 )
 ```
 
-Bindings (in order):
+Bindings:
 
-```json
-{
-  ":p0": "AT"
-}
+```text
+:p0 = "AT"
 ```
 <!-- /mssql:AuthorSubquery -->
 
@@ -401,12 +395,10 @@ WHERE EXISTS (
 )
 ```
 
-Bindings (in order):
+Bindings:
 
-```json
-{
-  ":p0": "paid"
-}
+```text
+:p0 = "paid"
 ```
 <!-- /mssql:BooksWithOrders -->
 
@@ -616,8 +608,15 @@ end;
 UPDATE [Books] SET [Title] = @p0, [Price] = @p1 WHERE [Id] = @p2
 ```
 
-Bindings (in order): `@p0 = "Revised book"`, `@p1 = Currency(19.95)`, `@p2 = 42`. The example tests check
-the exact values and ordering.
+Bindings:
+
+```text
+@p0 = "Revised book"
+@p1 = Currency(19.95)
+@p2 = 42
+```
+
+The example tests check the exact values and ordering.
 
 ### DELETE
 
@@ -702,17 +701,34 @@ end;
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0
 ```
 
+Bindings:
+
+```text
+@p0 = 42
+```
+
 Oracle uses different quoting and a colon prefix:
 
 ```sql
 SELECT "Id", "Title" FROM "Books" WHERE "Id" = :p0
 ```
 
-Both statements have the integer `42` at Bindings[0]. NamedBindings contains
-`@p0` or `:p0` respectively. With ParameterPrefix set to `:item`, Oracle emits:
+Bindings:
+
+```text
+:p0 = 42
+```
+
+With ParameterPrefix set to `:item`, Oracle emits:
 
 ```sql
 SELECT "Id", "Title" FROM "Books" WHERE "Id" = :item0
+```
+
+Bindings:
+
+```text
+:item0 = 42
 ```
 
 The final `Q.Compile` call is a **debug SQL preview (values substituted)**:
@@ -980,7 +996,7 @@ This bridge does not implement connection management, a database driver or an OR
 
 ## Example verification
 
-Selected MSSQL SQL blocks and JSON binding maps are also checked directly
+Selected MSSQL SQL blocks and ordered binding lists are also checked directly
 against compiler output by MssqlDocumentation (presentation whitespace only
 is ignored).
 

@@ -38,13 +38,17 @@ begin
 end;
 ```
 
-**Generated parameterized MSSQL SQL:**
+**Generated parameterized MSSQL SQL (compiler default `@p` prefix):**
 
 ```sql
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0
 ```
 
-Bindings (in order): `@p0 = 42`.
+Bindings:
+
+```text
+@p0 = 42
+```
 
 Execute `Statement.Sql` together with its bindings. `Query.Compile` and
 `Statement.ToString` produce a **SQL preview with values substituted**, intended

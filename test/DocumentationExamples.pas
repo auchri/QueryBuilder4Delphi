@@ -349,7 +349,7 @@ var
   I, J, StartAt, EndAt: Integer;
   Markdown, Section, SqlText: string;
   Match: TMatch;
-  ExpectedBindings: TJSONValue;
+  ExpectedBindings: string;
   function NormalizeSql(const Text: string): string;
   begin
     Result := TRegEx.Replace(TRegEx.Replace(Text.Trim, '\s+', ' '),
@@ -400,15 +400,14 @@ begin
         Assert.IsTrue(Pos('Bindings: none.', Section) > 0, Names[I])
       else
       begin
-        Match := TRegEx.Match(Section, '```json\s*(.*?)\s*```', [roSingleLine]);
+        Match := TRegEx.Match(Section, '```text\s*(.*?)\s*```', [roSingleLine]);
         Assert.IsTrue(Match.Success, Names[I]);
-        ExpectedBindings := TJSONObject.ParseJSONValue(Match.Groups[1].Value);
-        try
-          Assert.IsTrue(ExpectedBindings is TJSONObject, Names[I]);
-          Assert.AreEqual(Values.ToJSON, ExpectedBindings.ToJSON, Names[I]);
-        finally
-          ExpectedBindings.Free;
-        end;
+        ExpectedBindings := '';
+        for J := 0 to Values.Count - 1 do
+          ExpectedBindings := ExpectedBindings + Values.Pairs[J]
+            .JsonString.Value + ' = ' + Values.Pairs[J].JsonValue.ToJSON + #10;
+        Assert.AreEqual(ExpectedBindings.Trim,
+          Match.Groups[1].Value.Replace(#13#10, #10).Trim, Names[I]);
       end;
     end;
   finally
