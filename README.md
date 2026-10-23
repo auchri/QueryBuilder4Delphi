@@ -17,7 +17,8 @@ FireDAC is required only by the optional provider.
 ```delphi
 uses
   System.SysUtils,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.Factory;
 
@@ -27,7 +28,9 @@ var
   Compiler: ICompiler;
   Statement: ISqlResult;
 begin
-  Query := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42);
+  Query := TQuery.Create('Books')
+    .Select(['Id', 'Title'])
+    .Where('Id', 42);
   Compiler := CreateCompiler(TSqlDialect.MSSql);
   Statement := Compiler.Compile(Query);
   Writeln(Statement.Sql);
@@ -35,9 +38,13 @@ begin
 end;
 ```
 
+**Generated parameterized MSSQL SQL:**
+
 ```sql
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0
 ```
+
+Bindings (in order): `@p0 = 42`.
 
 Execute `Statement.Sql` together with its bindings. `Query.Compile` and
 `Statement.ToString` produce a **SQL preview with values substituted**, intended
@@ -47,8 +54,10 @@ for diagnostics. They are not the parameterized execution path.
 
 ```delphi
 uses
-  System.SysUtils, FireDAC.Comp.Client,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  System.SysUtils,
+  FireDAC.Comp.Client,
+  QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Providers.FireDAC;
 
 procedure PrintBooks(Connection: TFDConnection);
@@ -58,8 +67,11 @@ var
 begin
   // The application supplies an already configured, connected connection.
   Executor := TFireDACQueryExecutor.Create(Connection, TSqlDialect.MSSql);
-  Rows := TQuery.Create('Books').Select(['Id', 'Title'])
-    .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
+  Rows := TQuery.Create('Books')
+    .Select(['Id', 'Title'])
+    .Where('IsPublished', True)
+    .OrderBy('Title')
+    .Execute(Executor);
   while Rows.Next do
     if not Rows.IsNull('Title') then
       Writeln(Rows.GetValue('Title').AsString);

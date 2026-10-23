@@ -19,8 +19,10 @@ functions that can be placed in a unit's implementation section with these impor
 
 ```delphi
 uses
-  System.SysUtils, System.Rtti,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query;
+  System.SysUtils,
+  System.Rtti,
+  QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query;
 ```
 
 The examples use Books, Authors and Orders. Columns such as AuthorId,
@@ -32,6 +34,12 @@ Keep query instances in `IQuery` variables. Fluent methods modify and return
 the same query. Use Clone for an independent variation, and return the supplied
 IQuery from callbacks. Interfaces release themselves when their last reference
 goes away; never call Free on their implementations.
+
+Selected MSSQL outputs below use `CreateCompiler(TSqlDialect.MSSql)` with
+`Compiler.ParameterPrefix := ':p'`, matching the executor convention. A direct
+MSSQL compiler defaults to `@p`; examples using that default are labeled.
+These are **parameterized SQL**, not debug previews. SQL line breaks are added
+for readability; SQL tokens and ordered bindings are verified against the compiler.
 
 ## Basic queries
 
@@ -53,7 +61,8 @@ Keep projections explicit when the caller only needs a few columns.
 ```delphi
 function BookTitles: IQuery;
 begin
-  Result := TQuery.Create('Books').Select(['Id', 'Title']);
+  Result := TQuery.Create('Books')
+    .Select(['Id', 'Title']);
 end;
 ```
 
@@ -64,10 +73,15 @@ Strings, integers and Boolean values convert implicitly to TValue. Use explicit 
 ```delphi
 function TypedFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').Where('AuthorId', 7).Where('Lang', 'en')
-    .Where('IsPublished', True).Where('Price', '<', TValue.From<Currency>(25.50)
-    ).Where('PublishedAt', '>=',
-    TValue.From<TDateTime>(EncodeDate(2025, 1, 1)));
+  Result := TQuery.Create('Books')
+    .Where('AuthorId', 7)
+    .Where('Lang', 'en')
+    .Where('IsPublished', True)
+    .Where('Price', '<', TValue.From<Currency>(25.50))
+    .Where(
+      'PublishedAt', '>=',
+      TValue.From<TDateTime>(EncodeDate(2025, 1, 1))
+    );
 end;
 ```
 
@@ -78,7 +92,9 @@ Chained conditions default to AND. This expression follows SQL precedence: Lang=
 ```delphi
 function LogicalFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').Where('Lang', 'en').OrWhere('Lang', 'de')
+  Result := TQuery.Create('Books')
+    .Where('Lang', 'en')
+    .OrWhere('Lang', 'de')
     .WhereNot('Status', 'withdrawn');
 end;
 ```
@@ -90,7 +106,8 @@ NULL conditions emit IS NULL / IS NOT NULL, with no NULL comparison binding.
 ```delphi
 function NullFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereNull('DeletedAt')
+  Result := TQuery.Create('Books')
+    .WhereNull('DeletedAt')
     .WhereNotNull('PublishedAt');
 end;
 ```
@@ -102,7 +119,8 @@ Values remain parameters. For a typed array, pass TSqlValues.&Of<Integer>(Ids) t
 ```delphi
 function RangeFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereIn('AuthorId', [1, 3, 7])
+  Result := TQuery.Create('Books')
+    .WhereIn('AuthorId', [1, 3, 7])
     .WhereBetween('Price', 10, 30);
 end;
 ```
@@ -114,8 +132,10 @@ The public method is WhereStarts, rather than StartsWith. WhereContains and Wher
 ```delphi
 function TextFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereLike('Title', '%Delphi%')
-    .WhereContains('Summary', 'database').WhereStarts('Code', 'DB-');
+  Result := TQuery.Create('Books')
+    .WhereLike('Title', '%Delphi%')
+    .WhereContains('Summary', 'database')
+    .WhereStarts('Code', 'DB-');
 end;
 ```
 
@@ -126,7 +146,9 @@ A final unique key makes ordering deterministic when titles tie.
 ```delphi
 function OrderedBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').OrderBy('Title').OrderByDesc('Id');
+  Result := TQuery.Create('Books')
+    .OrderBy('Title')
+    .OrderByDesc('Id');
 end;
 ```
 
@@ -137,9 +159,33 @@ The compiler translates pagination to the chosen dialect. Always supply a stable
 ```delphi
 function OffsetBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').OrderBy('Id').Limit(10).Offset(20);
+  Result := TQuery.Create('Books')
+    .OrderBy('Id')
+    .Limit(10)
+    .Offset(20);
 end;
 ```
+
+<!-- mssql:OffsetBooks -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT *
+FROM [Books]
+ORDER BY [Id]
+OFFSET :p0 ROWS
+FETCH NEXT :p1 ROWS ONLY
+```
+
+Bindings (in order):
+
+```json
+{
+  ":p0": 20,
+  ":p1": 10
+}
+```
+<!-- /mssql:OffsetBooks -->
 
 ### Page numbers
 
@@ -148,7 +194,9 @@ ForPage is one-based: page 3 skips 20 rows. It builds SQL pagination; it does no
 ```delphi
 function PagedBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').OrderBy('Id').ForPage(3, 10);
+  Result := TQuery.Create('Books')
+    .OrderBy('Id')
+    .ForPage(3, 10);
 end;
 ```
 
@@ -159,7 +207,9 @@ DISTINCT applies to the complete selected row.
 ```delphi
 function DistinctLanguages: IQuery;
 begin
-  Result := TQuery.Create('Books').Select('Lang').Distinct;
+  Result := TQuery.Create('Books')
+    .Select('Lang')
+    .Distinct;
 end;
 ```
 
@@ -172,10 +222,23 @@ Use qualified column names when joining tables. Both table and column aliases us
 ```delphi
 function BooksAndAuthors: IQuery;
 begin
-  Result := TQuery.Create('Books as b').Join('Authors as a', 'a.Id',
-    'b.AuthorId').Select(['b.Id', 'b.Title', 'a.Name as AuthorName']);
+  Result := TQuery.Create('Books as b')
+    .Join('Authors as a', 'a.Id', 'b.AuthorId')
+    .Select(['b.Id', 'b.Title', 'a.Name as AuthorName']);
 end;
 ```
+
+<!-- mssql:BooksAndAuthors -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT [b].[Id], [b].[Title], [a].[Name] AS [AuthorName]
+FROM [Books] AS [b]
+INNER JOIN [Authors] AS [a] ON [a].[Id] = [b].[AuthorId]
+```
+
+Bindings: none.
+<!-- /mssql:BooksAndAuthors -->
 
 ### LEFT JOIN
 
@@ -184,10 +247,23 @@ Books without an author remain in the result. Check IsNull before reading Author
 ```delphi
 function OptionalAuthors: IQuery;
 begin
-  Result := TQuery.Create('Books as b').LeftJoin('Authors as a', 'a.Id',
-    'b.AuthorId').Select(['b.Title', 'a.Name as AuthorName']);
+  Result := TQuery.Create('Books as b')
+    .LeftJoin('Authors as a', 'a.Id', 'b.AuthorId')
+    .Select(['b.Title', 'a.Name as AuthorName']);
 end;
 ```
+
+<!-- mssql:OptionalAuthors -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT [b].[Title], [a].[Name] AS [AuthorName]
+FROM [Books] AS [b]
+LEFT JOIN [Authors] AS [a] ON [a].[Id] = [b].[AuthorId]
+```
+
+Bindings: none.
+<!-- /mssql:OptionalAuthors -->
 
 ### GROUP BY and HAVING
 
@@ -196,11 +272,32 @@ HAVING filters groups after aggregation. The threshold is a binding, not interpo
 ```delphi
 function AuthorTotals: IQuery;
 begin
-  Result := TQuery.Create('Books').Select('AuthorId')
-    .SelectCount('Id as BookCount').GroupBy('AuthorId')
+  Result := TQuery.Create('Books')
+    .Select('AuthorId')
+    .SelectCount('Id as BookCount')
+    .GroupBy('AuthorId')
     .HavingRaw('COUNT(*) >= ?', [5]);
 end;
 ```
+
+<!-- mssql:AuthorTotals -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT [AuthorId], COUNT([Id]) AS [BookCount]
+FROM [Books]
+GROUP BY [AuthorId]
+HAVING COUNT(*) >= :p0
+```
+
+Bindings (in order):
+
+```json
+{
+  ":p0": 5
+}
+```
+<!-- /mssql:AuthorTotals -->
 
 ### Aggregate functions
 
@@ -209,7 +306,9 @@ AsCount makes a count query. AsSum, AsAverage, AsMin and AsMax are also availabl
 ```delphi
 function CountBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereTrue('IsPublished').AsCount;
+  Result := TQuery.Create('Books')
+    .WhereTrue('IsPublished')
+    .AsCount;
 end;
 ```
 
@@ -220,11 +319,16 @@ This produces (Lang=en OR Lang=de) AND NOT Status=withdrawn. Every query callbac
 ```delphi
 function NestedFilters: IQuery;
 begin
-  Result := TQuery.Create('Books').Where(
-    function(Q: IQuery): IQuery
-    begin
-      Result := Q.Where('Lang', 'en').OrWhere('Lang', 'de');
-    end).WhereNot('Status', 'withdrawn');
+  Result := TQuery.Create('Books')
+    .Where(
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q
+          .Where('Lang', 'en')
+          .OrWhere('Lang', 'de');
+      end
+    )
+    .WhereNot('Status', 'withdrawn');
 end;
 ```
 
@@ -235,10 +339,37 @@ The subquery is copied into the outer query; its bindings become part of the com
 ```delphi
 function AuthorSubquery: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereIn('AuthorId', TQuery.Create('Authors')
-    .Select('Id').Where('Country', 'AT'));
+  Result := TQuery.Create('Books')
+    .WhereIn(
+      'AuthorId',
+      TQuery.Create('Authors')
+        .Select('Id')
+        .Where('Country', 'AT')
+    );
 end;
 ```
+
+<!-- mssql:AuthorSubquery -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT *
+FROM [Books]
+WHERE [AuthorId] IN (
+  SELECT [Id]
+  FROM [Authors]
+  WHERE [Country] = :p0
+)
+```
+
+Bindings (in order):
+
+```json
+{
+  ":p0": "AT"
+}
+```
+<!-- /mssql:AuthorSubquery -->
 
 ### EXISTS
 
@@ -247,10 +378,37 @@ Correlate an EXISTS subquery with WhereColumns so both operands are identifiers.
 ```delphi
 function BooksWithOrders: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereExists(TQuery.Create('Orders')
-    .WhereColumns('Orders.BookId', '=', 'Books.Id').Where('Status', 'paid'));
+  Result := TQuery.Create('Books')
+    .WhereExists(
+      TQuery.Create('Orders')
+        .WhereColumns('Orders.BookId', '=', 'Books.Id')
+        .Where('Status', 'paid')
+    );
 end;
 ```
+
+<!-- mssql:BooksWithOrders -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+SELECT *
+FROM [Books]
+WHERE EXISTS (
+  SELECT 1
+  FROM [Orders]
+  WHERE [Orders].[BookId] = [Books].[Id]
+    AND [Status] = :p0
+)
+```
+
+Bindings (in order):
+
+```json
+{
+  ":p0": "paid"
+}
+```
+<!-- /mssql:BooksWithOrders -->
 
 ### NOT EXISTS
 
@@ -259,8 +417,11 @@ NOT EXISTS selects books with no matching order.
 ```delphi
 function BooksWithoutOrders: IQuery;
 begin
-  Result := TQuery.Create('Books').WhereNotExists(TQuery.Create('Orders')
-    .WhereColumns('Orders.BookId', '=', 'Books.Id'));
+  Result := TQuery.Create('Books')
+    .WhereNotExists(
+      TQuery.Create('Orders')
+        .WhereColumns('Orders.BookId', '=', 'Books.Id')
+    );
 end;
 ```
 
@@ -271,10 +432,31 @@ end;
 ```delphi
 function PublishedBooksCte: IQuery;
 begin
-  Result := TQuery.Create('published').&With('published',
-    TQuery.Create('Books').WhereTrue('IsPublished')).Select(['Id', 'Title']);
+  Result := TQuery.Create('published')
+    .&With(
+      'published',
+      TQuery.Create('Books')
+        .WhereTrue('IsPublished')
+    )
+    .Select(['Id', 'Title']);
 end;
 ```
+
+<!-- mssql:PublishedBooksCte -->
+**Generated parameterized MSSQL SQL:**
+
+```sql
+WITH [published] AS (
+  SELECT *
+  FROM [Books]
+  WHERE [IsPublished] = cast(1 as bit)
+)
+SELECT [Id], [Title]
+FROM [published]
+```
+
+Bindings: none.
+<!-- /mssql:PublishedBooksCte -->
 
 ### UNION
 
@@ -283,8 +465,14 @@ UNION removes duplicate rows. Both sides must expose compatible projections.
 ```delphi
 function CombinedBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').Select('Title').Where('Lang', 'en')
-    .Union(TQuery.Create('Books').Select('Title').Where('Lang', 'de'));
+  Result := TQuery.Create('Books')
+    .Select('Title')
+    .Where('Lang', 'en')
+    .Union(
+      TQuery.Create('Books')
+        .Select('Title')
+        .Where('Lang', 'de')
+    );
 end;
 ```
 
@@ -295,8 +483,14 @@ UNION ALL retains duplicates and avoids the distinct step.
 ```delphi
 function AllCombinedBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').Select('Title').Where('Lang', 'en')
-    .UnionAll(TQuery.Create('Books').Select('Title').Where('Lang', 'de'));
+  Result := TQuery.Create('Books')
+    .Select('Title')
+    .Where('Lang', 'en')
+    .UnionAll(
+      TQuery.Create('Books')
+        .Select('Title')
+        .Where('Lang', 'de')
+    );
 end;
 ```
 
@@ -307,11 +501,14 @@ Replace True with an application condition. When mutates the query only when tha
 ```delphi
 function ConditionalBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').When(True,
-    function(Q: IQuery): IQuery
-    begin
-      Result := Q.WhereTrue('IsPublished');
-    end);
+  Result := TQuery.Create('Books')
+    .When(
+      True,
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereTrue('IsPublished');
+      end
+    );
 end;
 ```
 
@@ -340,8 +537,10 @@ function ClonedBooks: IQuery;
 var
   Base: IQuery;
 begin
-  Base := TQuery.Create('Books').WhereTrue('IsPublished');
-  Result := Base.Clone.Where('Lang', 'en');
+  Base := TQuery.Create('Books')
+    .WhereTrue('IsPublished');
+  Result := Base.Clone
+    .Where('Lang', 'en');
 end;
 ```
 
@@ -353,8 +552,10 @@ Square brackets in raw fragments are identifier markers translated by the compil
 function RawBooks: IQuery;
 begin
   Result := TQuery.Create('Books')
-    .WhereRaw('COALESCE([Subtitle], [Title]) = ? AND [AuthorId] = ?',
-    ['Database design', 7]);
+    .WhereRaw(
+      'COALESCE([Subtitle], [Title]) = ? AND [AuthorId] = ?',
+      ['Database design', 7]
+    );
 end;
 ```
 
@@ -370,7 +571,8 @@ AsInsert builds a statement. Compile it or execute it through a provider.
 ```delphi
 function InsertBook: IQuery;
 begin
-  Result := TQuery.Create('Books').AsInsert(['Id', 'Title'], [42, 'New book']);
+  Result := TQuery.Create('Books')
+    .AsInsert(['Id', 'Title'], [42, 'New book']);
 end;
 ```
 
@@ -381,9 +583,14 @@ TRows supplies a value array for each row. Keep row widths aligned with the colu
 ```delphi
 function InsertBooks: IQuery;
 begin
-  Result := TQuery.Create('Books').AsInsert(['Id', 'Title'],
-    TRows.Create(TValues.Create(42, 'First book'), TValues.Create(43,
-    'Second book')));
+  Result := TQuery.Create('Books')
+    .AsInsert(
+      ['Id', 'Title'],
+      TRows.Create(
+        TValues.Create(42, 'First book'),
+        TValues.Create(43, 'Second book')
+      )
+    );
 end;
 ```
 
@@ -394,10 +601,23 @@ SET values precede WHERE values in the ordered binding list. Omitting WHERE upda
 ```delphi
 function UpdateBook: IQuery;
 begin
-  Result := TQuery.Create('Books').Where('Id', 42).AsUpdate(['Title', 'Price'],
-    ['Revised book', TValue.From<Currency>(19.95)]);
+  Result := TQuery.Create('Books')
+    .Where('Id', 42)
+    .AsUpdate(
+      ['Title', 'Price'],
+      ['Revised book', TValue.From<Currency>(19.95)]
+    );
 end;
 ```
+
+**Generated parameterized MSSQL SQL (default `@p` prefix):**
+
+```sql
+UPDATE [Books] SET [Title] = @p0, [Price] = @p1 WHERE [Id] = @p2
+```
+
+Bindings (in order): `@p0 = "Revised book"`, `@p1 = Currency(19.95)`, `@p2 = 42`. The example tests check
+the exact values and ordering.
 
 ### DELETE
 
@@ -406,7 +626,9 @@ Omitting WHERE deletes every row. Inspect the query before executing writes.
 ```delphi
 function DeleteBook: IQuery;
 begin
-  Result := TQuery.Create('Books').Where('Id', 42).AsDelete;
+  Result := TQuery.Create('Books')
+    .Where('Id', 42)
+    .AsDelete;
 end;
 ```
 
@@ -417,20 +639,16 @@ TQueryNull carries a provider-neutral type hint. TValue.Empty is an untyped SQL 
 ```delphi
 function NullPrice: IQuery;
 begin
-  Result := TQuery.Create('Books').Where('Id', 42)
-    .AsUpdate(['Price', 'Subtitle'], [TQueryNull.Create(qtDecimal),
-    TValue.Empty]);
+  Result := TQuery.Create('Books')
+    .Where('Id', 42)
+    .AsUpdate(
+      ['Price', 'Subtitle'],
+      [TQueryNull.Create(qtDecimal), TValue.Empty]
+    );
 end;
 ```
 
-For the UPDATE above, SQL Server generates:
-
-```sql
-UPDATE [Books] SET [Title] = @p0, [Price] = @p1 WHERE [Id] = @p2
-```
-
-Ordered values: `Revised book`, `Currency(19.95)`, `42`. The example tests check
-the exact values and ordering. AsInsert/AsUpdate/AsDelete construct statements;
+AsInsert/AsUpdate/AsDelete construct statements;
 execution returns an IQueryResult with HasResultSet=False and RowsAffected.
 ReturnId-based identity batches are not supported by execution. Joined writes
 are supported only by the SQL Server and MySQL compilers.
@@ -461,7 +679,9 @@ var
   Compiler: ICompiler;
   Statement: ISqlResult;
 begin
-  Q := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42);
+  Q := TQuery.Create('Books')
+    .Select(['Id', 'Title'])
+    .Where('Id', 42);
   Compiler := CreateCompiler(TSqlDialect.MSSql);
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
@@ -476,7 +696,7 @@ begin
 end;
 ```
 
-The first SQL Server statement is:
+**Generated parameterized MSSQL SQL (default `@p` prefix):**
 
 ```sql
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0
@@ -495,7 +715,7 @@ Both statements have the integer `42` at Bindings[0]. NamedBindings contains
 SELECT "Id", "Title" FROM "Books" WHERE "Id" = :item0
 ```
 
-The final `Q.Compile` call is a SQL Server **preview**:
+The final `Q.Compile` call is a **debug SQL preview (values substituted)**:
 
 ```sql
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = 42
@@ -534,8 +754,10 @@ dialect or driver detection is performed.
 
 ```delphi
 uses
-  System.SysUtils, FireDAC.Comp.Client,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
+  System.SysUtils,
+  FireDAC.Comp.Client,
+  QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Providers.FireDAC;
 ```
 
@@ -547,8 +769,11 @@ var
 begin
   // Connection is already configured and connected by the application.
   Executor := TFireDACQueryExecutor.Create(Connection, Dialect);
-  Rows := TQuery.Create('Books').Select(['Id', 'Title'])
-    .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
+  Rows := TQuery.Create('Books')
+    .Select(['Id', 'Title'])
+    .Where('IsPublished', True)
+    .OrderBy('Title')
+    .Execute(Executor);
   while Rows.Next do
     if not Rows.IsNull('Title') then
       Writeln(Rows.GetValue(0).AsInt64, ': ', Rows.GetValue('Title').AsString);
@@ -590,11 +815,17 @@ begin
   if not Connection.InTransaction then
     raise EInvalidOp.Create('The caller must start a transaction');
   Executor := TFireDACQueryExecutor.Create(Connection, Dialect);
-  Command := TQuery.Create('Books').AsInsert(['Id', 'Title'], [42, 'New book'])
+  Command := TQuery.Create('Books')
+    .AsInsert(['Id', 'Title'], [42, 'New book'])
     .Execute(Executor, emCommand);
-  Command := TQuery.Create('Books').Where('Id', 42)
-    .AsUpdate(['Title'], ['Changed book']).Execute(Executor);
-  Command := TQuery.Create('Books').Where('Id', 42).AsDelete.Execute(Executor);
+  Command := TQuery.Create('Books')
+    .Where('Id', 42)
+    .AsUpdate(['Title'], ['Changed book'])
+    .Execute(Executor);
+  Command := TQuery.Create('Books')
+    .Where('Id', 42)
+    .AsDelete
+    .Execute(Executor);
   Result := Command.RowsAffected;
 end;
 ```
@@ -678,7 +909,8 @@ unit Execution.ProviderExample;
 interface
 
 uses
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Execution,
+  QueryBuilder4Delphi.Query.Core,
+  QueryBuilder4Delphi.Execution,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
@@ -718,8 +950,11 @@ function TAdapterQueryExecutor.ExecuteCompiled(const Statement: ISqlResult;
 begin
   // The bridge binds Values[I] to :Parameter<I>, interpreting TQueryNull hints.
   // It returns its own cursor implementation and defines connection ownership.
-  Result := FAdapter.ExecuteParameterized(Statement.Sql,
-    Statement.Bindings.ToArray, Mode);
+  Result := FAdapter.ExecuteParameterized(
+    Statement.Sql,
+    Statement.Bindings.ToArray,
+    Mode
+  );
 end;
 
 end.
@@ -744,6 +979,10 @@ other providers may use the base constructor's parameter prefix as shown.
 This bridge does not implement connection management, a database driver or an ORM.
 
 ## Example verification
+
+Selected MSSQL SQL blocks and JSON binding maps are also checked directly
+against compiler output by MssqlDocumentation (presentation whitespace only
+is ignored).
 
 The query functions and ShowCompilation are compiled in
 [test/DocumentationExamples.pas](../test/DocumentationExamples.pas). DUnitX

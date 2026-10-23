@@ -41,7 +41,8 @@ procedure ShowCompilation;
 
 implementation
 
-uses DUnitX.TestFramework, DUnitX.Assert,
+uses DUnitX.TestFramework, DUnitX.Assert, System.IOUtils, System.JSON,
+  System.TypInfo, System.RegularExpressions, System.Generics.Collections,
   QueryBuilder4Delphi.Compilers.Compiler, QueryBuilder4Delphi.Compilers.Factory;
 
 type
@@ -58,6 +59,8 @@ type
     procedure CompileExamples(DialectIndex: Integer);
     [Test]
     procedure DocumentedSqlAndBindings;
+    [Test]
+    procedure MssqlDocumentation;
   end;
 
 function AllBooks: IQuery;
@@ -330,6 +333,87 @@ begin
   Assert.AreEqual('Revised book', S.Bindings[0].AsString);
   Assert.AreEqual<Currency>(19.95, S.Bindings[1].AsType<Currency>);
   Assert.AreEqual(42, S.Bindings[2].AsInteger);
+end;
+
+procedure TDocumentationTests.MssqlDocumentation;
+const
+  Names: array [0 .. 6] of string = ('OffsetBooks', 'BooksAndAuthors',
+    'OptionalAuthors', 'AuthorTotals', 'AuthorSubquery', 'BooksWithOrders',
+    'PublishedBooksCte');
+var
+  Queries: TArray<IQuery>;
+  C: ICompiler;
+  S: ISqlResult;
+  Root: TJSONArray;
+  Item, Values: TJSONObject;
+  I, J, StartAt, EndAt: Integer;
+  Markdown, Section, SqlText: string;
+  Match: TMatch;
+  ExpectedBindings: TJSONValue;
+  function NormalizeSql(const Text: string): string;
+  begin
+    Result := TRegEx.Replace(TRegEx.Replace(Text.Trim, '\s+', ' '),
+      '\s*([(),])\s*', '$1');
+  end;
+
+begin
+  Markdown := TFile.ReadAllText
+    (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '..\..\docs\EXAMPLES.md')));
+  Queries := TArray<IQuery>.Create(OffsetBooks, BooksAndAuthors,
+    OptionalAuthors, AuthorTotals, AuthorSubquery, BooksWithOrders,
+    PublishedBooksCte);
+  C := CreateCompiler(TSqlDialect.MSSql);
+  C.ParameterPrefix := ':p';
+  Root := TJSONArray.Create;
+  try
+    for I := 0 to High(Queries) do
+    begin
+      S := C.Compile(Queries[I]);
+      Item := TJSONObject.Create;
+      Root.AddElement(Item);
+      Item.AddPair('name', Names[I]);
+      Item.AddPair('sql', S.Sql);
+      Values := TJSONObject.Create;
+      Item.AddPair('bindings', Values);
+      for J := 0 to S.Bindings.Count - 1 do
+        if S.Bindings[J].Kind in [tkInteger, tkInt64] then
+          Values.AddPair(':p' + IntToStr(J),
+            TJSONNumber.Create(S.Bindings[J].AsInt64))
+        else
+          Values.AddPair(':p' + IntToStr(J), S.Bindings[J].AsString);
+    end;
+    for I := 0 to Root.Count - 1 do
+    begin
+      Item := Root.Items[I] as TJSONObject;
+      StartAt := Pos('<!-- mssql:' + Names[I] + ' -->', Markdown);
+      EndAt := Pos('<!-- /mssql:' + Names[I] + ' -->', Markdown);
+      Assert.IsTrue((StartAt > 0) and (EndAt > StartAt), Names[I]);
+      Section := Copy(Markdown, StartAt, EndAt - StartAt);
+      Match := TRegEx.Match(Section, '```sql\s*(.*?)\s*```', [roSingleLine]);
+      Assert.IsTrue(Match.Success, Names[I]);
+      SqlText := Item.GetValue<string>('sql');
+      Assert.AreEqual(NormalizeSql(SqlText),
+        NormalizeSql(Match.Groups[1].Value), Names[I]);
+      Values := Item.GetValue<TJSONObject>('bindings');
+      if Values.Count = 0 then
+        Assert.IsTrue(Pos('Bindings: none.', Section) > 0, Names[I])
+      else
+      begin
+        Match := TRegEx.Match(Section, '```json\s*(.*?)\s*```', [roSingleLine]);
+        Assert.IsTrue(Match.Success, Names[I]);
+        ExpectedBindings := TJSONObject.ParseJSONValue(Match.Groups[1].Value);
+        try
+          Assert.IsTrue(ExpectedBindings is TJSONObject, Names[I]);
+          Assert.AreEqual(Values.ToJSON, ExpectedBindings.ToJSON, Names[I]);
+        finally
+          ExpectedBindings.Free;
+        end;
+      end;
+    end;
+  finally
+    Root.Free;
+  end;
 end;
 
 initialization

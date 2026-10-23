@@ -10,8 +10,8 @@ Edition license. Full builds were therefore performed with IDE Project > Build
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 629 | 629 | 0 | 0 |
-| Core | Win64 | 629 | 629 | 0 | 0 |
+| Core | Win32 | 630 | 630 | 0 | 0 |
+| Core | Win64 | 630 | 630 | 0 | 0 |
 | FireDAC | Win32 | 39 | 39 | 0 | 0 |
 | FireDAC | Win64 | 39 | 39 | 0 | 0 |
 
@@ -76,19 +76,29 @@ integration test checks index/name agreement for resolved names, or matching
 ambiguity errors when duplicate names are preserved. The compiled PrintBooks example uses IsNull('Title').
 No shared result base class or new dependencies were introduced.
 
-Documentation/example verification adds seven core cases: 31 query variants
+Documentation/example verification adds eight core cases: 31 query variants
 compile for each of the six dialects (six cases), and a separate case verifies
 the exact SQL Server/Oracle SQL, preview output, configurable parameter prefix
 and UPDATE value ordering displayed in EXAMPLES.md. The functions and compiler
 walkthrough in test/DocumentationExamples.pas are called by those tests.
+The eighth core case reads seven selected MSSQL SQL blocks and their ordered
+JSON binding maps from EXAMPLES.md and compares them directly with current
+compiler output using the executor-style :p prefix. Only presentation whitespace
+is ignored. It covers both JOIN variants, aggregation/HAVING, IN and EXISTS
+subqueries, a CTE and offset pagination. The README retains the direct compiler
+default @p convention. All Delphi examples in README/EXAMPLES retain their
+original tokens, with consistent indentation and fluent-chain line breaks.
+Core Win32/Win64 were rebuilt for this formatting follow-up (zero diagnostics);
+the unchanged FireDAC executables were rerun on both platforms.
+
 One additional SQLite case runs PrintBooks, INSERT/UPDATE/DELETE inside a
 caller-started transaction, rollback, the transaction-owning wrapper and the
 missing-transaction error. It verifies DELETE RowsAffected and leaves the
 connection open. The generic external adapter example compiles in core; no
 actual external database adapter is implemented or executed.
 
-A whitespace-normalized comparison verified that all 36 complete function,
-procedure and unit blocks in EXAMPLES.md match the compiled example sources.
+A Delphi-token comparison verified that all 36 complete function, procedure
+and unit blocks in EXAMPLES.md match the compiled example sources.
 The README's short quick starts use the same tested query/reader operations;
 they were syntax/API-reviewed rather than compiled as separate programs.
 All 30 local Markdown links/anchors in the five Markdown documents were
