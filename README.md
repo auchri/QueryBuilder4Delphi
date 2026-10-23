@@ -5,6 +5,9 @@ QueryBuilder4Delphi is a fluent SQL query builder for Delphi 12 and later. It su
 Supported targets: **Windows, Win32 and Win64**. Build SQL without a database,
 or execute it through the optional FireDAC provider or your own provider.
 
+Current release: **[v1.0.0](https://github.com/auchri/QueryBuilder4Delphi/releases/tag/v1.0.0)**.
+See the [changelog](CHANGELOG.md) for release details.
+
 ## Installation
 
 Add `src` to the Delphi search path. The core needs only the Delphi RTL.
