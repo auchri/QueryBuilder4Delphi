@@ -31,7 +31,7 @@ begin
   Query := TQuery.Create('Books')
     .Select(['Id', 'Title'])
     .Where('Id', 42);
-  Compiler := CreateCompiler(TSqlDialect.MSSql);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   Statement := Compiler.Compile(Query);
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger); // 42
@@ -102,7 +102,8 @@ compiler settings, transactions, error handling and custom providers.
 | `TSqlDialect.Oracle` | `TOracleCompiler` | `:p0`, `:p1`, … |
 | `TSqlDialect.Firebird` | `TFirebirdCompiler` | `@p0`, `@p1`, … |
 
-`CreateCompiler(Dialect)` creates an `ICompiler`. Individual compiler classes
+`TQueryCompilerFactory.CreateCompiler(Dialect)` creates an `ICompiler`
+(default: MSSql). No factory instance is needed. Individual compiler classes
 live in `QueryBuilder4Delphi.Compilers.<ClassName>` units, omitting the `T`
 prefix. Executors use `:pN` by default; FireDAC requires that convention.
 Pagination and other dialect differences are handled by the compiler.

@@ -18,6 +18,10 @@ type
     [TestCase('Firebird', 'firebird')]
     procedure FactoryCreatesRequestedClass(const Engine: string);
     [Test]
+    procedure FactoryDefaultsToSqlServer;
+    [Test]
+    procedure FactoryRejectsUnsupportedDialect;
+    [Test]
     procedure CustomMySqlCompilerInheritsDialectBehavior;
     [Test]
     procedure CustomSqlServerCompilerInheritsLegacyPagination;
@@ -29,6 +33,7 @@ uses
   System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.Factory,
   QueryBuilder4Delphi.Compilers.SqlServerCompiler,
   QueryBuilder4Delphi.Compilers.PostgresCompiler,
   QueryBuilder4Delphi.Compilers.MySqlCompiler,
@@ -73,6 +78,7 @@ procedure TCompilerClassTests.FactoryCreatesRequestedClass
 var
   CompilerClass: TCompilerClass;
   Compiler: ICompiler;
+  Dialect: TSqlDialect;
 begin
   if Engine = 'sqlsrv' then
     CompilerClass := TSqlServerCompiler
@@ -89,9 +95,33 @@ begin
   else
     raise EArgumentException.Create('Unknown test engine');
 
-  Compiler := CompilerClass.Create;
+  for Dialect := Low(TSqlDialect) to High(TSqlDialect) do
+    if Dialect.EngineCode = Engine then
+      Compiler := TQueryCompilerFactory.CreateCompiler(Dialect);
+  Assert.IsNotNull(Compiler);
   Assert.IsTrue((Compiler as TCompiler).ClassType = CompilerClass);
   Assert.AreEqual(Engine, Compiler.EngineCode);
+end;
+
+procedure TCompilerClassTests.FactoryDefaultsToSqlServer;
+var
+  Compiler: ICompiler;
+begin
+  Compiler := TQueryCompilerFactory.CreateCompiler;
+  Assert.IsTrue((Compiler as TCompiler).ClassType = TSqlServerCompiler);
+  Assert.AreEqual('sqlsrv', Compiler.EngineCode);
+end;
+
+procedure TCompilerClassTests.FactoryRejectsUnsupportedDialect;
+var
+  DialectOrdinal: Integer;
+begin
+  DialectOrdinal := 255;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQueryCompilerFactory.CreateCompiler(TSqlDialect(DialectOrdinal));
+    end, EQueryException);
 end;
 
 procedure TCompilerClassTests.CustomMySqlCompilerInheritsDialectBehavior;

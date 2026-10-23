@@ -40,7 +40,7 @@ end;
 
 function TQueryExecutor.CreateCompiler: ICompiler;
 begin
-  Result := QueryBuilder4Delphi.Compilers.Factory.CreateCompiler(FDialect);
+  Result := TQueryCompilerFactory.CreateCompiler(FDialect);
   Result.ParameterPrefix := FParameterPrefix;
 end;
 

@@ -4,7 +4,12 @@ interface
 
 uses QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
-function CreateCompiler(Dialect: TSqlDialect = TSqlDialect.MSSql): ICompiler;
+type
+  TQueryCompilerFactory = class
+  public
+    class function CreateCompiler(Dialect: TSqlDialect = TSqlDialect.MSSql)
+      : ICompiler; static;
+  end;
 
 implementation
 
@@ -16,7 +21,8 @@ uses
   QueryBuilder4Delphi.Compilers.OracleCompiler,
   QueryBuilder4Delphi.Compilers.FirebirdCompiler;
 
-function CreateCompiler(Dialect: TSqlDialect): ICompiler;
+class function TQueryCompilerFactory.CreateCompiler(Dialect: TSqlDialect)
+  : ICompiler;
 begin
   case Dialect of
     TSqlDialect.MSSql:

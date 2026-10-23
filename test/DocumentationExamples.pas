@@ -264,11 +264,11 @@ var
   Statement: ISqlResult;
 begin
   Q := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42);
-  Compiler := CreateCompiler(TSqlDialect.MSSql);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger);
-  Compiler := CreateCompiler(TSqlDialect.Oracle);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
   Compiler.ParameterPrefix := ':item';
@@ -292,7 +292,7 @@ begin
     BooksWithOrders, BooksWithoutOrders, PublishedBooksCte, CombinedBooks,
     AllCombinedBooks, ConditionalBooks, ClonedBooks, RawBooks, InsertBook,
     InsertBooks, UpdateBook, DeleteBook, NullPrice, FilteredBooks('Delphi', 7));
-  C := CreateCompiler(TSqlDialect(DialectIndex));
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect(DialectIndex));
   C.ParameterPrefix := ':p';
   for Q in Queries do
   begin
@@ -312,13 +312,13 @@ var
 begin
   ShowCompilation;
   Q := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42);
-  C := CreateCompiler(TSqlDialect.MSSql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   S := C.Compile(Q);
   Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0', S.Sql);
   Assert.AreEqual(42, S.Bindings[0].AsInteger);
   Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = 42',
     Q.Compile);
-  C := CreateCompiler(TSqlDialect.Oracle);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   S := C.Compile(Q);
   Assert.AreEqual('SELECT "Id", "Title" FROM "Books" WHERE "Id" = :p0', S.Sql);
   Assert.AreEqual(42, S.Bindings[0].AsInteger);
@@ -327,7 +327,8 @@ begin
   Assert.AreEqual
     ('SELECT "Id", "Title" FROM "Books" WHERE "Id" = :item0', S.Sql);
   Assert.AreEqual(42, S.NamedBindings[':item0'].AsInteger);
-  S := CreateCompiler(TSqlDialect.MSSql).Compile(UpdateBook);
+  S := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql)
+    .Compile(UpdateBook);
   Assert.AreEqual
     ('UPDATE [Books] SET [Title] = @p0, [Price] = @p1 WHERE [Id] = @p2', S.Sql);
   Assert.AreEqual('Revised book', S.Bindings[0].AsString);
@@ -363,7 +364,7 @@ begin
   Queries := TArray<IQuery>.Create(OffsetBooks, BooksAndAuthors,
     OptionalAuthors, AuthorTotals, AuthorSubquery, BooksWithOrders,
     PublishedBooksCte);
-  C := CreateCompiler(TSqlDialect.MSSql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   C.ParameterPrefix := ':p';
   Root := TJSONArray.Create;
   try

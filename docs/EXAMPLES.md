@@ -35,7 +35,8 @@ the same query. Use Clone for an independent variation, and return the supplied
 IQuery from callbacks. Interfaces release themselves when their last reference
 goes away; never call Free on their implementations.
 
-Selected MSSQL outputs below use `CreateCompiler(TSqlDialect.MSSql)` with
+Selected MSSQL outputs below use
+`TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql)` with
 `Compiler.ParameterPrefix := ':p'`, matching the executor convention. A direct
 MSSQL compiler defaults to `@p`; examples using that default are labeled.
 These are **parameterized SQL**, not debug previews. SQL line breaks are added
@@ -681,11 +682,11 @@ begin
   Q := TQuery.Create('Books')
     .Select(['Id', 'Title'])
     .Where('Id', 42);
-  Compiler := CreateCompiler(TSqlDialect.MSSql);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger);
-  Compiler := CreateCompiler(TSqlDialect.Oracle);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
   Compiler.ParameterPrefix := ':item';
@@ -743,7 +744,9 @@ bindings. Preview text is diagnostic and can expose sensitive values in logs.
 `ISqlResult.Sql` is the parameterized statement; RawSql is its intermediate
 question-mark form. Iterate Bindings by index, not dictionary enumeration order.
 
-CreateCompiler supports MSSql, MySql, PostgreSql, Sqlite, Oracle and Firebird.
+`TQueryCompilerFactory.CreateCompiler` supports MSSql (the default), MySql,
+PostgreSql, Sqlite, Oracle and Firebird. The method is static; no factory
+instance is needed.
 You can instead create `TSqlServerCompiler.Create` or `TOracleCompiler.Create`
 from their `QueryBuilder4Delphi.Compilers.SqlServerCompiler` and
 `QueryBuilder4Delphi.Compilers.OracleCompiler` units. Both return ICompiler.

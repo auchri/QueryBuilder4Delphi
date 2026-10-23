@@ -623,7 +623,7 @@ function TQueryObject.Compile(Dialect: TSqlDialect): string;
 var
   Compiler: ICompiler;
 begin
-  Compiler := CreateCompiler(Dialect);
+  Compiler := TQueryCompilerFactory.CreateCompiler(Dialect);
   Result := Compiler.Compile(Self).ToString;
 end;
 

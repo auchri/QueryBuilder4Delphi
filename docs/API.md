@@ -189,9 +189,12 @@ for an independent variant. Delphi keywords use an `&` prefix, for example
 
 `IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` produces a
 preview with substituted values. `ICompiler.Compile(Query): ISqlResult`
-returns parameterized SQL and ordered/named bindings. `CreateCompiler(Dialect)`
+returns parameterized SQL and ordered/named bindings.
+`TQueryCompilerFactory.CreateCompiler(Dialect)`
 in `QueryBuilder4Delphi.Compilers.Factory` supports MSSql, MySql, PostgreSql,
-Sqlite, Oracle and Firebird. Compiler class factories also return ICompiler.
+Sqlite, Oracle and Firebird. Its static method defaults to MSSql and replaces
+the former unit-level `CreateCompiler` function. No factory instance is needed.
+Individual compiler classes also return ICompiler from their Create methods.
 `ParameterPrefix` configures named markers; `TSqlDialect.EngineCode` supplies
 scope codes such as sqlsrv and mysql. Custom scopes can still use strings.
 

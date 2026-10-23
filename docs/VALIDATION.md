@@ -1,6 +1,6 @@
 # Validation: October 23, 2026
 
-Documentation/examples update, based on merged execution-layer main. Earlier
+Compiler-factory class update (issue #10), based on merged documentation main. Earlier
 test counts and binary hashes are superseded by this validation run.
 
 Delphi 12 Community Edition (RAD Studio 23.0), Windows. Command-line compilation
@@ -10,12 +10,18 @@ Edition license. Full builds were therefore performed with IDE Project > Build
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 630 | 630 | 0 | 0 |
-| Core | Win64 | 630 | 630 | 0 | 0 |
+| Core | Win32 | 632 | 632 | 0 | 0 |
+| Core | Win64 | 632 | 632 | 0 | 0 |
 | FireDAC | Win32 | 39 | 39 | 0 | 0 |
 | FireDAC | Win64 | 39 | 39 | 0 | 0 |
 
 All four full builds reported zero errors, warnings and hints.
+The six FactoryCreatesRequestedClass cases now exercise
+TQueryCompilerFactory.CreateCompiler for each dialect. Two added cases verify
+the default SQL Server compiler and EQueryException for an unsupported dialect.
+The static class method replaces the free function; all library/test callers
+and README/API/examples use it. Executor CreateCompiler overrides remain intact.
+Existing SQL, parameter-prefix, ordered-binding and custom-compiler tests pass.
 ReportMemoryLeaksOnShutdown is enabled in both projects. Resource tests also
 check the connection's dataset count after failed commands and early release.
 The JSON reports record executable hashes and verified x86/x64 PE headers.
@@ -82,14 +88,13 @@ the exact SQL Server/Oracle SQL, preview output, configurable parameter prefix
 and UPDATE value ordering displayed in EXAMPLES.md. The functions and compiler
 walkthrough in test/DocumentationExamples.pas are called by those tests.
 The eighth core case reads seven selected MSSQL SQL blocks and their ordered
-JSON binding maps from EXAMPLES.md and compares them directly with current
+ordered text binding lists from EXAMPLES.md and compares them directly with current
 compiler output using the executor-style :p prefix. Only presentation whitespace
 is ignored. It covers both JOIN variants, aggregation/HAVING, IN and EXISTS
 subqueries, a CTE and offset pagination. The README retains the direct compiler
-default @p convention. All Delphi examples in README/EXAMPLES retain their
-original tokens, with consistent indentation and fluent-chain line breaks.
-Core Win32/Win64 were rebuilt for this formatting follow-up (zero diagnostics);
-the unchanged FireDAC executables were rerun on both platforms.
+default @p convention. The formatting follow-up preserved the original Delphi example tokens. This
+factory update changes only factory references in those examples. Core and
+FireDAC were both rebuilt and rerun on Win32/Win64 for issue #10.
 
 One additional SQLite case runs PrintBooks, INSERT/UPDATE/DELETE inside a
 caller-started transaction, rollback, the transaction-owning wrapper and the
@@ -104,7 +109,8 @@ they were syntax/API-reviewed rather than compiled as separate programs.
 All 30 local Markdown links/anchors in the five Markdown documents were
 checked. The sole external API reference link was opened successfully.
 README/API/examples contain no template-origin comparisons or old adapter API.
-LICENSE, src/, reference data, and internal PORTING.md provenance are unchanged.
+LICENSE, reference data, and internal PORTING.md provenance are unchanged.
+The source changes for issue #10 are limited to the factory class and its callers.
 
 Both generator checks pass (including 69 paired Oracle scenario definitions).
 All eight Python generator regression tests pass with TMP/TEMP set to
