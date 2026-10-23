@@ -891,7 +891,8 @@ by a custom compiler/raw extension; execution does not add that syntax itself.
 The compiler and driver must support the syntax and chosen mode.
 
 There is at most one accessible resultset, no NextResult, no output-parameter
-API and no result object mapper. Raw/custom SQL must respect that contract.
+API. Use [Object Mapping](OBJECT_MAPPING.md) to map rows into ordinary classes.
+Raw/custom SQL must respect the single-resultset contract.
 Execution does not count statements or validate SQL syntax; the database does.
 ReturnId requests are rejected based on query metadata because their compiled
 identity retrieval can require a batch. A mismatched explicit mode can raise a

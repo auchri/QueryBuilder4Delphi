@@ -87,6 +87,8 @@ type
     procedure LiteralAndNestedBindings;
     [Test]
     procedure DocumentationExecutionExamples;
+    [Test]
+    procedure ObjectMappingExamples;
 
   end;
 
@@ -103,7 +105,9 @@ uses
   QueryBuilder4Delphi.Providers.FireDAC,
   QueryBuilder4Delphi.Providers.FireDAC.Parameters,
   QueryBuilder4Delphi.Providers.FireDAC.Values,
-  QueryBuilder4Delphi.Compilers.SqliteCompiler, ExecutionExamples;
+  QueryBuilder4Delphi.Compilers.SqliteCompiler, ExecutionExamples,
+  MappingExamples,
+  QueryBuilder4Delphi.Mapping;
 
 type
   TExactBCDField = class(TBCDField)
@@ -981,6 +985,42 @@ begin
   R := TQuery.Create('Books').AsCount.Execute(FExecutor);
   Assert.IsTrue(R.Next);
   Assert.AreEqual<Int64>(2, R.GetValue(0).AsInt64);
+end;
+
+procedure TFireDACExecutionTests.ObjectMappingExamples;
+var
+  Books: TObjectList<TBook>;
+  Book: TBook;
+begin
+  Books := LoadBooks(FExecutor);
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.AreEqual(1, Books[0].Id);
+    Assert.AreEqual('Alpha', Books[0].Title);
+    Assert.AreEqual(2, Books[1].Id);
+    Assert.AreEqual('Beta', Books[1].Title);
+  finally
+    Books.Free;
+  end;
+  Book := FindBook(FExecutor, 2);
+  try
+    Assert.AreEqual(2, Book.Id);
+    Assert.AreEqual('Beta', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Book := FindBook(FExecutor, -1);
+  try
+    Assert.IsNull(Book);
+  finally
+    Book.Free;
+  end;
+  FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
+  Assert.WillRaise(
+    procedure
+    begin
+      LoadBooks(FExecutor).Free;
+    end, EQueryMappingException);
 end;
 
 initialization

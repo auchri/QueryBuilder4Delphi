@@ -61,8 +61,8 @@ unknown, including SELECTs for which the driver supplies no count.
 `GetColumnType(Index): TQueryValueType` is available before iteration, including
 empty resultsets and wholly NULL columns. It reports broad provider-neutral
 categories, not precision/scale or Delphi RTTI. qtUnknown means the provider
-cannot describe the type. It is a useful hint for a future mapper; GetValue's
-actual TValue.TypeInfo remains authoritative for non-NULL values. SQLite's
+cannot describe the type. The object mapper uses GetValue's actual
+TValue.TypeInfo, which remains authoritative for non-NULL values. SQLite's
 dynamic typing can give a different category from a declared SQL type.
 
 Values preserve string, Integer/Cardinal/Int64, Boolean, Double, Single,
@@ -170,7 +170,9 @@ binds ordered values using the convention chosen by its compiler. All providers
 must preserve the same result cursor, NULL, metadata and ownership contract.
 FireDAC's own constructor retains its fixed :pN convention.
 
-No result object mapper is provided. The existing Query.DataMapper helper
+The optional provider-independent `TQueryMapper` maps result rows to ordinary
+classes. See [Object Mapping](OBJECT_MAPPING.md) for ownership, RTTI requirements,
+supported scalars and SQL NULL limitations. The existing Query.DataMapper helper
 only reads object properties when constructing write queries.
 
 Run the separate FireDAC SQLite in-memory suite after rebuilding:
@@ -203,7 +205,7 @@ TRows/TValues for multiple insert rows, or explicit column/value arrays when
 order matters. Dates should be wrapped with TValue.From<TDateTime>. Object
 write data is read from RTTI-accessible properties; Column, Key and Ignore
 attributes control column names, key predicates and omitted properties.
-This write helper is separate from result object mapping, which is not provided.
+This write helper is separate from result object mapping through `TQueryMapper`.
 
 `TUnsafeLiteral` and `TVariable` are value records and need no Free. Ordinary
 values use bindings; TUnsafeLiteral deliberately inserts SQL and must never

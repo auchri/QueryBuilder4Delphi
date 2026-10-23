@@ -94,6 +94,28 @@ mechanism. Supply the dialect explicitly; there is no automatic detection.
 **[More examples](docs/EXAMPLES.md)** — filters, joins, CTEs, writes, pagination,
 compiler settings, transactions, error handling and custom providers.
 
+## Object Mapping
+
+Add `QueryBuilder4Delphi.Mapping` to map result rows to ordinary classes:
+
+```delphi
+Books := TQueryMapper.ToList<TBook>(
+  TQuery.Create('Books').Select(['Id', 'Title']).Execute(Executor));
+try
+  // Books owns its objects.
+finally
+  Books.Free;
+end;
+```
+
+`FirstOrDefault<TBook>(Rows)` returns one caller-owned object or `nil`.
+Mapping calls `Next`, starting with the next remaining row. Public/published
+writable properties need RTTI; names match without case sensitivity, with
+`[Column]` and `[Ignore]` supported. Partial projections retain constructor
+defaults. Supported scalars are Integer/Int64, Boolean, Unicode string,
+Single/Double/Extended, Currency and TDateTime. SQL NULL and unsupported or
+lossy conversions raise exceptions. See [working examples and limits](docs/OBJECT_MAPPING.md).
+
 ## SQL dialects
 
 | Dialect | Compiler class | Default compiler parameters |
@@ -119,8 +141,8 @@ without case sensitivity. `GetValue(Index/Name)` returns a `TValue`;
 converting to a Delphi type. Unknown or ambiguous names raise `EQueryException`.
 `RowsAffected` reports the provider count, or `-1` when unknown.
 
-The execution API exposes at most one resultset. There is no result object
-mapper, connection management or automatic transaction management. `emAuto`
+The execution API exposes at most one resultset. There is no connection
+management or automatic transaction management. `emAuto`
 uses query metadata; explicit `emRows`/`emCommand` are available. Identity
 batches requested with `ReturnId` are rejected. Raw SQL and custom compilers
 must respect the one-result contract; execution does not validate SQL syntax
