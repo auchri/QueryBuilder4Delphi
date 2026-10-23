@@ -44,6 +44,7 @@
         <DCCReference Include="Execution.ProviderExample.pas"/>
         <DCCReference Include="Execution.Mock.pas"/>
         <DCCReference Include="Execution.Tests.pas"/>
+        <DCCReference Include="DocumentationExamples.pas"/>
         <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryWrites.Tests.pas"/>
         <DCCReference Include="QueryModel.Tests.pas"/>
