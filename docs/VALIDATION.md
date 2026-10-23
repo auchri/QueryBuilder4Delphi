@@ -10,12 +10,12 @@ executables were run through `tools/build.ps1 -TestsOnly`.
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 652 | 652 | 0/0/0 | 0 |
-| Core | Win64 | 652 | 652 | 0/0/0 | 0 |
+| Core | Win32 | 675 | 675 | 0/0/0 | 0 |
+| Core | Win64 | 675 | 675 | 0/0/0 | 0 |
 | FireDAC/SQLite | Win32 | 40 | 40 | 0/0/0 | 0 |
 | FireDAC/SQLite | Win64 | 40 | 40 | 0/0/0 | 0 |
 
-The existing 632 core and 39 integration cases pass. Twenty provider-free
+The existing 632 core and 39 integration cases pass. Forty-three provider-free
 mapping cases check actual scalar values, public/published RTTI, attributes,
 aliases, partial projections, ignored/extra columns, repeated/reordered schemas,
 ambiguity, SQL NULL versus typed empty bytes, checked conversions, missing RTTI,
@@ -26,6 +26,18 @@ and different schemas. Instrumented mock counters verify column names are read
 once per result and no per-row name lookup occurs. The mock's lifetime counter
 uses interlocked updates for the concurrency case. Both executable shutdown
 reports were also checked: no unexpected RTL memory leaks were reported.
+
+The PR #13 review adds 23 cases covering incompatible and zero-column schemas,
+including empty results for both mapper methods; duplicate explicit/implicit
+mapping names; multiple column attributes; inherited writable properties;
+ignored collisions; classes with only ignored/read-only properties; alias-only
+matching; and successful reuse of cached metadata after schema validation fails.
+The prior unmapped-duplicates test now includes one matching column, preserving
+its original extra-column check under the new minimum-one-match requirement.
+Constructor/destructor counts and result reads verify that validation failures
+occur before construction and cursor advancement. Existing row-three failure
+and single-object cleanup regressions continue to pass. Metadata errors include
+the available schema, and duplicate mapping names are rejected before caching.
 
 The additional SQLite case executes the compiled examples in MappingExamples.pas
 through IQueryExecutor and IQuery.Execute, checking list values, aliases,

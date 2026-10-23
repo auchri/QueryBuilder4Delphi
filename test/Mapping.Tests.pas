@@ -27,6 +27,54 @@ type
     property ReadOnly: string read FDefault;
   end;
 
+  TInheritedBook = class(TMappingBook)
+  private
+    FEdition: Integer;
+  public
+    property Edition: Integer read FEdition write FEdition;
+  end;
+
+  TDuplicateColumnBook = class(TMappingBook)
+  private
+    FOriginalId: Integer;
+  public
+    [Column('BOOKID')]
+    property OriginalId: Integer read FOriginalId write FOriginalId;
+  end;
+
+  TImplicitCollisionBook = class(TMappingBook)
+  private
+    FOriginalTitle: string;
+  public
+    property BookTitle: string read FOriginalTitle write FOriginalTitle;
+  end;
+
+  TIgnoredCollisionBook = class(TMappingBook)
+  private
+    FOriginalId: Integer;
+  public
+    [Ignore]
+    [Column('BOOKID')]
+    property OriginalId: Integer read FOriginalId write FOriginalId;
+  end;
+
+  TMultipleAttributesBook = class(TMappingBook)
+  private
+    FExtra: Integer;
+  public
+    [Column('FirstColumn')]
+    [Column('SecondColumn')]
+    property Extra: Integer read FExtra write FExtra;
+  end;
+
+  TOnlyIgnoredDTO = class
+  private
+    FId: Integer;
+  public
+    [Ignore]
+    property Id: Integer read FId write FId;
+  end;
+
   TScalarDTO = class
   private
     FId: Integer;
@@ -140,6 +188,42 @@ type
     procedure PublishedProperties;
     [Test]
     procedure ColumnPlanIsResolvedOnce;
+    [TestCase('ListWithRows', '0,0')]
+    [TestCase('FirstWithRows', '1,0')]
+    [TestCase('ListEmpty', '0,1')]
+    [TestCase('FirstEmpty', '1,1')]
+    procedure NoMatchingColumns(Method, Empty: Integer);
+    [TestCase('List', '0')]
+    [TestCase('First', '1')]
+    procedure NoColumns(Method: Integer);
+    [TestCase('ListWithRows', '0,0')]
+    [TestCase('FirstWithRows', '1,0')]
+    [TestCase('ListEmpty', '0,1')]
+    [TestCase('FirstEmpty', '1,1')]
+    procedure DuplicatePropertyColumns(Method, Empty: Integer);
+    [TestCase('List', '0')]
+    [TestCase('First', '1')]
+    procedure ImplicitExplicitCollision(Method: Integer);
+    [Test]
+    procedure DuplicateMetadataOutsideProjection;
+    [Test]
+    procedure MultipleColumnAttributes;
+    [Test]
+    procedure InheritedWritableProperties;
+    [Test]
+    procedure IgnoredMappingDoesNotCollide;
+    [TestCase('List', '0')]
+    [TestCase('First', '1')]
+    procedure OnlyIgnoredProperties(Method: Integer);
+    [TestCase('List', '0')]
+    [TestCase('First', '1')]
+    procedure ReadOnlyEmptySchema(Method: Integer);
+    [Test]
+    procedure IgnoredAndReadOnlyColumnsDoNotCount;
+    [Test]
+    procedure ValidSchemaAfterValidationFailure;
+    [Test]
+    procedure ExplicitNameReplacesImplicitMatch;
   end;
 
 implementation
@@ -311,9 +395,10 @@ var
   Book: TMappingBook;
 begin
   Book := TQueryMapper.FirstOrDefault<TMappingBook>
-    (Rows(['other', 'OTHER'], TRows.Create(TValues.Create(TValue.Empty, 2))));
+    (Rows(['other', 'OTHER', 'BookId'],
+    TRows.Create(TValues.Create(TValue.Empty, 2, 37))));
   try
-    Assert.AreEqual(0, Book.Id);
+    Assert.AreEqual(37, Book.Id);
     Assert.AreEqual('constructor title', Book.Title);
   finally
     Book.Free;
@@ -586,6 +671,252 @@ begin
     Assert.AreEqual(0, Mock.ColumnIndexLookups);
   finally
     Books.Free;
+  end;
+end;
+
+// Validation failures must happen before construction or cursor advancement.
+// Keep this helper non-generic: the actual mapper APIs are exercised below.
+procedure ExpectValidationFailure(const Action: TProc;
+const Expected: array of string);
+var
+  Text: string;
+  BeforeCreated, BeforeDestroyed: Integer;
+begin
+  BeforeCreated := TMappingBook.Created;
+  BeforeDestroyed := TMappingBook.Destroyed;
+  try
+    Action();
+    Assert.Fail('Expected mapping validation failure');
+  except
+    on E: EQueryMappingException do
+      for Text in Expected do
+        Assert.IsTrue(Pos(Text, E.Message) > 0, E.Message);
+  end;
+  Assert.AreEqual(BeforeCreated, TMappingBook.Created);
+  Assert.AreEqual(BeforeDestroyed, TMappingBook.Destroyed);
+end;
+
+procedure TMappingTests.NoMatchingColumns(Method, Empty: Integer);
+var
+  R: IQueryResult;
+  Data: TRows;
+  BeforeResults: Integer;
+begin
+  BeforeResults := TMockQueryResult.LiveCount;
+  if Empty = 0 then
+    Data := TRows.Create(TValues.Create(123, 'unmatched'));
+  R := Rows(['WrongId', 'WrongTitle'], Data);
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TMappingBook>(R).Free
+      else
+        TQueryMapper.FirstOrDefault<TMappingBook>(R).Free;
+    end, ['TMappingBook', 'no result columns match', 'WrongId', 'WrongTitle']);
+  Assert.IsTrue(R.Next = (Empty = 0));
+  if Empty = 0 then
+    Assert.AreEqual(123, R.GetValue(0).AsInteger);
+  Assert.AreEqual(BeforeResults + 1, TMockQueryResult.LiveCount);
+end;
+
+procedure TMappingTests.NoColumns(Method: Integer);
+var
+  R: IQueryResult;
+begin
+  R := Rows(nil, nil);
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TMappingBook>(R).Free
+      else
+        TQueryMapper.FirstOrDefault<TMappingBook>(R).Free;
+    end, ['TMappingBook', 'Available result columns: []']);
+end;
+
+procedure TMappingTests.DuplicatePropertyColumns(Method, Empty: Integer);
+var
+  R: IQueryResult;
+  Data: TRows;
+begin
+  if Empty = 0 then
+    Data := TRows.Create(TValues.Create(123));
+  R := Rows(['bOoKiD'], Data);
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TDuplicateColumnBook>(R).Free
+      else
+        TQueryMapper.FirstOrDefault<TDuplicateColumnBook>(R).Free;
+    end, ['TDuplicateColumnBook', '"Id"', '"OriginalId"', 'same column']);
+  Assert.IsTrue(R.Next = (Empty = 0));
+  if Empty = 0 then
+    Assert.AreEqual(123, R.GetValue(0).AsInteger);
+end;
+
+procedure TMappingTests.ImplicitExplicitCollision(Method: Integer);
+var
+  R: IQueryResult;
+begin
+  R := Rows(['BOOKTITLE'], TRows.Create(TValues.Create('ambiguous')));
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TImplicitCollisionBook>(R).Free
+      else
+        TQueryMapper.FirstOrDefault<TImplicitCollisionBook>(R).Free;
+    end, ['TImplicitCollisionBook', '"Title"', '"BookTitle"', 'same column']);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual('ambiguous', R.GetValue(0).AsString);
+end;
+
+procedure TMappingTests.DuplicateMetadataOutsideProjection;
+begin
+  ExpectValidationFailure(
+    procedure
+    begin
+      TQueryMapper.ToList<TDuplicateColumnBook>(Rows(['BookTitle'],
+        TRows.Create(TValues.Create('otherwise valid')))).Free;
+    end, ['TDuplicateColumnBook', 'same column']);
+end;
+
+procedure TMappingTests.MultipleColumnAttributes;
+begin
+  ExpectValidationFailure(
+    procedure
+    begin
+      TQueryMapper.FirstOrDefault<TMultipleAttributesBook>(Rows(['FirstColumn',
+        'SecondColumn'], TRows.Create(TValues.Create(1, 2)))).Free;
+    end, ['TMultipleAttributesBook.Extra',
+    'multiple column mapping attributes']);
+end;
+
+procedure TMappingTests.InheritedWritableProperties;
+var
+  Books: TObjectList<TInheritedBook>;
+  Book: TInheritedBook;
+  BeforeCreated, BeforeDestroyed: Integer;
+begin
+  BeforeCreated := TMappingBook.Created;
+  BeforeDestroyed := TMappingBook.Destroyed;
+  Books := TQueryMapper.ToList<TInheritedBook>
+    (Rows(['edition', 'BOOKTITLE', 'bookid', 'extra'],
+    TRows.Create(TValues.Create(3, 'Inherited', 42, TValue.Empty))));
+  try
+    Assert.AreEqual<NativeInt>(1, Books.Count);
+    Assert.AreEqual(42, Books[0].Id);
+    Assert.AreEqual('Inherited', Books[0].Title);
+    Assert.AreEqual(3, Books[0].Edition);
+    Assert.AreEqual('ignored default', Books[0].Ignored);
+    Assert.AreEqual('constructor default', Books[0].DefaultValue);
+  finally
+    Books.Free;
+  end;
+  Book := TQueryMapper.FirstOrDefault<TInheritedBook>
+    (Rows(['BOOKID', 'extra'], TRows.Create(TValues.Create(43, 'ignored'))));
+  try
+    Assert.AreEqual(43, Book.Id);
+    Assert.AreEqual('constructor title', Book.Title);
+    Assert.AreEqual(0, Book.Edition);
+  finally
+    Book.Free;
+  end;
+  Assert.AreEqual(BeforeCreated + 2, TMappingBook.Created);
+  Assert.AreEqual(BeforeDestroyed + 2, TMappingBook.Destroyed);
+end;
+
+procedure TMappingTests.IgnoredMappingDoesNotCollide;
+var
+  Book: TIgnoredCollisionBook;
+begin
+  Book := TQueryMapper.FirstOrDefault<TIgnoredCollisionBook>
+    (Rows(['bookid'], TRows.Create(TValues.Create(19))));
+  try
+    Assert.AreEqual(19, Book.Id);
+    Assert.AreEqual(0, Book.OriginalId);
+    Assert.AreEqual('constructor title', Book.Title);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TMappingTests.OnlyIgnoredProperties(Method: Integer);
+begin
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TOnlyIgnoredDTO>(Rows(['Id'],
+          TRows.Create(TValues.Create(1)))).Free
+      else
+        TQueryMapper.FirstOrDefault<TOnlyIgnoredDTO>(Rows(['Id'],
+          TRows.Create(TValues.Create(1)))).Free;
+    end, ['TOnlyIgnoredDTO', 'no public/published writable properties',
+    'Available result columns: [Id]']);
+end;
+
+procedure TMappingTests.ReadOnlyEmptySchema(Method: Integer);
+begin
+  ExpectValidationFailure(
+    procedure
+    begin
+      if Method = 0 then
+        TQueryMapper.ToList<TReadOnlyDTO>(Rows(['Id'], nil)).Free
+      else
+        TQueryMapper.FirstOrDefault<TReadOnlyDTO>(Rows(['Id'], nil)).Free;
+    end, ['TReadOnlyDTO', 'no public/published writable properties',
+    'Available result columns: [Id]']);
+end;
+
+procedure TMappingTests.IgnoredAndReadOnlyColumnsDoNotCount;
+begin
+  ExpectValidationFailure(
+    procedure
+    begin
+      TQueryMapper.ToList<TMappingBook>(Rows(['Ignored', 'ReadOnly'],
+        TRows.Create(TValues.Create('ignored', 'read only')))).Free;
+    end, ['TMappingBook', 'no result columns match', 'Ignored', 'ReadOnly']);
+end;
+
+procedure TMappingTests.ValidSchemaAfterValidationFailure;
+var
+  Book: TMappingBook;
+begin
+  // Warm the metadata cache, then verify that a bad result plan does not poison
+  // later calls for this class with a different, valid partial projection.
+  Book := TQueryMapper.FirstOrDefault<TMappingBook>
+    (Rows(['BookId'], TRows.Create(TValues.Create(5))));
+  try
+    Assert.AreEqual(5, Book.Id);
+  finally
+    Book.Free;
+  end;
+  NoMatchingColumns(0, 0);
+  Book := TQueryMapper.FirstOrDefault<TMappingBook>(Rows(['extra', 'BOOKTITLE'],
+    TRows.Create(TValues.Create(TValue.Empty, 'valid again'))));
+  try
+    Assert.AreEqual(0, Book.Id);
+    Assert.AreEqual('valid again', Book.Title);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TMappingTests.ExplicitNameReplacesImplicitMatch;
+var
+  Book: TMappingBook;
+begin
+  Book := TQueryMapper.FirstOrDefault<TMappingBook>
+    (Rows(['BookTitle', 'Title', 'BookId'],
+    TRows.Create(TValues.Create('mapped alias', 'must not overwrite', 44))));
+  try
+    Assert.AreEqual('mapped alias', Book.Title);
+    Assert.AreEqual(44, Book.Id);
+  finally
+    Book.Free;
   end;
 end;
 

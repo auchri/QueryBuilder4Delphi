@@ -58,9 +58,10 @@ var
   RttiType: TRttiType;
   Prop: TRttiProperty;
   Attr: TCustomAttribute;
-  Item: TPropertyMapping;
+  Item, Existing: TPropertyMapping;
   Items: TList<TPropertyMapping>;
   Skip: Boolean;
+  ColumnAttributes: Integer;
 begin
   MetadataLock.Acquire;
   try
@@ -80,16 +81,30 @@ begin
           Item.Target := Prop.PropertyType.Handle;
           Item.Column := Prop.Name;
           Skip := False;
+          ColumnAttributes := 0;
           for Attr in Prop.GetAttributes do
           begin
             if Attr is IgnoreAttribute then
               Skip := True;
             // KeyAttribute inherits ColumnAttribute; no persistence semantics.
             if Attr is ColumnAttribute then
+            begin
+              Inc(ColumnAttributes);
               Item.Column := ColumnAttribute(Attr).Name;
+            end;
           end;
-          if not Skip then
-            Items.Add(Item);
+          if Skip then
+            Continue;
+          if ColumnAttributes > 1 then
+            raise EQueryMappingException.CreateFmt
+              ('%s.%s has multiple column mapping attributes',
+              [AClass.ClassName, Prop.Name]);
+          for Existing in Items do
+            if SameText(Existing.Column, Item.Column) then
+              raise EQueryMappingException.CreateFmt
+                ('%s: properties "%s" and "%s" map to the same column "%s"',
+                [AClass.ClassName, Existing.Prop.Name, Prop.Name, Item.Column]);
+          Items.Add(Item);
         end;
       if Items.Count = 0 then
         raise EQueryMappingException.CreateFmt
@@ -114,15 +129,26 @@ var
   Binding: TColumnMapping;
   Bindings: TList<TColumnMapping>;
   I, Found: Integer;
+  AvailableColumns: string;
 begin
   if Rows = nil then
     raise EArgumentNilException.Create('Rows');
   if not Rows.HasResultSet then
     raise EQueryMappingException.Create('Object mapping requires a resultset');
-  Metadata := ClassMapping(AClass);
   SetLength(Names, Rows.ColumnCount);
   for I := 0 to High(Names) do
     Names[I] := Rows.GetColumnName(I);
+  AvailableColumns := Format('Available result columns: [%s]',
+    [string.Join(', ', Names)]);
+  try
+    Metadata := ClassMapping(AClass);
+  except
+    on E: EQueryMappingException do
+    begin
+      E.Message := E.Message + '. ' + AvailableColumns;
+      raise;
+    end;
+  end;
   Bindings := TList<TColumnMapping>.Create;
   try
     for Item in Metadata do
@@ -144,6 +170,10 @@ begin
         Bindings.Add(Binding);
       end;
     end;
+    if Bindings.Count = 0 then
+      raise EQueryMappingException.CreateFmt
+        ('%s: no result columns match writable, non-ignored properties. ' +
+        '%s', [AClass.ClassName, AvailableColumns]);
     Result := Bindings.ToArray;
   finally
     Bindings.Free;

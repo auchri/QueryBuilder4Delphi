@@ -57,22 +57,36 @@ end.
 
 Free the owning `TObjectList<TBook>` returned by `LoadBooks` in a `finally` block.
 Free the single object returned by `FindBook` similarly (`nil.Free` is safe).
-`ToList` returns an empty owning list for an empty result; `FirstOrDefault`
-returns `nil`. Both call `Next` before mapping: a row already selected by the
-caller is skipped. `ToList` consumes all remaining rows; `FirstOrDefault`
-consumes at most one, leaving later rows available. Neither rewinds the cursor
-or explicitly frees the caller's result interface. Do not share one cursor
-between concurrent calls.
+For an empty result with a compatible column schema, `ToList` returns an empty
+owning list and `FirstOrDefault` returns `nil`. Both call `Next` before mapping:
+a row already selected by the caller is skipped. `ToList` consumes all remaining
+rows; `FirstOrDefault` consumes at most one, leaving later rows available.
+Neither rewinds the cursor or explicitly frees the caller's result interface.
+Do not share one cursor between concurrent calls.
 
 Names are matched case-insensitively against result column names, including
 aliases. `[Column('BookTitle')]` replaces the default property-name match.
 `[Ignore]` excludes a property. `[Key('BookId')]` retains its inherited column
 mapping behavior without identity or persistence semantics. Read-only and
-nonpublic properties and all fields are excluded. Extra columns are ignored,
-even when NULL or unsupported. Missing columns leave constructor values intact.
+nonpublic properties and all fields are excluded. Inherited writable properties
+follow the same mapping rules. Extra columns are ignored, even when NULL or
+unsupported. Missing columns leave constructor values intact.
 Duplicate result names raise `EQueryMappingException` when a mapped property
 would be ambiguous; use distinct aliases to resolve them. Classes without any
 eligible properties raise a descriptive exception, including on empty results.
+At least one result column must match an eligible property. A schema with no
+matches raises `EQueryMappingException` naming the class and available columns,
+even if the result has no rows. Validation happens before advancing the cursor
+or constructing objects in both mapper methods.
+
+Effective mapping names must be unique across eligible properties, ignoring
+case. Two `[Column]` names, or an explicit name and another property's implicit
+name, cannot refer to the same column. Such class metadata is rejected even if
+the current projection omits the conflicting column. `[Ignore]` properties do
+not participate in these checks. A property may have at most one column mapping
+attribute (`[Column]` or its subclass `[Key]`); multiple attributes are rejected
+instead of selecting one arbitrarily. Errors identify the class and conflicting
+properties or attributes.
 
 | Destination | Accepted source |
 | --- | --- |
