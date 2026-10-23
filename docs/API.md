@@ -1,4 +1,4 @@
-# API mapping and limitations
+# API reference and limitations
 
 ## Execution and optional FireDAC provider
 
@@ -8,51 +8,9 @@ live beside `IQuery` in `QueryBuilder4Delphi.Query.Core`, avoiding circular unit
 references. They use only RTL types. `QueryBuilder4Delphi.Execution` supplies
 `TQueryExecutor`, a reusable compiler/dialect implementation for providers.
 FireDAC is confined to `QueryBuilder4Delphi.Providers.FireDAC` and its
-`.Parameters` unit. Core and compiler projects need neither FireDAC nor Data.DB.
-The former adapter unit and its static API have been removed (breaking change).
-
-```delphi
-uses
-  System.SysUtils, FireDAC.Comp.Client,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
-  QueryBuilder4Delphi.Providers.FireDAC;
-
-procedure PrintBooks(Connection: TFDConnection);
-var
-  Executor: IQueryExecutor;
-  Rows: IQueryResult;
-begin
-  // Connection is already configured and connected by the application.
-  Executor := TFireDACQueryExecutor.Create(Connection, TSqlDialect.MSSql);
-  Rows := TQuery.Create('Books').Select(['Id', 'Title'])
-    .Where('IsPublished', True).OrderBy('Title').Execute(Executor);
-  while Rows.Next do
-    if not Rows.IsNull('Title') then
-      Writeln(Rows.GetValue('Title').AsString);
-end;
-
-procedure ChangeBook(Connection: TFDConnection);
-var
-  Executor: IQueryExecutor;
-  Command: IQueryResult;
-begin
-  Executor := TFireDACQueryExecutor.Create(Connection, TSqlDialect.MSSql);
-  Connection.StartTransaction;
-  try
-    Command := TQuery.Create('Books')
-      .AsInsert(['Id', 'Title'], [42, 'New book']).Execute(Executor);
-    Writeln(Command.RowsAffected);
-    Command := TQuery.Create('Books').Where('Id', 42)
-      .AsUpdate(['Title'], ['Changed book']).Execute(Executor);
-    Command := TQuery.Create('Books').Where('Id', 42).AsDelete.Execute(Executor);
-    Command := nil;
-    Connection.Commit;
-  except
-    Connection.Rollback;
-    raise;
-  end;
-end;
-```
+`.Parameters` and `.Values` helper units. Core and compiler projects need neither FireDAC nor Data.DB.
+The provider uses a caller-owned TFDConnection, never an existing TFDQuery.
+See the [examples](EXAMPLES.md#query-execution) for a complete walkthrough.
 
 `Execute(Executor, emAuto)` uses query metadata: select/aggregate opens rows;
 insert/update/delete executes a command. WITH clauses do not change this rule.
@@ -122,7 +80,7 @@ Both ftBCD and ftFMTBcd use the field's AsBCD accessor. Provider-created queries
 prefer FMTBcd via MaxBcdPrecision/MaxBcdScale=0 so driver decimals use TBcd
 storage, rather than Delphi's Currency-backed TBCDField. A Currency-backed BCD
 field declaring scale >4 or precision >18 is rejected because values may
-already have been rounded upstream. Existing application/driver mapping rules
+already have been rounded by the driver. Existing application/driver mapping rules
 that reduce precision cannot be undone by this library. Controlled field and
 TFDMemTable regressions verify 8 decimal places, large/negative values and
 zero handling; SQLite NUMERIC storage is not evidence of server decimal
@@ -203,74 +161,17 @@ performed. Custom compilers must maintain the ISqlResult contract:
   interpolated into Sql by execution. A provider consumes the ordered list,
   not dictionary iteration order.
 
-For an external adapter with :ParameterN names, this complete example compiles
-in the core test project as test/Execution.ProviderExample.pas. The application
-implements ICommandAdapter using its existing database abstraction; there is
-no Dana-specific dependency or implementation in this repository:
-
-```delphi
-unit Execution.ProviderExample;
-
-interface
-
-uses
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Execution,
-  QueryBuilder4Delphi.Compilers.Compiler;
-
-type
-  // Implement this bridge in the application using its existing adapter.
-  ICommandAdapter = interface
-    ['{6C14C9C2-BAAB-42CE-B5A2-441789327568}']
-    function ExecuteParameterized(const Sql: string; const Values: TValues;
-      Mode: TQueryExecutionMode): IQueryResult;
-  end;
-
-  TAdapterQueryExecutor = class(TQueryExecutor)
-  private
-    FAdapter: ICommandAdapter;
-  protected
-    function ExecuteCompiled(const Statement: ISqlResult;
-      Mode: TQueryExecutionMode): IQueryResult; override;
-  public
-    constructor Create(const Adapter: ICommandAdapter; Dialect: TSqlDialect);
-  end;
-
-implementation
-
-uses System.SysUtils;
-
-constructor TAdapterQueryExecutor.Create(const Adapter: ICommandAdapter;
-  Dialect: TSqlDialect);
-begin
-  // This adapter's named convention is :Parameter0, :Parameter1, ...
-  inherited Create(Dialect, ':Parameter');
-  if Adapter = nil then raise EArgumentNilException.Create('Adapter');
-  FAdapter := Adapter;
-end;
-
-function TAdapterQueryExecutor.ExecuteCompiled(const Statement: ISqlResult;
-  Mode: TQueryExecutionMode): IQueryResult;
-begin
-  // The bridge binds Values[I] to :Parameter<I>, interpreting TQueryNull hints.
-  // It returns its own cursor implementation and defines connection ownership.
-  Result := FAdapter.ExecuteParameterized(Statement.Sql, Statement.Bindings.ToArray, Mode);
-end;
-
-end.
-```
+A complete provider bridge with :ParameterN names is shown in
+[Custom providers](EXAMPLES.md#custom-providers) and compiled in
+[test/Execution.ProviderExample.pas](../test/Execution.ProviderExample.pas).
 
 The bridge returns its own IQueryResult cursor, interprets TQueryNull hints and
-binds ordered values using the convention chosen by its compiler. Both adapters
+binds ordered values using the convention chosen by its compiler. All providers
 must preserve the same result cursor, NULL, metadata and ownership contract.
 FireDAC's own constructor retains its fixed :pN convention.
 
-Future object mapping can consume only `IQueryResult`: names, TValue type
-information, NULL and sequential iteration are already available for single
-objects, lists and streaming. Delphi interfaces cannot declare generic
-methods; a future record facade holding IQueryResult can offer `ToList<T>`,
-`First<T>` or `Single<T>` without changing providers. No result object mapper
-is implemented here. The existing Query.DataMapper remains solely for write
-query construction from object properties.
+No result object mapper is provided. The existing Query.DataMapper helper
+only reads object properties when constructing write queries.
 
 Run the separate FireDAC SQLite in-memory suite after rebuilding:
 
@@ -280,82 +181,36 @@ Run the separate FireDAC SQLite in-memory suite after rebuilding:
 
 ## Public fluent API
 
-The upstream public `Query` method names are available on `IQuery`, except for
-`Include` and `IncludeMany`, which belong to the explicitly excluded execution
-and relation-loading layer.
+Import `QueryBuilder4Delphi.Query.Core` for interfaces, enums and value helpers,
+and `QueryBuilder4Delphi.Query` for the `TQuery` record factory. The factory
+returns `IQuery`; fluent methods modify that instance and return it. Use Clone
+for an independent variant. Delphi keywords use an `&` prefix, for example
+`&From`, `&With`, `&As` and `&Not`.
 
-`Query` maps to `IQuery`, `Compiler` to `ICompiler`, and `SqlResult` to
-`ISqlResult`. `TQuery.Create` is a record factory. `TCompiler` and the six
-dialect compilers are classes; their inherited `Create` class function returns
-`ICompiler` immediately. Temporary fluent chains do not require manual cleanup.
-Each compiler has its own `QueryBuilder4Delphi.Compilers.<ClassName>` unit,
-with the Delphi `T` prefix omitted from the unit name.
-`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` is a
-Delphi convenience method for SQL previews. `TSqlDialect` is a scoped enum in
-`QueryBuilder4Delphi.Query.Core` with `MSSql`, `MySql`, `PostgreSql`, `Sqlite`,
-`Oracle`, and `Firebird`. The method creates the selected compiler with its
-default settings and returns `Compiler.Compile(Query).ToString`, including
-substituted values. It preserves the query, propagates compiler errors, and
-requires no compiler unit imports in calling code. Use `ICompiler.Compile`
-when you need SQL and bindings separately or custom compiler settings.
+`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` produces a
+preview with substituted values. `ICompiler.Compile(Query): ISqlResult`
+returns parameterized SQL and ordered/named bindings. `CreateCompiler(Dialect)`
+in `QueryBuilder4Delphi.Compilers.Factory` supports MSSql, MySql, PostgreSql,
+Sqlite, Oracle and Firebird. Compiler class factories also return ICompiler.
+`ParameterPrefix` configures named markers; `TSqlDialect.EngineCode` supplies
+scope codes such as sqlsrv and mysql. Custom scopes can still use strings.
 
-`CreateCompiler(Dialect)` in `QueryBuilder4Delphi.Compilers.Factory` creates
-the corresponding reference-counted compiler. `ICompiler.ParameterPrefix`
-configures generated named markers (for example, `':p'` produces `:p0`).
-The default compiler prefixes remain unchanged.
+`TValue` carries parameter values. Use TSqlValues.&Of<T> for typed IN arrays,
+TRows/TValues for multiple insert rows, or explicit column/value arrays when
+order matters. Dates should be wrapped with TValue.From<TDateTime>. Object
+write data is read from RTTI-accessible properties; Column, Key and Ignore
+attributes control column names, key predicates and omitted properties.
+This write helper is separate from result object mapping, which is not provided.
 
-`TQueryObject` and the `TQuery` factory live in `QueryBuilder4Delphi.Query`.
-`IQuery`, `TClause`, callbacks, attributes, and value types live in
-`QueryBuilder4Delphi.Query.Core`. Import both units to use the model directly.
-The `SqlKata` and `QueryBuilder4Delphi.Compilers` facade units are no longer
-provided. Import the defining units directly; rebuild dependent units and
-packages after updating the library. The fluent method signatures remain the
-same, but old imports and compatibility type names are intentionally removed.
-All include files have been removed. Generated fluent declarations and methods
-are regular Pascal source in marked sections of the two query units.
-`tools/generate_query.py` updates those sections without replacing handwritten
-code; `--check` verifies generated tokens while allowing formatter whitespace
-outside strings, comments, and directives. Generation preserves matching
-formatted files. Use `tools/format.ps1` after generating changed code.
-The upstream `EngineCodes` constants are represented by
-`TSqlDialect.EngineCode`: for example, `TSqlDialect.MSSql.EngineCode` returns
-`'sqlsrv'`. Dialect compilers and the `ForSqlServer`/`ForMySql`/etc. methods use
-this central mapping. The former `TEngineCodes` record has been removed;
-replace `TEngineCodes.SqlServer` with `TSqlDialect.MSSql.EngineCode` and use
-the corresponding enum member for each other dialect. `IQuery.For` and
-`SetEngineScope` continue to accept strings for custom compiler engine names.
-The base `TCompiler` uses the string code `'generic'`.
+`TUnsafeLiteral` and `TVariable` are value records and need no Free. Ordinary
+values use bindings; TUnsafeLiteral deliberately inserts SQL and must never
+contain untrusted input. TQueryWrites and TQueryDataMapper are implementation
+helpers used by the public write methods.
 
-Write operations delegate to the stateless `TQueryWrites` class in
-`QueryBuilder4Delphi.Query.Writes`. RTTI property mapping delegates to
-`TQueryDataMapper` in `QueryBuilder4Delphi.Query.DataMapper`. These are
-implementation helpers; applications continue to call `IQuery.AsInsert`,
-`AsUpdate`, `AsDelete`, `AsIncrement`, `AsDecrement`, and `AsAggregate`.
-The former `SqlKata.Writes.inc` is no longer used or provided.
-
-`object` parameters become `TValue`; `params` and `IEnumerable` parameters
-become open arrays or `TArray`. For IN values from typed arrays,
-`TSqlValues.&Of<T>` converts to `TValues`. Multiple rows use `TRows`, with
-`TValues` for each row. Dictionaries use `TDictionary<string,TValue>` or arrays
-of `TPair<string,TValue>`. Delphi has no C# anonymous data types; object data
-uses RTTI-accessible Delphi properties.
-
-`TUnsafeLiteral` and `TVariable` are value records with implicit conversion to
-`TValue`; they do not need `Free`. `TUnsafeLiteral.Create(SQL, False)` leaves
-the SQL text unchanged. These record constructors replace the `Expressions`
-helper class.
-
-Condition and join callbacks use `IQuery` directly. The former
-`IConditionGroup`, `TConditionGroup`, `IJoin`, and `TJoin` aliases have been
-removed. The C# internal clause subclasses,
-interfaces, separate `Wheres`/`Havings`/clause properties, and visitor and
-CompileContext extension interfaces are not reproduced with binary or type
-compatibility. Instead, the port exposes `TClause`, `Clauses`, `GetComponents`,
-`GetOne`, and `ClearComponent`. Components are `where`, `having`, `select`,
-`from`, `group`, `order`, `join`, `cte`, `combine`, `limit`, `offset`,
-`aggregate`, `insert`, and `update`. These internal lists belong to the query.
-Custom query implementations can derive from `TQueryObject` and override
-`NewQuery`/`Clone`. Always hold implementation instances through interfaces.
+Callbacks accept and return IQuery. Return the query passed into the callback.
+Custom query implementations can derive from TQueryObject and override
+NewQuery/Clone. Low-level clauses and components belong to the query and must
+not be freed by callers. Prefer fluent methods for application code.
 
 ## Compiler classes and extensions
 
@@ -410,39 +265,25 @@ through `ICompiler`.
 - Query instances and configurable compilers do not synchronize shared mutable
   state. Use separate instances per thread.
 
-## Intentionally corrected upstream bugs
+## Additional behavior and limitations
 
-The following corrections were explicitly approved:
-
-1. `Having(function(Q: IQuery): IQuery begin Result := Q.Where(...); end)`
-   produces a HAVING group. The C# overload checks only `query.Havings` and
-   discards conditions from `query.Wheres`. A callback using `Q.Having(...)`
-   also works. For both components, Delphi prefers the Where group and falls
-   back to the Having group when no Where group exists.
-2. `TOracleCompiler.Create.Compile(TQuery.Create.SelectCount('Id as Total'))`
-   produces `COUNT("Id") "Total"`. The C# implementation loses the AS keyword
-   while splitting the alias and places the alias inside the aggregate:
-   `COUNT("Id" "Total")`. The Delphi correction also applies to filtered
-   aggregates and Oracle legacy mode.
-
-The unmodified C# reference outputs for these cases remain in `test/golden.json`.
-The twelve affected engine/scenario combinations have explicit correction tests;
-the reference data is not silently changed to match the corrected output.
-
-## Other differences due to Delphi and lifetime management
-
-- `For` restores the previous EngineScope even when an exception occurs.
-- `Clone` preserves the comment. The current C# implementation does not copy it.
-- Batch compilation of an empty array returns an empty result.
-- Raw binding counts must match unescaped `?` placeholders; mismatches raise
-  `EQueryException` early.
+- Having callbacks can build a grouped predicate with Where or Having; Where
+  conditions take priority when both are present.
+- Oracle aggregate aliases appear outside the aggregate expression.
+- Raw binding counts must match unescaped placeholders outside quoted text and
+  comments. Mismatches raise EQueryException before execution.
 - Operators are checked against a whitelist. Aggregate names and date parts
-  must be simple SQL function or part names. Dialect-specific names such as
-  `quarter` are allowed; raw expressions support arbitrary SQL fragments.
-- The compact model does not guarantee RTTI property or dictionary entry order.
-  Use explicit column/value arrays when order matters.
-- Whitespace formatting in compiled SQL may differ. Parity comparisons
-  normalize only these whitespace differences. No database servers are contacted.
+  must be simple function/part names; raw fragments allow explicit SQL syntax.
+- Joined write queries are supported only by the SQL Server and MySQL compilers.
+- UseLegacyPagination selects TOP/ROW_NUMBER for SQL Server or ROWNUM for Oracle;
+  the default SQL Server and Oracle compilers use OFFSET/FETCH.
+- For restores the previous engine scope even if a callback raises. Clone
+  preserves comment metadata. Comment/GetComment do not emit SQL comments.
+- Batch compilation of an empty query array returns an empty result. Batch
+  compilation is distinct from the one-result execution contract.
+- Explicit arrays provide stable column/value order; RTTI property and
+  dictionary enumeration order should not be assumed.
 
-As in the local C# compiler implementation, `Comment`/`GetComment` manage model
-metadata; comments are not inserted into SQL.
+[Examples](EXAMPLES.md) show usage. [Contributor notes](PORTING.md) retain
+technical history and reference-test provenance; [validation](VALIDATION.md)
+records what was compiled and executed.

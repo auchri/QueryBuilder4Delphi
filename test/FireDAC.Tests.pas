@@ -85,6 +85,8 @@ type
     procedure RejectsLossyBcdDefinition;
     [Test]
     procedure LiteralAndNestedBindings;
+    [Test]
+    procedure DocumentationExecutionExamples;
 
   end;
 
@@ -101,7 +103,7 @@ uses
   QueryBuilder4Delphi.Providers.FireDAC,
   QueryBuilder4Delphi.Providers.FireDAC.Parameters,
   QueryBuilder4Delphi.Providers.FireDAC.Values,
-  QueryBuilder4Delphi.Compilers.SqliteCompiler;
+  QueryBuilder4Delphi.Compilers.SqliteCompiler, ExecutionExamples;
 
 type
   TExactBCDField = class(TBCDField)
@@ -951,6 +953,34 @@ begin
   Assert.IsTrue(R.Next);
   Assert.AreEqual('Alpha', R.GetValue('Title').AsString);
   Assert.IsFalse(R.Next);
+end;
+
+procedure TFireDACExecutionTests.DocumentationExecutionExamples;
+var
+  R: IQueryResult;
+begin
+  FConnection.ExecSQL
+    ('ALTER TABLE Books ADD COLUMN IsPublished integer DEFAULT 1');
+  PrintBooks(FConnection, TSqlDialect.SQLite);
+  Assert.WillRaise(
+    procedure
+    begin
+      ChangeBookInTransaction(FConnection, TSqlDialect.SQLite);
+    end, EInvalidOp);
+  FConnection.StartTransaction;
+  try
+    Assert.AreEqual<Int64>(1, ChangeBookInTransaction(FConnection,
+      TSqlDialect.SQLite));
+    Assert.IsTrue(FConnection.InTransaction);
+  finally
+    FConnection.Rollback;
+  end;
+  ChangeBook(FConnection, TSqlDialect.SQLite);
+  Assert.IsFalse(FConnection.InTransaction);
+  Assert.IsTrue(FConnection.Connected);
+  R := TQuery.Create('Books').AsCount.Execute(FExecutor);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual<Int64>(2, R.GetValue(0).AsInt64);
 end;
 
 initialization

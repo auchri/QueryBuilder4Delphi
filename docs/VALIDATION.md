@@ -1,7 +1,7 @@
-# Validation: October 22, 2026
+# Validation: October 23, 2026
 
-The execution layer replaces the previous FireDAC integration. Earlier test
-counts and binary hashes are superseded by this validation run.
+Documentation/examples update, based on merged execution-layer main. Earlier
+test counts and binary hashes are superseded by this validation run.
 
 Delphi 12 Community Edition (RAD Studio 23.0), Windows. Command-line compilation
 was attempted with tools/build.ps1 and rejected by the installed Community
@@ -10,10 +10,10 @@ Edition license. Full builds were therefore performed with IDE Project > Build
 
 | Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
 | --- | --- | ---: | ---: | --- | ---: |
-| Core | Win32 | 622 | 622 | 0 | 0 |
-| Core | Win64 | 622 | 622 | 0 | 0 |
-| FireDAC | Win32 | 38 | 38 | 0 | 0 |
-| FireDAC | Win64 | 38 | 38 | 0 | 0 |
+| Core | Win32 | 629 | 629 | 0 | 0 |
+| Core | Win64 | 629 | 629 | 0 | 0 |
+| FireDAC | Win32 | 39 | 39 | 0 | 0 |
+| FireDAC | Win64 | 39 | 39 | 0 | 0 |
 
 All four full builds reported zero errors, warnings and hints.
 ReportMemoryLeaksOnShutdown is enabled in both projects. Resource tests also
@@ -29,7 +29,7 @@ access, duplicate names, NULL versus empty binary values, RowsAffected and
 independent executor/result lifetimes. The external-provider example is
 compiled in the core project. No FireDAC or Data.DB units are linked into it.
 
-The 38 optional cases use statically linked SQLite :memory: or native field
+The 39 optional cases use statically linked SQLite :memory: or native field
 fixtures and exercise
 SELECT (including empty results, WHERE and CTE), INSERT/UPDATE/DELETE and
 RowsAffected, repeated queries and simultaneous cursors, metadata/index/name
@@ -73,16 +73,36 @@ for NULL and non-NULL Title values, mixed-case names, missing-column exception
 messages and cursor access before/after iteration. The mock checks identical
 GetValue/IsNull ambiguity errors. FireDAC may disambiguate duplicate aliases into distinct field names; its
 integration test checks index/name agreement for resolved names, or matching
-ambiguity errors when duplicate names are preserved. The README PrintBooks example compiles using IsNull('Title').
+ambiguity errors when duplicate names are preserved. The compiled PrintBooks example uses IsNull('Title').
 No shared result base class or new dependencies were introduced.
 
+Documentation/example verification adds seven core cases: 31 query variants
+compile for each of the six dialects (six cases), and a separate case verifies
+the exact SQL Server/Oracle SQL, preview output, configurable parameter prefix
+and UPDATE value ordering displayed in EXAMPLES.md. The functions and compiler
+walkthrough in test/DocumentationExamples.pas are called by those tests.
+One additional SQLite case runs PrintBooks, INSERT/UPDATE/DELETE inside a
+caller-started transaction, rollback, the transaction-owning wrapper and the
+missing-transaction error. It verifies DELETE RowsAffected and leaves the
+connection open. The generic external adapter example compiles in core; no
+actual external database adapter is implemented or executed.
+
+A whitespace-normalized comparison verified that all 36 complete function,
+procedure and unit blocks in EXAMPLES.md match the compiled example sources.
+The README's short quick starts use the same tested query/reader operations;
+they were syntax/API-reviewed rather than compiled as separate programs.
+All 30 local Markdown links/anchors in the five Markdown documents were
+checked. The sole external API reference link was opened successfully.
+README/API/examples contain no template-origin comparisons or old adapter API.
+LICENSE, src/, reference data, and internal PORTING.md provenance are unchanged.
+
 Both generator checks pass (including 69 paired Oracle scenario definitions).
-All eight Python generator regression tests pass. The first Python run failed
-during temporary-directory cleanup under the sandbox's system temp path;
-rerunning with TMP/TEMP set to build/python-temp passed all eight.
+All eight Python generator regression tests pass with TMP/TEMP set to
+build/python-temp. This avoids sandbox cleanup restrictions on the system
+temp directory encountered during earlier execution-layer validation.
 Delphi Formatter.exe was applied to source/test Pascal files. Execute is outside
 the generated sections and both generator checks retain it unchanged. A second
-formatter pass was byte-for-byte idempotent across all 30 immediate Pascal
+formatter pass was byte-for-byte idempotent across all 31 immediate Pascal
 source/test files. git diff --check passed. Source/documentation searches found
 no remaining references to the removed adapter symbol; the core source has no
 FireDAC or Data.DB dependencies. Untracked IDE history files were excluded.
@@ -95,8 +115,8 @@ Commands used after the IDE builds:
 python tools/generate_query.py --check
 python tools/generate_oracle.py --check
 python -m unittest discover -s tools -p 'test_*.py'
-python tools/record_validation.py --suite Core --date 2026-10-22
-python tools/record_validation.py --suite FireDAC --date 2026-10-22
+python tools/record_validation.py --suite Core --date 2026-10-23
+python tools/record_validation.py --suite FireDAC --date 2026-10-23
 ```
 
 Python commands used the bundled Python runtime because the system python.exe
@@ -105,4 +125,4 @@ is an unavailable Windows Store alias.
 The reference golden SQL remains unchanged: local SqlKata source commit
 `df4a2377750d34fc057c81886b481e7309ef975e`, 552 reference results, 540 direct
 comparisons and 12 corrected behavior cases. The C# oracle was not regenerated
-in this execution-layer task.
+in this documentation task.
