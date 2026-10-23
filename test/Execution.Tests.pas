@@ -444,25 +444,25 @@ begin
     #10 + ', ?', [11, 22],
     '''Warum?'', ''it''''s ?'', "a?""b", `c?``d`, :p0 /* ? /* ? */ */ -- ?' +
     #10 + ', :p1');
-  C := CreateCompiler(TSqlDialect.PostgreSql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.PostgreSql);
   C.ParameterPrefix := ':p';
   Check('$$why ? '' $$, $tag$what ?$tag$, E''it\''s ?'', ?', [33],
     '$$why ? '' $$, $tag$what ?$tag$, E''it\''s ?'', :p0');
-  C := CreateCompiler(TSqlDialect.Oracle);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   C.ParameterPrefix := ':p';
   Check('q''\[it''s ?\]'', q''!why ?!'', ?', [44],
     'q''[it''s ?]'', q''!why ?!'', :p0');
-  C := CreateCompiler(TSqlDialect.PostgreSql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.PostgreSql);
   C.ParameterPrefix := ':p';
   Check('doc \? ''key'', doc \?| keys, doc \?& keys, ?', [55],
     'doc \? ''key'', doc \?| keys, doc \?& keys, :p0');
   // Incomplete SQL reaches the database; this scanner only finds bindings.
   Check('''unfinished ?', [], '''unfinished ?');
   Check('1 /* unfinished ?', [], '1 /* unfinished ?');
-  C := CreateCompiler(TSqlDialect.MSSql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   C.ParameterPrefix := ':p';
   Check('[a?]]b], ?', [66], '[a?]]b], :p0');
-  C := CreateCompiler(TSqlDialect.MySql);
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MySql);
   C.ParameterPrefix := ':p';
   Check('''it\''s ?'', ?', [77], '''it\''s ?'', :p0');
 end;

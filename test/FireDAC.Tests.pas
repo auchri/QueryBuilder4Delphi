@@ -553,7 +553,7 @@ var
   S: ISqlResult;
   P: TFDParams;
 begin
-  C := CreateCompiler(TSqlDialect(DialectIndex));
+  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect(DialectIndex));
   C.ParameterPrefix := ':p';
   S := C.Compile(TQuery.Create('Books').Where('Title', 'O''Brien').Limit(3));
   P := TFireDACParameterBinder.Bind(S);
@@ -573,7 +573,7 @@ var
   G: TGUID;
   B: TBcd;
 begin
-  C := CreateCompiler;
+  C := TQueryCompilerFactory.CreateCompiler;
   C.ParameterPrefix := ':p';
   G := StringToGUID('{03629984-43D7-41EE-8028-EE7774970E92}');
   B := StrToBcd('12345.6789', TFormatSettings.Invariant);
@@ -608,7 +608,7 @@ var
   C: ICompiler;
   P: TFDParams;
 begin
-  C := CreateCompiler;
+  C := TQueryCompilerFactory.CreateCompiler;
   C.ParameterPrefix := ':p';
   P := TFireDACParameterBinder.Bind
     (C.Compile(TQuery.Create('Typed').AsInsert(['Empty', 'Typed', 'VariantNull',
@@ -828,7 +828,7 @@ begin
   Expected[qtTimestampOffset] := ftTimeStampOffset;
   Expected[qtGuid] := ftGuid;
   Expected[qtBinary] := ftBlob;
-  C := CreateCompiler;
+  C := TQueryCompilerFactory.CreateCompiler;
   C.ParameterPrefix := ':p';
   for K := qtString to qtBinary do
   begin
@@ -872,7 +872,7 @@ var
   C: ICompiler;
   S: ISqlResult;
 begin
-  C := CreateCompiler;
+  C := TQueryCompilerFactory.CreateCompiler;
   C.ParameterPrefix := ':Parameter';
   S := C.Compile(TQuery.Create('Books').Where('Id', 1));
   Assert.WillRaise(
