@@ -6,6 +6,11 @@ Classes need a public parameterless constructor and writable public/published
 properties with RTTI. No base class, interface, table attribute or key is needed.
 For classes compiled with restricted RTTI, enable property RTTI explicitly.
 
+Prefer `Execute(Executor).ToList<T>()` and
+`Execute(Executor).FirstOrDefault<T>()` for new code. The methods below are
+record helper methods and require `QueryBuilder4Delphi.Mapping` in the calling
+unit's `uses` clause.
+
 The following example is compiled in [MappingExamples.pas](../test/MappingExamples.pas)
 and exercised against SQLite through the execution API:
 
@@ -40,20 +45,81 @@ uses
 
 function LoadBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 begin
-  Result := TQueryMapper.ToList<TBook>(
-    TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
-      .OrderBy('Id').Execute(Executor));
+  Result := TQuery.Create('Books')
+    .Select(['Id', 'Title AS BookTitle']).OrderBy('Id').Execute(Executor)
+    .ToList<TBook>();
 end;
 
 function FindBook(const Executor: IQueryExecutor; Id: Integer): TBook;
 begin
-  Result := TQueryMapper.FirstOrDefault<TBook>(
-    TQuery.Create('Books').Select(['Title as BookTitle', 'Id'])
-      .Where('Id', Id).Execute(Executor));
+  Result := TQuery.Create('Books')
+    .Select(['Title AS BookTitle', 'Id']).Where('Id', Id).Execute(Executor)
+    .FirstOrDefault<TBook>();
 end;
 
 end.
 ```
+
+## Result facade and compatibility
+
+`IQuery.Execute` returns `TQueryResult`, a record in
+`QueryBuilder4Delphi.Query.Core` containing one `IQueryResult`. It delegates
+every reader operation and never advances the cursor on construction. Core
+does not depend on Mapping. Delphi interfaces cannot declare generic methods
+(E2535), so `TQueryResultMappingHelper` in Mapping supplies the generic methods
+and calls the existing `TQueryMapper` directly. Only the helper must be in scope;
+executors still return `IQueryResult` and need no mapping implementation.
+
+Delphi selects one helper for a type at a call site. If an application defines
+another helper for `TQueryResult`, ensure this mapping helper is selected by
+unit scope/order, or use the static API explicitly.
+
+Existing static mapping remains supported:
+
+```delphi
+Books := TQueryMapper.ToList<TBook>(Rows);
+Book := TQueryMapper.FirstOrDefault<TBook>(Rows);
+```
+
+Direct reader assignments still compile through a one-way implicit conversion:
+
+```delphi
+Rows := TQuery.Create('Books').Execute(Executor);
+while Rows.Next do
+  Writeln(Rows.GetValue('Title').AsString);
+```
+
+Here `Rows` is an `IQueryResult`. To select the interface explicitly use
+`Rows := TQuery.Create('Books').Execute(Executor).AsRaw`. Facades themselves
+expose `Next`, both `GetValue`/`IsNull` overloads, column metadata,
+`HasResultSet` and `RowsAffected`, without requiring the Mapping unit.
+
+Rebuild dependent units/packages because `IQuery.Execute` has changed return
+type. Custom implementations of `IQuery` must return `TQueryResult`; custom
+`IQueryExecutor` and `IQueryResult` implementations remain unchanged. An
+inferred local variable from `Execute` is now a record: use
+`Default(TQueryResult)` to clear it, or declare an `IQueryResult` variable/use
+`AsRaw` when interface operations or a nil comparison are needed. A `var`/`out`
+`IQueryResult` parameter requires a real interface variable; implicit conversion
+is intended for assignments, returned values and value/const arguments.
+
+Record assignments share the underlying cursor and its current position.
+Normal interface reference counting keeps temporaries, copied records and
+independently retained `AsRaw` interfaces alive. Releasing one facade does not
+invalidate another reference. No manual reference counting or custom managed
+record operators are used. `AsRaw` on a default/empty facade returns nil;
+reader operations on it raise `EQueryException`, and mapping preserves the
+static mapper's `EArgumentNilException`. Command results without a resultset
+raise `EQueryMappingException` before constructing any object.
+
+Mapping errors preserve the mapper's exception class, message context and
+object cleanup. Result resources are released with the final interface/record
+reference, including compiler-managed expression temporaries. The facade owns
+no connection; borrowed connections must outlive all retained results.
+Delphi can retain an expression temporary until the enclosing routine exits,
+so fluent mapping need not close the cursor at the end of the statement.
+Use a small loading function (as above) when the result must be released before
+the caller closes the connection. Mapped objects/list remain valid afterward.
 
 Free the owning `TObjectList<TBook>` returned by `LoadBooks` in a `finally` block.
 Free the single object returned by `FindBook` similarly (`nil.Free` is safe).

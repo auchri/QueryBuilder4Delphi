@@ -89,6 +89,8 @@ type
     procedure DocumentationExecutionExamples;
     [Test]
     procedure ObjectMappingExamples;
+    [Test]
+    procedure FluentMappingLifetimeAndErrors;
 
   end;
 
@@ -1015,12 +1017,84 @@ begin
   finally
     Book.Free;
   end;
+  FConnection.ExecSQL
+    ('ALTER TABLE Books ADD COLUMN IsPublished integer DEFAULT 1');
+  FConnection.ExecSQL('UPDATE Books SET IsPublished = 0 WHERE Id = 2');
+  Books := LoadPublishedBooks(FExecutor);
+  try
+    Assert.AreEqual<NativeInt>(1, Books.Count);
+    Assert.AreEqual(1, Books[0].Id);
+    Assert.AreEqual('Alpha', Books[0].Title);
+  finally
+    Books.Free;
+  end;
   FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
   Assert.WillRaise(
     procedure
     begin
       LoadBooks(FExecutor).Free;
     end, EQueryMappingException);
+end;
+
+procedure TFireDACExecutionTests.FluentMappingLifetimeAndErrors;
+var
+  A, B: TQueryResult;
+  Raw: IQueryResult;
+  Books: TObjectList<TBook>;
+  procedure VerifyEmptyList;
+  var
+    EmptyBooks: TObjectList<TBook>;
+  begin
+    EmptyBooks := TQuery.Create('Books').Where('Id', -1).Execute(FExecutor)
+      .ToList<TBook>();
+    try
+      Assert.AreEqual<NativeInt>(0, EmptyBooks.Count);
+    finally
+      EmptyBooks.Free;
+    end;
+  end;
+
+begin
+  A := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle']).OrderBy('Id')
+    .Execute(FExecutor);
+  B := A;
+  A := Default (TQueryResult);
+  Raw := B.AsRaw;
+  B := Default (TQueryResult);
+  Books := TQueryMapper.ToList<TBook>(Raw);
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.AreEqual('Alpha', Books[0].Title);
+    Assert.AreEqual(2, Books[1].Id);
+  finally
+    Books.Free;
+  end;
+  Raw := nil;
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  VerifyEmptyList;
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  Assert.WillRaise(TTestLocalMethod(
+    procedure
+    begin
+      TQuery.Create('Books').Where('Id', -1).AsDelete.Execute(FExecutor)
+        .ToList<TBook>().Free;
+    end), EQueryMappingException);
+  FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
+  Assert.WillRaise(TTestLocalMethod(
+    procedure
+    begin
+      TQuery.Create('Books').Select('Title AS BookTitle').OrderBy('Id')
+        .Execute(FExecutor).FirstOrDefault<TBook>().Free;
+    end), EQueryMappingException);
+  Assert.WillRaise(TTestLocalMethod(
+    procedure
+    begin
+      TQuery.Create('Books').SelectRaw('Title AS Id').Where('Id',
+        2).Execute(FExecutor).ToList<TBook>().Free;
+    end), EQueryMappingException);
+  // Failed temporary mapping must release the provider-owned query.
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  Assert.IsTrue(FConnection.Connected);
 end;
 
 initialization

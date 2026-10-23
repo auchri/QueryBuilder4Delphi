@@ -1,5 +1,54 @@
 # Validation: October 23, 2026
 
+## Fluent object mapping facade
+
+The facade/helper change was rebuilt through IDE Project > Build in Delphi 12
+Community Edition, RAD Studio 23.0 (bds.exe file version 29.0.51961.7529),
+Base configuration, for Win32 and Win64. All four builds completed without
+warnings/errors. Command-line compilation is disabled by this edition; the
+rebuilt executables were run with `tools/build.ps1 -TestsOnly`.
+
+| Suite | Platform | Tests | Passed | Failed/errors/ignored | Test leaks |
+| --- | --- | ---: | ---: | --- | ---: |
+| Core (no FireDAC) | Win32 | 692 | 692 | 0/0/0 | 0 |
+| Core (no FireDAC) | Win64 | 692 | 692 | 0/0/0 | 0 |
+| FireDAC/SQLite | Win32 | 41 | 41 | 0/0/0 | 0 |
+| FireDAC/SQLite | Win64 | 41 | 41 | 0/0/0 | 0 |
+
+The 17 additional core cases in FluentMapping.Tests check fluent temporary
+expressions, lists/single objects and ownership, empty results, multiple rows,
+aliases/attributes/ignored fields/partial projections, shared cursor position,
+record assignment and clearing, independent AsRaw lifetime, implicit conversion,
+static mapper compatibility, reader metadata/values/errors, SQL NULL and invalid
+conversion cleanup for both methods, setter exception class preservation,
+command rejection, empty facades and anonymous-method calls. Mock result lifetime
+and mapped-object constructor/destructor counts verify cleanup.
+
+The existing SQLite mapping example now uses fluent calls. The same acceptance
+query (`Id`, `Title AS BookTitle`, OrderBy, Execute, ToList) runs on SQLite and
+asserts every mapped value. The compiled README/EXAMPLES LoadPublishedBooks
+function verifies the IsPublished filter too. The new integration case checks
+record/raw lifetime, empty lists, command/NULL/conversion errors and that no
+provider query remains registered after mapping scopes exit. Existing execution,
+static mapping, custom provider and compiler regressions remain in the suites.
+
+Compiler verification covers generic methods on a record helper, direct fluent
+temporary calls, implicit conversion in assignments/const arguments/returned
+values, default records and anonymous methods on both targets. DUnitX's
+overloaded WillRaise calls use explicit TTestLocalMethod casts; list Count
+assertions use NativeInt for Win64. Expression temporaries may remain alive
+until routine exit: cleanup checks deliberately measure after that scope.
+Mapped lists/objects remain valid after loading functions return.
+
+Only the installed compiler build above was available. No separate Delphi 12.3
+or newer compiler was run; compatibility with those exact compiler versions is
+not claimed as independently verified. The source targets Delphi 12+.
+
+Both generator checks and all eight Python generator regression tests pass.
+Changed Pascal files were formatted, and git diff --check passes. The current
+JSON reports include successful case counts, executable hashes and verified
+x86/x64 PE architecture. The core project compiles without FireDAC units.
+
 ## Core object mapping
 
 The object mapping change was built in Delphi 12 Community Edition (RAD Studio

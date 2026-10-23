@@ -19,6 +19,7 @@ type
 {$RTTI INHERIT}
 
 function LoadBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
+function LoadPublishedBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 function FindBook(const Executor: IQueryExecutor; Id: Integer): TBook;
 
 implementation
@@ -28,14 +29,20 @@ uses
 
 function LoadBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 begin
-  Result := TQueryMapper.ToList<TBook>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle']).OrderBy('Id').Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+    .OrderBy('Id').Execute(Executor).ToList<TBook>();
 end;
 
 function FindBook(const Executor: IQueryExecutor; Id: Integer): TBook;
 begin
-  Result := TQueryMapper.FirstOrDefault<TBook>(TQuery.Create('Books')
-    .Select(['Title as BookTitle', 'Id']).Where('Id', Id).Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Title AS BookTitle', 'Id'])
+    .Where('Id', Id).Execute(Executor).FirstOrDefault<TBook>();
+end;
+
+function LoadPublishedBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+    .Where('IsPublished', True).Execute(Executor).ToList<TBook>();
 end;
 
 end.

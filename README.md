@@ -96,11 +96,17 @@ compiler settings, transactions, error handling and custom providers.
 
 ## Object Mapping
 
-Add `QueryBuilder4Delphi.Mapping` to map result rows to ordinary classes:
+Fluent mapping is the recommended API. Use `System.Generics.Collections`,
+`QueryBuilder4Delphi.Query.Core`, `QueryBuilder4Delphi.Query` and
+`QueryBuilder4Delphi.Mapping`. The last unit brings the record helper into scope.
+With the `TBook` class from [the compiled example](test/MappingExamples.pas):
 
 ```delphi
-Books := TQueryMapper.ToList<TBook>(
-  TQuery.Create('Books').Select(['Id', 'Title']).Execute(Executor));
+Books := TQuery.Create('Books')
+  .Select(['Id', 'Title AS BookTitle'])
+  .Where('IsPublished', True)
+  .Execute(Executor)
+  .ToList<TBook>();
 try
   // Books owns its objects.
 finally
@@ -108,13 +114,25 @@ finally
 end;
 ```
 
-`FirstOrDefault<TBook>(Rows)` returns one caller-owned object or `nil`.
+`Execute(Executor).FirstOrDefault<TBook>()` returns one caller-owned object or
+`nil`; free it when finished. The returned `TObjectList<TBook>` owns its objects.
+The static API remains available: `TQueryMapper.ToList<TBook>(Rows)` and
+`TQueryMapper.FirstOrDefault<TBook>(Rows)`.
 Mapping calls `Next`, starting with the next remaining row. Public/published
 writable properties need RTTI; names match without case sensitivity, with
 `[Column]` and `[Ignore]` supported. Partial projections retain constructor
 defaults. Supported scalars are Integer/Int64, Boolean, Unicode string,
 Single/Double/Extended, Currency and TDateTime. SQL NULL and unsupported or
 lossy conversions raise exceptions. See [working examples and limits](docs/OBJECT_MAPPING.md).
+
+`IQuery.Execute` now returns a `TQueryResult` record holding the same
+reference-counted cursor. Direct assignment to `IQueryResult` still works through
+a one-way implicit conversion; `Execute(Executor).AsRaw` is the explicit form.
+The facade also delegates all reader operations. Copies share cursor position.
+Use `Default(TQueryResult)` to clear a facade, and rebuild dependent units after
+the return-type change. Custom `IQuery` implementations must update their
+`Execute` signature; executor/provider contracts are unchanged. See
+[migration and helper scope](docs/OBJECT_MAPPING.md#result-facade-and-compatibility).
 
 ## SQL dialects
 
