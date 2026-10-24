@@ -4,10 +4,12 @@ interface
 
 uses
   System.SysUtils, System.Rtti, System.TypInfo, System.Generics.Collections,
-  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Nullable;
+  QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Nullable,
+  QueryBuilder4Delphi.Mapping.Metadata;
 
 type
-  EQueryMappingException = class(EQueryException);
+  EQueryMappingException = QueryBuilder4Delphi.Mapping.Metadata.
+    EQueryMappingException;
 
   TQueryMappingOptions = class
   private type
@@ -56,11 +58,7 @@ type
 
   TQueryMapper = class
   private type
-    TPropertyMapping = record
-      Prop: TRttiProperty;
-      Target: PTypeInfo;
-      Column: string;
-    end;
+    TPropertyMapping = TQueryPropertyMapping;
 
     TColumnMapping = record
       Metadata: TPropertyMapping;
@@ -292,67 +290,17 @@ begin
 end;
 
 function ClassMapping(AClass: TClass): TClassMapping;
-var
-  RttiType: TRttiType;
-  Prop: TRttiProperty;
-  Attr: TCustomAttribute;
-  Item, Existing: TPropertyMapping;
-  Items: TList<TPropertyMapping>;
-  Skip: Boolean;
-  ColumnAttributes: Integer;
 begin
   MetadataLock.Acquire;
   try
     if MetadataCache.TryGetValue(AClass, Result) then
       Exit;
-    Items := TList<TPropertyMapping>.Create;
-    try
-      RttiType := MappingContext.GetType(AClass);
-      if RttiType <> nil then
-        for Prop in RttiType.GetProperties do
-        begin
-          if not Prop.IsWritable or
-            not(Prop.Visibility in [mvPublic, mvPublished]) or
-            (Prop.PropertyType = nil) then
-            Continue;
-          Item.Prop := Prop;
-          Item.Target := Prop.PropertyType.Handle;
-          Item.Column := Prop.Name;
-          Skip := False;
-          ColumnAttributes := 0;
-          for Attr in Prop.GetAttributes do
-          begin
-            if Attr is IgnoreAttribute then
-              Skip := True;
-            // KeyAttribute inherits ColumnAttribute; no persistence semantics.
-            if Attr is ColumnAttribute then
-            begin
-              Inc(ColumnAttributes);
-              Item.Column := ColumnAttribute(Attr).Name;
-            end;
-          end;
-          if Skip then
-            Continue;
-          if ColumnAttributes > 1 then
-            raise EQueryMappingException.CreateFmt
-              ('%s.%s has multiple column mapping attributes',
-              [AClass.ClassName, Prop.Name]);
-          for Existing in Items do
-            if SameText(Existing.Column, Item.Column) then
-              raise EQueryMappingException.CreateFmt
-                ('%s: properties "%s" and "%s" map to the same column "%s"',
-                [AClass.ClassName, Existing.Prop.Name, Prop.Name, Item.Column]);
-          Items.Add(Item);
-        end;
-      if Items.Count = 0 then
-        raise EQueryMappingException.CreateFmt
-          ('%s has no public/published writable properties with RTTI',
-          [AClass.ClassName]);
-      Result := Items.ToArray;
-      MetadataCache.Add(AClass, Result);
-    finally
-      Items.Free;
-    end;
+    Result := QueryPropertyMappings(AClass, MappingContext, True);
+    if Length(Result) = 0 then
+      raise EQueryMappingException.CreateFmt
+        ('%s has no public/published writable properties with RTTI',
+        [AClass.ClassName]);
+    MetadataCache.Add(AClass, Result);
   finally
     MetadataLock.Release;
   end;

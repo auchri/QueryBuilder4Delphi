@@ -96,6 +96,10 @@ compiler settings, transactions, error handling and custom providers.
 
 ## Object Mapping
 
+Read and write mapping share `[Column]`, `[Key]` and `[Ignore]` resolution,
+including renamed columns and validation of conflicting mappings. See the
+[shared DTO example](docs/OBJECT_MAPPING.md#shared-readwrite-attributes).
+
 Import `QueryBuilder4Delphi.Mapping` for fluent mapping into ordinary classes
 with writable RTTI properties. With [TBook](test/MappingExamples.pas):
 

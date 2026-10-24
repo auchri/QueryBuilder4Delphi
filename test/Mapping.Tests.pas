@@ -75,6 +75,69 @@ type
     property Id: Integer read FId write FId;
   end;
 
+  TEmptyColumnDTO = class
+  private
+    FId: Integer;
+  public
+    [Column('')]
+    property Id: Integer read FId write FId;
+  end;
+
+  TBlankKeyDTO = class
+  private
+    FId: Integer;
+  public
+    [Key('   ')]
+    property Id: Integer read FId write FId;
+  end;
+
+  TKeyColumnConflictDTO = class
+  private
+    FId: Integer;
+    function GetId: Integer;
+  public
+    [Key('Id')]
+    [Column('Id')]
+    property Id: Integer read GetId write FId;
+  end;
+
+  TIgnoredInvalidDTO = class
+  private
+    FId: Integer;
+    function GetIgnored: Integer;
+  public
+    property Id: Integer read FId write FId;
+    [Ignore]
+    [Key('')]
+    [Column('Id')]
+    property Ignored: Integer read GetIgnored write FId;
+  end;
+
+  TDirectionDTO = class
+  private
+    FId: Integer;
+  public
+    [Column('Id')]
+    property ReadOnly: Integer read FId;
+    [Column('Id')]
+    property WriteOnly: Integer write FId;
+    function Value: Integer;
+  end;
+
+{$RTTI EXPLICIT METHODS([vcPublic]) PROPERTIES([vcPrivate, vcPublic, vcPublished]) FIELDS([vcPrivate, vcPublic])}
+
+  TFieldRTTIDTO = class
+  private
+    FId: Integer;
+    [Column('PrivateColumn')]
+    property PrivateValue: Integer read FId write FId;
+  public
+    [Column('Id')]
+    Field: Integer;
+    property Id: Integer read FId write FId;
+  end;
+{$RTTI EXPLICIT METHODS([vcPublic]) PROPERTIES([vcPublic, vcPublished]) FIELDS([])}
+
   TScalarDTO = class
   private
     FId: Integer;
@@ -144,6 +207,7 @@ type
   [TestFixture]
   TMappingTests = class
   private
+    procedure AssertInvalidAttributes<T: class, constructor>;
     function Rows(const Names: TArray<string>; const Data: TRows): IQueryResult;
     procedure ExpectFailure(const Column: string; const Value: TValue;
       const SourceName, TargetName: string);
@@ -224,13 +288,247 @@ type
     procedure ValidSchemaAfterValidationFailure;
     [Test]
     procedure ExplicitNameReplacesImplicitMatch;
+    [Test]
+    procedure ReadWriteSymmetryAndKeyOperations;
+    [TestCase('ExplicitCollision', '0')]
+    [TestCase('ImplicitCollision', '1')]
+    [TestCase('MultipleColumns', '2')]
+    procedure WritesRejectInvalidMetadataBeforeCallbacks(Kind: Integer);
+    [Test]
+    procedure InvalidAttributesInBothDirections;
+    [Test]
+    procedure IgnoreWinsInBothDirections;
+    [Test]
+    procedure ReadableAndWritableEligibility;
+    [Test]
+    procedure FieldsExcludedAndLegacyWriteVisibility;
+    [Test]
+    procedure EmptyWriteMetadataRemainsSupported;
   end;
 
 implementation
 
 uses
   System.TypInfo, System.Threading, DUnitX.Assert, Execution.Mock,
-  QueryBuilder4Delphi.Mapping;
+  QueryBuilder4Delphi.Mapping, QueryBuilder4Delphi.Query.DataMapper,
+  QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Compilers.Compiler,
+  QueryBuilder4Delphi.Compilers.SqliteCompiler;
+
+function TIgnoredInvalidDTO.GetIgnored: Integer;
+begin
+  raise EInvalidOp.Create('Ignored getter must not run');
+end;
+
+function TKeyColumnConflictDTO.GetId: Integer;
+begin
+  raise EInvalidOp.Create('Invalid metadata must fail before getters run');
+end;
+
+function TDirectionDTO.Value: Integer;
+begin
+  Result := FId;
+end;
+
+procedure TMappingTests.AssertInvalidAttributes<T>;
+var
+  Data: T;
+  WriteMessage: string;
+  R: IQueryResult;
+begin
+  Data := T.Create;
+  try
+    try
+      TQueryDataMapper.GetPairs(Data);
+      Assert.Fail('Expected invalid write metadata');
+    except
+      on E: EQueryMappingException do
+        WriteMessage := E.Message;
+    end;
+    R := TMockQueryResult.Create(['Id'], nil, nil, True, -1);
+    try
+      TQueryMapper.First<T>(R).Free;
+      Assert.Fail('Expected invalid read metadata even without rows');
+    except
+      on E: EQueryMappingException do
+      begin
+        Assert.IsTrue(Pos(WriteMessage, E.Message) = 1, E.Message);
+        Assert.IsTrue(Pos(Data.ClassName + '.Id', E.Message) > 0, E.Message);
+      end;
+    end;
+  finally
+    Data.Free;
+  end;
+end;
+
+procedure TMappingTests.InvalidAttributesInBothDirections;
+begin
+  AssertInvalidAttributes<TEmptyColumnDTO>;
+  AssertInvalidAttributes<TBlankKeyDTO>;
+  AssertInvalidAttributes<TKeyColumnConflictDTO>;
+end;
+
+procedure TMappingTests.ReadWriteSymmetryAndKeyOperations;
+var
+  Book: TInheritedBook;
+  Pairs: TArray<TPair<string, TValue>>;
+  Pair: TPair<string, TValue>;
+  R: IQueryResult;
+  Names: TArray<string>;
+  Values: TValues;
+  I, Keys: Integer;
+  Q: IQuery;
+  Sql: ISqlResult;
+begin
+  Book := TQueryMapper.Single<TInheritedBook>
+    (Rows(['bookid', 'BOOKTITLE', 'edition'], TRows.Create(TValues.Create(42,
+    'Mapped', 3))));
+  try
+    Keys := 0;
+    Pairs := TQueryDataMapper.GetPairs(Book,
+      procedure(Name: string; Value: TValue)
+      begin
+        Inc(Keys);
+        Assert.AreEqual('BookId', Name);
+        Assert.AreEqual(42, Value.AsInteger);
+      end);
+    Assert.AreEqual(1, Keys);
+    SetLength(Names, Length(Pairs));
+    SetLength(Values, Length(Pairs));
+    for I := 0 to High(Pairs) do
+    begin
+      Pair := Pairs[I];
+      Assert.IsFalse(SameText('Ignored', Pair.Key));
+      Assert.IsFalse(SameText('Id', Pair.Key));
+      Assert.IsFalse(SameText('Title', Pair.Key));
+      Names[I] := UpperCase(Pair.Key);
+      Values[I] := Pair.Value;
+    end;
+    Q := TQuery.Create('Books').AsUpdate(Book);
+    Assert.AreEqual('BookId', Q.GetOne('where', '').Name);
+    Assert.AreEqual(42, Q.GetOne('where', '').Value.AsInteger);
+    Sql := TSqliteCompiler.Create.Compile(Q);
+    Assert.IsTrue(Pos('"BookTitle"', Sql.Sql) > 0);
+    Assert.IsFalse(TQuery.Create('Books').AsInsert(Book).HasConditions);
+    Assert.AreEqual<NativeInt>(Length(Pairs),
+      Length(TQuery.Create('Books').Where(Book).GetComponents('where')));
+    Assert.AreEqual<NativeInt>(Length(Pairs),
+      Length(TQuery.Create('Books').Having(Book).GetComponents('having')));
+  finally
+    Book.Free;
+  end;
+  R := Rows(Names, TRows.Create(Values));
+  Book := TQueryMapper.Single<TInheritedBook>(R);
+  try
+    Assert.AreEqual(42, Book.Id);
+    Assert.AreEqual('Mapped', Book.Title);
+    Assert.AreEqual(3, Book.Edition);
+    Assert.AreEqual('ignored default', Book.Ignored);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TMappingTests.WritesRejectInvalidMetadataBeforeCallbacks
+  (Kind: Integer);
+var
+  Data: TMappingBook;
+  Keys: Integer;
+begin
+  case Kind of
+    0:
+      Data := TDuplicateColumnBook.Create;
+    1:
+      Data := TImplicitCollisionBook.Create;
+  else
+    Data := TMultipleAttributesBook.Create;
+  end;
+  try
+    Keys := 0;
+    Assert.WillRaise(
+      procedure
+      begin
+        TQueryDataMapper.GetPairs(Data,
+          procedure(Name: string; Value: TValue)
+          begin
+            Inc(Keys);
+          end);
+      end, EQueryMappingException);
+    Assert.AreEqual(0, Keys);
+  finally
+    Data.Free;
+  end;
+end;
+
+procedure TMappingTests.IgnoreWinsInBothDirections;
+var
+  Data: TIgnoredInvalidDTO;
+  Pairs: TArray<TPair<string, TValue>>;
+begin
+  Data := TQueryMapper.Single<TIgnoredInvalidDTO>
+    (Rows(['Id', 'Ignored'], TRows.Create(TValues.Create(7, 99))));
+  try
+    Pairs := TQueryDataMapper.GetPairs(Data,
+      procedure(Name: string; Value: TValue)
+      begin
+        Assert.Fail('Ignored key must not invoke callback');
+      end);
+    Assert.AreEqual<NativeInt>(1, Length(Pairs));
+    Assert.AreEqual('Id', Pairs[0].Key);
+    Assert.AreEqual(7, Pairs[0].Value.AsInteger);
+  finally
+    Data.Free;
+  end;
+end;
+
+procedure TMappingTests.ReadableAndWritableEligibility;
+var
+  Data: TDirectionDTO;
+  Pairs: TArray<TPair<string, TValue>>;
+begin
+  Data := TQueryMapper.Single<TDirectionDTO>
+    (Rows(['id'], TRows.Create(TValues.Create(8))));
+  try
+    Assert.AreEqual(8, Data.Value);
+    Pairs := TQueryDataMapper.GetPairs(Data);
+    Assert.AreEqual<NativeInt>(1, Length(Pairs));
+    Assert.AreEqual('Id', Pairs[0].Key);
+    Assert.AreEqual(8, Pairs[0].Value.AsInteger);
+  finally
+    Data.Free;
+  end;
+end;
+
+procedure TMappingTests.FieldsExcludedAndLegacyWriteVisibility;
+var
+  Data: TFieldRTTIDTO;
+  Pairs: TArray<TPair<string, TValue>>;
+begin
+  Data := TQueryMapper.Single<TFieldRTTIDTO>(Rows(['Id', 'PrivateColumn'],
+    TRows.Create(TValues.Create(5, 99))));
+  try
+    Assert.AreEqual(5, Data.Id);
+    Assert.AreEqual(0, Data.Field);
+    Pairs := TQueryDataMapper.GetPairs(Data);
+    Assert.AreEqual<NativeInt>(2, Length(Pairs),
+      'Explicit private property RTTI remains writable');
+    Assert.AreNotEqual(Pairs[0].Key, Pairs[1].Key,
+      'Field attribute must not cause a collision');
+  finally
+    Data.Free;
+  end;
+end;
+
+procedure TMappingTests.EmptyWriteMetadataRemainsSupported;
+var
+  Data: TOnlyIgnoredDTO;
+begin
+  Data := TOnlyIgnoredDTO.Create;
+  try
+    Assert.AreEqual<NativeInt>(0, Length(TQueryDataMapper.GetPairs(Data)));
+  finally
+    Data.Free;
+  end;
+end;
 
 constructor TMappingBook.Create;
 begin

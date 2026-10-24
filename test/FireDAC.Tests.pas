@@ -90,6 +90,8 @@ type
     [Test]
     procedure ObjectMappingExamples;
     [Test]
+    procedure AttributeReadWriteRoundTrip;
+    [Test]
     procedure FluentMappingLifetimeAndErrors;
     [Test]
     procedure ConsecutiveFluentQueries;
@@ -1157,6 +1159,43 @@ begin
   R := TQuery.Create('Books').AsCount.Execute(FExecutor);
   Assert.IsTrue(R.Next);
   Assert.AreEqual<Int64>(2, R.GetValue(0).AsInt64);
+end;
+
+procedure TFireDACExecutionTests.AttributeReadWriteRoundTrip;
+var
+  Book: TBookData;
+begin
+  FConnection.ExecSQL
+    ('create table MappedBooks (book_id integer primary key, book_title text)');
+  Book := TBookData.Create;
+  try
+    Book.Id := 7;
+    Book.Title := 'Inserted';
+    Book.InternalNote := 'Not a database column';
+    TQuery.Create('MappedBooks').AsInsert(Book).Execute(FExecutor);
+  finally
+    Book.Free;
+  end;
+  Book := TQuery.Create('MappedBooks')
+    .Select(['book_title AS BOOK_TITLE', 'book_id AS BOOK_ID'])
+    .Execute(FExecutor).Single<TBookData>();
+  try
+    Assert.AreEqual(7, Book.Id);
+    Assert.AreEqual('Inserted', Book.Title);
+    Assert.AreEqual('', Book.InternalNote);
+    Book.Title := 'Updated';
+    Assert.AreEqual<Int64>(1, SaveBookData(FExecutor, Book));
+  finally
+    Book.Free;
+  end;
+  Book := TQuery.Create('MappedBooks').Execute(FExecutor).Single<TBookData>();
+  try
+    Assert.AreEqual(7, Book.Id);
+    Assert.AreEqual('Updated', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Assert.AreEqual(0, FConnection.DataSetCount);
 end;
 
 procedure TFireDACExecutionTests.ObjectMappingExamples;

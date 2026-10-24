@@ -5,6 +5,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Unified read/write property attribute resolution. Object writes now reject
+  case-insensitive column collisions and conflicting Column/Key attributes
+  before getters or key callbacks run; both directions reject blank names.
+  Existing property visibility, key operation and Ignore behavior is preserved.
+
 ### Added
 
 - Provider-neutral `TNullable<T>` with automatic mapping for built-in types,
