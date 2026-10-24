@@ -176,24 +176,149 @@ properties or attributes.
 
 | Destination | Accepted source |
 | --- | --- |
-| Integer | Integer/Int64 and signed 8/16-bit or unsigned 8/16/32-bit integers, within Integer range |
-| Int64 | The same integer sources, without narrowing |
+| Integer, Cardinal, Int64, UInt64, ShortInt, SmallInt, Byte, Word | Any of these integer types, within destination range; negative to unsigned is rejected |
 | Boolean | Boolean |
 | string (UnicodeString) | string (UnicodeString) |
 | Single, Double, Extended | Same type, or another of these types when the finite value is represented exactly |
-| Currency | Currency |
+| Integers to/from Single, Double, Extended | Exact representations only; fractional, nonfinite, out-of-range and rounded values are rejected |
+| Currency | Currency; TBcd only when an exact BCD round trip confirms no rounding or overflow |
+| TBcd | TBcd unchanged (including precision/scale); Currency through CurrToBcd without floating point |
 | TDateTime | TDateTime |
+| TSQLTimeStamp | TSQLTimeStamp, retaining all fractional digits |
+| TSQLTimeStampOffset | TSQLTimeStampOffset, retaining all fractional digits and timezone fields |
+| TGUID | TGUID |
+| TBytes | TBytes, including zero-length/nil arrays as non-NULL values |
 
 There is no string parsing or formatting, numeric-to-Boolean conversion,
-integer-to-float conversion, float-to-integer conversion or decimal-record
-conversion. Distinct custom types are not part of the supported contract.
+binary-float/decimal conversion, integer/decimal conversion, or implicit
+conversion between timestamp records and TDateTime. Timestamp conversion could
+lose fractional precision or introduce/drop a timezone; select the matching
+native property type. These unsupported pairs raise a descriptive mapping
+exception even when a particular value could fit; applications may register an
+explicit converter for their own policy. Distinct custom types also require a
+converter. TGUID text is not parsed automatically.
 Extended follows Delphi's platform representation (Win64 uses Double precision).
 Nonfinite floating-point values are accepted only for same-type assignment.
-SQL NULL is checked with `IsNull`, independently of `TValue.IsEmpty`, and raises
-`EQueryMappingException` for every mapped property in this version. Nullable
-types, binary arrays, records (including BCD, GUID and native timestamp records),
-variants, objects and enums are unsupported. Check or transform NULLs in the
-query, or use the result reader API when nullable values are needed.
+Conversions use `GetValue`'s actual `TValue.TypeInfo`; `GetColumnType` metadata
+does not override concrete data. Native decimal/timestamp records use the
+standard `Data.FmtBcd`/`Data.SqlTimSt` types; the mapper does not use `TDataSet`,
+FireDAC, or provider-specific null values. Arbitrary records, objects, enums and
+variants remain unsupported unless explicitly converted.
+
+## Nullable properties and scoped options
+
+Add `QueryBuilder4Delphi.Nullable` for `TNullable<T>`. `Default(TNullable<T>)`
+and `TNullable<T>.Null` represent NULL. `Create(Value)` represents a value,
+including zero, False, empty string and empty bytes. Check `HasValue` before
+reading `Value`; reading NULL raises `EQueryNullValue`. Initialize local records
+with `Default` or `Null` as usual in Delphi. Object fields are zero-initialized.
+Managed strings and arrays use ordinary compiler-managed record copies and
+finalization. Nullable object references, like ordinary object references, do
+not acquire ownership of the referenced object.
+
+Built-in nullable properties work automatically, without options or registration.
+For `TRatedBook` and its nullable Rating, Title and Payload properties in
+[the compiled SQLite example](../test/NullableMappingExamples.pas):
+
+```delphi
+Books := TQuery.Create('NullableBooks')
+  .Select(['Rating', 'Title', 'Payload']).OrderBy('Id')
+  .Execute(Executor).ToList<TRatedBook>();
+try
+  for Book in Books do
+    if Book.Rating.HasValue then
+      Writeln(Book.Rating.Value);
+finally
+  Books.Free;
+end;
+```
+
+`FirstOrDefault<TRatedBook>()` and the static `TQueryMapper` methods also work
+without options. Supported inner types are `ShortInt`, `SmallInt`, `Integer`,
+`Int64`, `Byte`, `Word`, `Cardinal`, `UInt64`, `Boolean`, `string`, `Single`,
+`Double`, `Extended`, `Currency`, `TDateTime`, `TBcd`, `TSQLTimeStamp`,
+`TSQLTimeStampOffset`, `TGUID` and `TBytes`. Nullable values use the same strict
+conversion rules as ordinary properties, including precision and overflow checks.
+
+The built-in registry is initialized once during unit initialization and is
+immutable during mapping, allowing concurrent lookups without per-row setup.
+It uses compile-time typed callbacks shared with `RegisterNullable<T>` and
+ordinary `TValue.From<TNullable<T>>` construction and RTTI property assignment.
+Compiler aliases sharing a closed specialization are accepted only when their
+inner RTTI identities also match. There is no generic-name parsing, record-layout
+assumption, unsafe pointer construction or provider dependency.
+
+Both fluent and static methods still accept optional `TQueryMappingOptions`.
+Configure options before mapping and keep them alive and unchanged until the
+call returns. They may be reused for later calls. Custom registrations and
+converters affect only operations receiving that instance.
+
+The mapper tests `IQueryResult.IsNull` before reading a value. NULL writes a
+supported nullable's Null record; NULL to a non-nullable or unregistered target
+raises `EQueryMappingException`. `TQueryNull` is still only a SQL input-parameter
+type hint, not a nullable DTO value or result sentinel. If the provider has
+already normalized an empty value to SQL NULL, the mapper cannot recover it.
+
+Set `Options.SkipNullAssignment := True` to leave **all** matched NULL
+properties unchanged, including nullable properties initialized by a
+constructor. This is an explicit opt-in; its default is False. Omitted columns
+continue to preserve constructor values independently of this setting.
+
+### Custom nullable types and precedence
+
+`Options.RegisterNullable<TApplicationCode>` is an advanced extension point for
+custom application types. Public RTTI identifies closed generic specializations
+but cannot construct arbitrary specializations at runtime; this method supplies
+the typed construction at compile time. Custom inner types also need an exact
+application converter when ordinary conversion does not support them.
+
+Conversion first checks operation-scoped nullable registrations, then built-in
+nullable registrations, then the existing non-nullable rules. Within either
+nullable callback, an exact application source/inner-target converter takes
+precedence over built-in scalar conversion. Built-in callbacks receive the
+current operation's options and retain no reference to caller-owned options.
+
+For non-NULL values, an exact converter returning the complete destination
+record also remains supported before default built-in nullable construction.
+An explicit scoped nullable registration still takes precedence over such a
+whole-record converter. SQL NULL never reaches ordinary converters.
+
+Explicit `RegisterNullable<Integer>` and other built-in registrations remain
+supported and override the built-in entry for that operation. They do not mutate
+the global registry. Duplicate registration within one options instance still
+raises an error; a separate options instance retains its own conversion policy.
+
+### Application converters
+
+`Options.RegisterConverter<TSource, TTarget>(TFunc<TSource, TTarget>)` registers
+one exact actual source/target pair. For example, this callback can fill an
+application record containing a string field:
+
+```delphi
+Options.RegisterConverter<string, TApplicationCode>(
+  function(Text: string): TApplicationCode
+  begin
+    Result.Text := 'code:' + Text;
+  end);
+Options.RegisterNullable<TApplicationCode>;
+```
+
+See [the executable custom record test](../test/Mapping.Values.Tests.pas) for
+the record definition and complete calls. Registered pairs take precedence over
+built-ins only in calls using those options; otherwise built-ins remain the
+default. Nullable registrations wrap conversion of their inner type, so the
+same converter also fills `TNullable<TApplicationCode>`. Ordinary converters
+never receive SQL NULL. Duplicate nullable types/pairs and nil callbacks are
+rejected; there is no converter chain or implicit source coercion.
+Applications own their conversion policy and referenced objects. Converter
+exceptions retain their class and receive the same row/column/property/type
+context as provider and setter failures.
+
+SQLite integration tests cover nullable integers/strings and binary values.
+FireDAC memory-field tests pass exact BCD, timestamp fractions and offsets
+through the existing field reader into the mapper. Neither those field tests
+nor SQLite establish SQL Server/Oracle driver or server behavior. Those servers
+were not available for integration testing.
 
 Errors identify the class, property, row within this call, column/index and
 source/target types. Provider and setter exceptions keep their original class

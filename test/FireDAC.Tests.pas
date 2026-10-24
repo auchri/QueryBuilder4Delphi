@@ -97,6 +97,10 @@ type
     procedure SharedPartialFluentResult;
     [Test]
     procedure AutoClosePreservesCachedRows;
+    [Test]
+    procedure NullableObjectMapping;
+    [Test]
+    procedure MappingNativeFieldValues;
 
   end;
 
@@ -114,7 +118,8 @@ uses
   QueryBuilder4Delphi.Providers.FireDAC.Parameters,
   QueryBuilder4Delphi.Providers.FireDAC.Values,
   QueryBuilder4Delphi.Compilers.SqliteCompiler, ExecutionExamples,
-  MappingExamples,
+  MappingExamples, NullableMappingExamples, QueryBuilder4Delphi.Nullable,
+  Execution.Mock,
   QueryBuilder4Delphi.Mapping;
 
 type
@@ -151,6 +156,112 @@ type
   protected
     function CreateCompiler: ICompiler; override;
   end;
+
+{$RTTI EXPLICIT METHODS([vcPublic]) PROPERTIES([vcPublic]) FIELDS([])}
+
+  TNativeFieldDTO = class
+  private
+    FDecimal: TBcd;
+    FStamp: TSQLTimeStamp;
+    FOffset: TSQLTimeStampOffset;
+  public
+    property Decimal: TBcd read FDecimal write FDecimal;
+    property Stamp: TSQLTimeStamp read FStamp write FStamp;
+    property Offset: TSQLTimeStampOffset read FOffset write FOffset;
+  end;
+{$RTTI INHERIT}
+
+procedure TFireDACExecutionTests.NullableObjectMapping;
+var
+  Books: TObjectList<TRatedBook>;
+  Book: TRatedBook;
+begin
+  FConnection.ExecSQL
+    ('create table NullableBooks (Id integer, Rating integer, Title text, Payload blob)');
+  FConnection.ExecSQL('insert into NullableBooks values (1, NULL, NULL, NULL)');
+  FConnection.ExecSQL
+    ('insert into NullableBooks values (2, 0, '''', X''00FF2A'')');
+  Books := LoadRatedBooks(FExecutor);
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.IsFalse(Books[0].Rating.HasValue);
+    Assert.IsFalse(Books[0].Title.HasValue);
+    Assert.IsFalse(Books[0].Payload.HasValue);
+    Assert.IsTrue(Books[1].Rating.HasValue);
+    Assert.AreEqual(0, Books[1].Rating.Value);
+    Assert.IsTrue(Books[1].Title.HasValue);
+    Assert.AreEqual('', Books[1].Title.Value);
+    Assert.IsTrue(Books[1].Payload.HasValue);
+    Assert.AreEqual<NativeInt>(3, Length(Books[1].Payload.Value));
+    Assert.AreEqual<Byte>(255, Books[1].Payload.Value[1]);
+  finally
+    Books.Free;
+  end;
+  Book := TQuery.Create('NullableBooks').Where('Id', 1).Execute(FExecutor)
+    .FirstOrDefault<TRatedBook>();
+  try
+    Assert.IsNotNull(Book);
+    Assert.IsFalse(Book.Rating.HasValue);
+    Assert.IsFalse(Book.Title.HasValue);
+    Assert.IsFalse(Book.Payload.HasValue);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.MappingNativeFieldValues;
+var
+  M: TFDMemTable;
+  R: IQueryResult;
+  Item: TNativeFieldDTO;
+  Decimal: TBcd;
+  Stamp: TSQLTimeStamp;
+  Offset: TSQLTimeStampOffset;
+begin
+  // FireDAC memory fields -> existing field reader -> mock result -> mapper.
+  // This checks driver-independent field handling, not a server round trip.
+  Decimal := StrToBcd('1234567890123456789012345678.12345678',
+    TFormatSettings.Invariant);
+  Stamp := DateTimeToSQLTimeStamp(EncodeDate(2026, 10, 24));
+  Stamp.Fractions := 123456789;
+  Offset := DateTimeToSQLTimeStampOffset(EncodeDate(2026, 10, 24), 5, 45);
+  Offset.Fractions := 987654321;
+  M := TFDMemTable.Create(nil);
+  try
+    with M.FieldDefs.AddFieldDef do
+    begin
+      Name := 'Decimal';
+      DataType := ftFMTBcd;
+      Precision := 38;
+      Size := 8;
+    end;
+    M.FieldDefs.Add('Stamp', ftTimeStamp);
+    M.FieldDefs.Add('Offset', ftTimeStampOffset);
+    M.CreateDataSet;
+    M.Append;
+    M.Fields[0].AsBCD := Decimal;
+    M.Fields[1].AsSQLTimeStamp := Stamp;
+    M.Fields[2].AsSQLTimeStampOffset := Offset;
+    M.Post;
+    R := TMockQueryResult.Create(['Decimal', 'Stamp', 'Offset'], nil,
+      TRows.Create(TValues.Create(TFireDACFieldReader.ReadValue(M.Fields[0]),
+      TFireDACFieldReader.ReadValue(M.Fields[1]),
+      TFireDACFieldReader.ReadValue(M.Fields[2]))), True, -1);
+    Item := TQueryMapper.FirstOrDefault<TNativeFieldDTO>(R);
+    try
+      R := nil;
+      Assert.AreEqual(0, BcdCompare(Decimal, Item.Decimal));
+      Assert.AreEqual<Cardinal>(Stamp.Fractions, Item.Stamp.Fractions);
+      Assert.AreEqual<Cardinal>(Offset.Fractions, Item.Offset.Fractions);
+      Assert.AreEqual<SmallInt>(5, Item.Offset.TimeZoneHour);
+      Assert.AreEqual<SmallInt>(45, Item.Offset.TimeZoneMinute);
+    finally
+      Item.Free;
+    end;
+  finally
+    M.Free;
+  end;
+end;
 
 function TExactBCDField.GetIsNull: Boolean;
 begin

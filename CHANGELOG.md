@@ -3,6 +3,17 @@
 All notable changes to QueryBuilder4Delphi are documented in this file.
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Provider-neutral `TNullable<T>` with automatic mapping for built-in types,
+  operation-scoped registrations for custom types, optional NULL assignment
+  skipping and exact-pair converters.
+- Checked signed/unsigned integer and exact integer/float conversions; native
+  BCD, SQL timestamp/offset, GUID and byte-array mapping; exact Currency/BCD
+  conversion with precision and overflow checks.
+
 ## [1.0.0] - 2026-10-23
 
 First public release of QueryBuilder4Delphi, a fluent SQL query builder for

@@ -179,7 +179,10 @@ FireDAC's own constructor retains its fixed :pN convention.
 
 The optional provider-independent `TQueryMapper` maps result rows to ordinary
 classes. See [Object Mapping](OBJECT_MAPPING.md) for ownership, RTTI requirements,
-supported scalars and SQL NULL limitations. The existing Query.DataMapper helper
+native values, automatic built-in `TNullable<T>` mapping, scoped options and custom
+converters. `RegisterNullable<T>` is an advanced extension point for application
+types; standard nullable properties need no options or registration.
+The existing Query.DataMapper helper
 only reads object properties when constructing write queries.
 
 Run the separate FireDAC SQLite in-memory suite after rebuilding:

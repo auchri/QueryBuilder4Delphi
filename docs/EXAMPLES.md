@@ -935,9 +935,11 @@ nil; free it in a finally block. Free the `TObjectList<TBook>` from `ToList` in
 a finally block too: it owns every mapped object. `ToList` consumes all remaining
 rows and `FirstOrDefault` consumes at most one. Both call `Next` before reading;
 neither rewinds the cursor. Partial projections leave constructor defaults.
-SQL NULL in a mapped property raises `EQueryMappingException`; use direct
-`IsNull`/`GetValue` access when nullable values are needed. Conversion and
-mapping errors retain the existing mapper behavior.
+SQL NULL maps automatically to built-in `TNullable<T>` properties. For ordinary
+properties it raises `EQueryMappingException`, unless `SkipNullAssignment` is
+enabled on the operation's `TQueryMappingOptions`. Pass options to either fluent
+mapping method;
+see [nullable values and conversion rules](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
 
 The static API `TQueryMapper.ToList<TBook>(Rows)` and
 `TQueryMapper.FirstOrDefault<TBook>(Rows)` remains available. For direct cursor
