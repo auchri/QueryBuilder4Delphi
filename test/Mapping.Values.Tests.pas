@@ -72,6 +72,8 @@ type
     [Test]
     procedure ExactCurrencyBcdConversions;
     [Test]
+    procedure MinimumCurrencyBcdRoundTrip;
+    [Test]
     procedure RejectsDecimalLossAndOverflow;
     [Test]
     procedure NativeGuidAndBytes;
@@ -81,6 +83,8 @@ type
     procedure RejectsAmbiguousConversions;
     [Test]
     procedure ExactCustomConverterAndNullableComposition;
+    [Test]
+    procedure CustomConverterPrecedesBuiltIns;
     [Test]
     procedure ConverterFailureContextAndOwnership;
     [Test]
@@ -408,6 +412,27 @@ begin
   Assert.AreEqual<Currency>(Money, Map<Currency>(TValue.From<TBcd>(Decimal)));
 end;
 
+procedure TMappingValueTests.MinimumCurrencyBcdRoundTrip;
+const
+  Maximum: Currency = 922337203685477.5807;
+  Quantum: Currency = 0.0001;
+var
+  Minimum, Mapped: Currency;
+  Decimal, Expected: TBcd;
+begin
+  // Currency subtraction uses fixed-point operands. Avoid negating a positive
+  // 922337203685477.5808 literal (which is already outside Currency's range).
+  Minimum := -Maximum;
+  Minimum := Minimum - Quantum;
+  Assert.AreEqual('-922337203685477.5808',
+    CurrToStr(Minimum, TFormatSettings.Invariant));
+  Expected := StrToBcd('-922337203685477.5808', TFormatSettings.Invariant);
+  Decimal := Map<TBcd>(TValue.From<Currency>(Minimum));
+  Assert.AreEqual(0, BcdCompare(Expected, Decimal));
+  Mapped := Map<Currency>(TValue.From<TBcd>(Decimal));
+  Assert.AreEqual<Currency>(Minimum, Mapped);
+end;
+
 procedure TMappingValueTests.RejectsDecimalLossAndOverflow;
 begin
   Reject<Currency>(TValue.From<TBcd>(StrToBcd('0.00001',
@@ -492,6 +517,44 @@ begin
       begin
         Map<TApplicationCode>(1, Options);
       end), EQueryMappingException);
+  finally
+    Options.Free;
+  end;
+end;
+
+procedure TMappingValueTests.CustomConverterPrecedesBuiltIns;
+var
+  Options, OtherOptions: TQueryMappingOptions;
+  Nullable: TNullable<Integer>;
+  Source: TValue;
+begin
+  Options := TQueryMappingOptions.Create;
+  try
+    OtherOptions := TQueryMappingOptions.Create;
+    try
+      Options.RegisterConverter<Int64, Integer>(
+        function(Value: Int64): Integer
+        begin
+          Result := Integer(Value) + 100;
+        end);
+      Options.RegisterNullable<Integer>;
+      OtherOptions.RegisterNullable<Integer>;
+      Source := TValue.From<Int64>(42);
+      Assert.AreEqual(142, Map<Integer>(Source, Options));
+      Assert.AreEqual(42, Map<Integer>(Source));
+      // Both halves of the source/target contract must match exactly.
+      Assert.AreEqual(42, Map<Integer>(TValue.From<Integer>(42), Options));
+      Assert.AreEqual<Int64>(42, Map<Int64>(Source, Options));
+      Nullable := Map < TNullable < Integer >> (Source, Options);
+      Assert.IsTrue(Nullable.HasValue);
+      Assert.AreEqual(142, Nullable.Value);
+      Assert.AreEqual(42, Map<Integer>(Source, OtherOptions));
+      Nullable := Map < TNullable < Integer >> (Source, OtherOptions);
+      Assert.IsTrue(Nullable.HasValue);
+      Assert.AreEqual(42, Nullable.Value);
+    finally
+      OtherOptions.Free;
+    end;
   finally
     Options.Free;
   end;
