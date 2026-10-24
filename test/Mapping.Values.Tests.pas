@@ -46,6 +46,7 @@ type
       Options: TQueryMappingOptions = nil): T;
     procedure Reject<T>(const Value: TValue);
     function NullableOptions: TQueryMappingOptions;
+    procedure CheckAutomatic<T>(const Value: T);
   public
     [Test]
     procedure NullableRecordSemantics;
@@ -92,13 +93,31 @@ type
     [Test]
     procedure ActualValueOverridesMetadata;
     [Test]
-    procedure FluentOptionsAndResultLifetime;
+    procedure AutomaticFluentFirstAndResultLifetime;
+    [Test]
+    procedure AutomaticIntegerBoundaries;
+    [Test]
+    procedure AutomaticScalarsAndAliases;
+    [Test]
+    procedure AutomaticNativeRecords;
+    [Test]
+    procedure AutomaticBytes;
+    [Test]
+    procedure AutomaticStrictConversions;
+    [Test]
+    procedure AutomaticConcurrentMapping;
+    [Test]
+    procedure AutomaticFluentListAndRetainedResults;
+    [Test]
+    procedure AutomaticScopedConverterAndExplicitRegistration;
+    [Test]
+    procedure ExactConverterToNullableRemainsSupported;
   end;
 
 implementation
 
 uses DUnitX.Assert, Execution.Mock, Mapping.Tests, QueryBuilder4Delphi.Query,
-  System.Math;
+  System.Math, System.Threading;
 
 constructor TNullableBook.Create;
 begin
@@ -204,94 +223,74 @@ end;
 
 procedure TMappingValueTests.NullableNullVersusDefaults;
 var
-  Options: TQueryMappingOptions;
   Books: TObjectList<TNullableBook>;
 begin
-  Options := NullableOptions;
+  Books := TQueryMapper.ToList<TNullableBook>
+    (Rows(['Rating', 'Title', 'Published', 'Stamp'],
+    TRows.Create(TValues.Create(TValue.Empty, TValue.Empty, TValue.Empty,
+    TValue.Empty), TValues.Create(0, '', False, TValue.From<TDateTime>(0)))));
   try
-    Books := TQueryMapper.ToList<TNullableBook>
-      (Rows(['Rating', 'Title', 'Published', 'Stamp'],
-      TRows.Create(TValues.Create(TValue.Empty, TValue.Empty, TValue.Empty,
-      TValue.Empty), TValues.Create(0, '', False, TValue.From<TDateTime>(0)))
-      ), Options);
-    try
-      Assert.IsFalse(Books[0].Rating.HasValue);
-      Assert.IsFalse(Books[0].Title.HasValue);
-      Assert.IsFalse(Books[0].Published.HasValue);
-      Assert.IsFalse(Books[0].Stamp.HasValue);
-      Assert.IsTrue(Books[1].Rating.HasValue);
-      Assert.AreEqual(0, Books[1].Rating.Value);
-      Assert.IsTrue(Books[1].Title.HasValue);
-      Assert.AreEqual('', Books[1].Title.Value);
-      Assert.IsTrue(Books[1].Published.HasValue);
-      Assert.IsFalse(Books[1].Published.Value);
-      Assert.IsTrue(Books[1].Stamp.HasValue);
-      Assert.AreEqual<TDateTime>(0, Books[1].Stamp.Value);
-    finally
-      Books.Free;
-    end;
+    Assert.IsFalse(Books[0].Rating.HasValue);
+    Assert.IsFalse(Books[0].Title.HasValue);
+    Assert.IsFalse(Books[0].Published.HasValue);
+    Assert.IsFalse(Books[0].Stamp.HasValue);
+    Assert.IsTrue(Books[1].Rating.HasValue);
+    Assert.AreEqual(0, Books[1].Rating.Value);
+    Assert.IsTrue(Books[1].Title.HasValue);
+    Assert.AreEqual('', Books[1].Title.Value);
+    Assert.IsTrue(Books[1].Published.HasValue);
+    Assert.IsFalse(Books[1].Published.Value);
+    Assert.IsTrue(Books[1].Stamp.HasValue);
+    Assert.AreEqual<TDateTime>(0, Books[1].Stamp.Value);
   finally
-    Options.Free;
+    Books.Free;
   end;
 end;
 
 procedure TMappingValueTests.NullableDateTimeAndManagedLifetime;
 var
-  Options: TQueryMappingOptions;
   Item: TNullableBook;
   Stamp: TDateTime;
   R: IQueryResult;
 begin
-  Options := NullableOptions;
   Stamp := EncodeDate(2026, 10, 24) + EncodeTime(8, 30, 14, 123);
+  R := Rows(['Title', 'Stamp'],
+    TRows.Create(TValues.Create('Gr' + #$00FC + #$00DF + 'e',
+    TValue.From<TDateTime>(Stamp))));
+  Item := TQueryMapper.FirstOrDefault<TNullableBook>(R);
   try
-    R := Rows(['Title', 'Stamp'],
-      TRows.Create(TValues.Create('Gr' + #$00FC + #$00DF + 'e',
-      TValue.From<TDateTime>(Stamp))));
-    Item := TQueryMapper.FirstOrDefault<TNullableBook>(R, Options);
-    try
-      R := nil;
-      Assert.AreEqual('Gr' + #$00FC + #$00DF + 'e', Item.Title.Value);
-      Assert.AreEqual<TDateTime>(Stamp, Item.Stamp.Value);
-    finally
-      Item.Free;
-    end;
+    R := nil;
+    Assert.AreEqual('Gr' + #$00FC + #$00DF + 'e', Item.Title.Value);
+    Assert.AreEqual<TDateTime>(Stamp, Item.Stamp.Value);
   finally
-    Options.Free;
+    Item.Free;
   end;
 end;
 
 procedure TMappingValueTests.NullableConversionAndFailureOwnership;
 var
-  Options: TQueryMappingOptions;
   C, D: Integer;
 begin
-  Options := NullableOptions;
-  try
-    Assert.AreEqual(42, Map < TNullable < Integer >> (TValue.From<Int64>(42),
-      Options).Value);
-    C := TNullableBook.Created;
-    D := TNullableBook.Destroyed;
-    Assert.WillRaise(TTestLocalMethod(
-      procedure
-      begin
-        TQueryMapper.ToList<TNullableBook>(Rows(['Rating', 'Title'],
-          TRows.Create(TValues.Create(1, 'managed first'), TValues.Create(2,
-          'managed second'),
-          TValues.Create(TValue.From<Int64>(Int64(High(Integer)) + 1), 'bad'))),
-          Options).Free;
-      end), EQueryMappingException);
-    Assert.AreEqual(3, TNullableBook.Created - C);
-    Assert.AreEqual(3, TNullableBook.Destroyed - D);
-  finally
-    Options.Free;
-  end;
+  Assert.AreEqual(42, Map < TNullable < Integer >>
+    (TValue.From<Int64>(42)).Value);
+  C := TNullableBook.Created;
+  D := TNullableBook.Destroyed;
+  Assert.WillRaise(TTestLocalMethod(
+    procedure
+    begin
+      TQueryMapper.ToList<TNullableBook>(Rows(['Rating', 'Title'],
+        TRows.Create(TValues.Create(1, 'managed first'), TValues.Create(2,
+        'managed second'), TValues.Create(TValue.From<Int64>(Int64(High(Integer)
+        ) + 1), 'bad')))).Free;
+    end), EQueryMappingException);
+  Assert.AreEqual(3, TNullableBook.Created - C);
+  Assert.AreEqual(3, TNullableBook.Destroyed - D);
 end;
 
 procedure TMappingValueTests.MissingRegistration;
 begin
-  Reject < TNullable < Integer >> (1);
-  Reject < TNullable < Integer >> (TValue.Empty);
+  Reject < TNullable < TApplicationCode >> (1);
+  Reject < TNullable < TApplicationCode >> (TValue.Empty);
 end;
 
 procedure TMappingValueTests.SkipNullIsScopedAndPreservesConstructor;
@@ -300,7 +299,7 @@ var
   Item: TNullableBook;
   Book: TMappingBook;
 begin
-  Options := NullableOptions;
+  Options := TQueryMappingOptions.Create;
   try
     Options.SkipNullAssignment := True;
     Item := TQueryMapper.FirstOrDefault<TNullableBook>
@@ -646,29 +645,256 @@ begin
   end;
 end;
 
-procedure TMappingValueTests.FluentOptionsAndResultLifetime;
+procedure TMappingValueTests.AutomaticFluentFirstAndResultLifetime;
 var
-  Options: TQueryMappingOptions;
   R: TQueryResult;
   Executor: IQueryExecutor;
   Item: TNullableBook;
   Baseline: Integer;
 begin
   Baseline := TMockQueryResult.LiveCount;
-  Options := NullableOptions;
+  Executor := TMockQueryExecutor.Create(TSqlDialect.Sqlite);
+  TMockQueryExecutor.Names := TArray<string>.Create('Rating');
+  TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty));
+  R := TQuery.Create('Books').Execute(Executor);
+  Item := R.FirstOrDefault<TNullableBook>();
   try
-    Executor := TMockQueryExecutor.Create(TSqlDialect.Sqlite);
-    TMockQueryExecutor.Names := TArray<string>.Create('Rating');
-    TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty));
-    R := TQuery.Create('Books').Execute(Executor);
-    Item := R.FirstOrDefault<TNullableBook>(Options);
-    try
-      Assert.IsFalse(Item.Rating.HasValue);
-      Assert.IsNull(R.AsRaw);
-      Assert.AreEqual(Baseline, TMockQueryResult.LiveCount);
-    finally
-      Item.Free;
-    end;
+    Assert.IsFalse(Item.Rating.HasValue);
+    Assert.IsNull(R.AsRaw);
+    Assert.AreEqual(Baseline, TMockQueryResult.LiveCount);
+  finally
+    Item.Free;
+  end;
+end;
+
+procedure TMappingValueTests.CheckAutomatic<T>(const Value: T);
+var
+  Mapped: TNullable<T>;
+begin
+  Mapped := Map < TNullable < T >> (TValue.From<T>(Value));
+  Assert.IsTrue(Mapped.HasValue);
+  Assert.AreEqual<T>(Value, Mapped.Value);
+  Assert.IsFalse(Map < TNullable < T >> (TValue.Empty).HasValue);
+end;
+
+procedure TMappingValueTests.AutomaticIntegerBoundaries;
+begin
+  CheckAutomatic<ShortInt>(Low(ShortInt));
+  CheckAutomatic<ShortInt>(High(ShortInt));
+  CheckAutomatic<SmallInt>(Low(SmallInt));
+  CheckAutomatic<SmallInt>(High(SmallInt));
+  CheckAutomatic<Integer>(Low(Integer));
+  CheckAutomatic<Integer>(High(Integer));
+  CheckAutomatic<Int64>(Low(Int64));
+  CheckAutomatic<Int64>(High(Int64));
+  CheckAutomatic<Byte>(0);
+  CheckAutomatic<Byte>(High(Byte));
+  CheckAutomatic<Word>(0);
+  CheckAutomatic<Word>(High(Word));
+  CheckAutomatic<Cardinal>(0);
+  CheckAutomatic<Cardinal>(High(Cardinal));
+  CheckAutomatic<UInt64>(0);
+  CheckAutomatic<UInt64>(High(UInt64));
+end;
+
+procedure TMappingValueTests.AutomaticScalarsAndAliases;
+begin
+  CheckAutomatic<Boolean>(False);
+  CheckAutomatic<string>('');
+  CheckAutomatic<Single>(1.25);
+  CheckAutomatic<Double>(1.25);
+  CheckAutomatic<Extended>(1.25);
+  CheckAutomatic<Currency>(123456789.1234);
+  CheckAutomatic<TDateTime>(EncodeDate(2026, 10, 24));
+  // Verify both compiler identities rather than assuming Extended = Double.
+  Assert.AreEqual(TypeInfo(Double) = TypeInfo(Extended),
+    TypeInfo(TNullable<Double>) = TypeInfo(TNullable<Extended>));
+  Assert.AreEqual(TypeInfo(Double) = TypeInfo(TDateTime),
+    TypeInfo(TNullable<Double>) = TypeInfo(TNullable<TDateTime>));
+end;
+
+procedure TMappingValueTests.AutomaticNativeRecords;
+var
+  Decimal, ActualDecimal: TBcd;
+  Id: TGUID;
+  Stamp, ActualStamp: TSQLTimeStamp;
+  Offset, ActualOffset: TSQLTimeStampOffset;
+begin
+  Decimal := StrToBcd('123456789.123456789', TFormatSettings.Invariant);
+  ActualDecimal := Map < TNullable < TBcd >> (TValue.From<TBcd>(Decimal)).Value;
+  Assert.AreEqual(0, BcdCompare(Decimal, ActualDecimal));
+  Assert.IsFalse(Map < TNullable < TBcd >> (TValue.Empty).HasValue);
+  Id := StringToGUID('{20BF89A2-91B6-45CB-B610-98320D788099}');
+  Assert.IsTrue(IsEqualGUID(Id, Map < TNullable < TGUID >>
+    (TValue.From<TGUID>(Id)).Value));
+  Assert.IsFalse(Map < TNullable < TGUID >> (TValue.Empty).HasValue);
+  Stamp := DateTimeToSQLTimeStamp(EncodeDate(2026, 10, 24));
+  Stamp.Fractions := 123456789;
+  ActualStamp := Map < TNullable < TSQLTimeStamp >>
+    (TValue.From<TSQLTimeStamp>(Stamp)).Value;
+  Assert.AreEqual<Cardinal>(Stamp.Fractions, ActualStamp.Fractions);
+  Assert.AreEqual(Integer(Stamp.Year), Integer(ActualStamp.Year));
+  Assert.IsFalse(Map < TNullable < TSQLTimeStamp >> (TValue.Empty).HasValue);
+  Offset := DateTimeToSQLTimeStampOffset(EncodeDate(2026, 10, 24), -3, -30);
+  Offset.Fractions := 987654321;
+  ActualOffset := Map < TNullable < TSQLTimeStampOffset >>
+    (TValue.From<TSQLTimeStampOffset>(Offset)).Value;
+  Assert.AreEqual<Cardinal>(Offset.Fractions, ActualOffset.Fractions);
+  Assert.AreEqual(-3, Integer(ActualOffset.TimeZoneHour));
+  Assert.AreEqual(-30, Integer(ActualOffset.TimeZoneMinute));
+  Assert.IsFalse(Map < TNullable < TSQLTimeStampOffset >> (TValue.Empty)
+    .HasValue);
+end;
+
+procedure TMappingValueTests.AutomaticBytes;
+var
+  Value: TNullable<TBytes>;
+begin
+  Value := Map < TNullable < TBytes >> (TValue.From<TBytes>(nil));
+  Assert.IsTrue(Value.HasValue);
+  Assert.AreEqual<NativeInt>(0, Length(Value.Value));
+  Value := Map < TNullable < TBytes >>
+    (TValue.From<TBytes>(TBytes.Create(0, 255, 42)));
+  Assert.IsTrue(Value.HasValue);
+  Assert.AreEqual<NativeInt>(3, Length(Value.Value));
+  Assert.AreEqual<Byte>(255, Value.Value[1]);
+  Assert.IsFalse(Map < TNullable < TBytes >> (TValue.Empty).HasValue);
+end;
+
+procedure TMappingValueTests.AutomaticStrictConversions;
+var
+  Decimal: TBcd;
+begin
+  Assert.AreEqual(42, Map < TNullable < Integer >>
+    (TValue.From<Int64>(42)).Value);
+  Reject < TNullable < Integer >>
+    (TValue.From<Int64>(Int64(High(Integer)) + 1));
+  Reject < TNullable < UInt64 >> (TValue.From<Int64>(-1));
+  Reject < TNullable < Int64 >> (TValue.From<UInt64>(High(UInt64)));
+  Reject < TNullable < Integer >> (TValue.From<Double>(1.5));
+  Reject < TNullable < Single >> (TValue.From<Double>(0.1));
+  Reject < TNullable < Double >> (TValue.From<Int64>(9007199254740993));
+  Reject < TNullable < Currency >>
+    (TValue.From<TBcd>(StrToBcd('0.00001', TFormatSettings.Invariant)));
+  Reject < TNullable < Currency >>
+    (TValue.From<TBcd>(StrToBcd('999999999999999999999',
+    TFormatSettings.Invariant)));
+  Reject < TNullable < Boolean >> (0);
+  Reject<Integer>(TValue.Empty);
+  Decimal := Map < TNullable < TBcd >> (TValue.From<Currency>(123.4567)).Value;
+  Assert.AreEqual<Currency>(123.4567, Map < TNullable < Currency >>
+    (TValue.From<TBcd>(Decimal)).Value);
+end;
+
+procedure TMappingValueTests.AutomaticConcurrentMapping;
+begin
+  TParallel.For(0, 127,
+    procedure(Index: Integer)
+    begin
+      Assert.AreEqual(Index, Map < TNullable < Integer >>
+        (TValue.From<Int64>(Index)).Value);
+      Assert.IsFalse(Map < TNullable < string >> (TValue.Empty).HasValue);
+      Assert.AreEqual('parallel', Map < TNullable < string >>
+        ('parallel').Value);
+      Assert.IsTrue(Map < TNullable < TBytes >> (TValue.From<TBytes>(nil))
+        .HasValue);
+    end);
+end;
+
+procedure TMappingValueTests.AutomaticFluentListAndRetainedResults;
+var
+  A, B: TQueryResult;
+  Raw, Empty: IQueryResult;
+  Item: TNullableBook;
+  Books: TObjectList<TNullableBook>;
+  Executor: IQueryExecutor;
+  Baseline: Integer;
+begin
+  Baseline := TMockQueryResult.LiveCount;
+  Executor := TMockQueryExecutor.Create(TSqlDialect.Sqlite);
+  TMockQueryExecutor.Names := TArray<string>.Create('Rating');
+  TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty),
+    TValues.Create(0));
+  Books := TQuery.Create('Books').Execute(Executor).ToList<TNullableBook>();
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.IsFalse(Books[0].Rating.HasValue);
+    Assert.IsTrue(Books[1].Rating.HasValue);
+    Assert.AreEqual(0, Books[1].Rating.Value);
+    Assert.AreEqual(Baseline, TMockQueryResult.LiveCount);
+  finally
+    Books.Free;
+  end;
+  A := TQuery.Create('Books').Where('Id', 42).Execute(Executor);
+  B := A;
+  Raw := A.AsRaw;
+  Item := A.FirstOrDefault<TNullableBook>();
+  try
+    Assert.IsFalse(Item.Rating.HasValue);
+    Empty := A.AsRaw;
+    Assert.IsNull(Empty);
+    Assert.AreEqual(Baseline + 1, TMockQueryResult.LiveCount);
+    Assert.IsTrue(B.Next);
+    Assert.AreEqual(0, Raw.GetValue('Rating').AsInteger);
+    B := Default (TQueryResult);
+    Raw := nil;
+    Assert.AreEqual(Baseline, TMockQueryResult.LiveCount);
+  finally
+    Item.Free;
+  end;
+end;
+
+procedure TMappingValueTests.AutomaticScopedConverterAndExplicitRegistration;
+var
+  Options: TQueryMappingOptions;
+begin
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.RegisterConverter<Int64, Integer>(
+      function(Value: Int64): Integer
+      begin
+        Result := Integer(Value) + 100;
+      end);
+    // The default callback uses this operation's converter without capturing it.
+    Assert.AreEqual(142, Map < TNullable < Integer >> (TValue.From<Int64>(42),
+      Options).Value);
+    Assert.AreEqual(42, Map < TNullable < Integer >>
+      (TValue.From<Int64>(42)).Value);
+    Options.RegisterNullable<Integer>;
+    Assert.AreEqual(142, Map < TNullable < Integer >> (TValue.From<Int64>(42),
+      Options).Value);
+    Assert.IsFalse(Map < TNullable < Integer >> (TValue.Empty, Options)
+      .HasValue);
+  finally
+    Options.Free;
+  end;
+  // No callback retained the freed options instance.
+  Assert.AreEqual(42, Map < TNullable < Integer >>
+    (TValue.From<Int64>(42)).Value);
+end;
+
+procedure TMappingValueTests.ExactConverterToNullableRemainsSupported;
+var
+  Options: TQueryMappingOptions;
+begin
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.RegisterConverter < Int64, TNullable < Integer >> (
+      function(Value: Int64): TNullable<Integer>
+      begin
+        Result := TNullable<Integer>.Create(Integer(Value) + 200);
+      end);
+    Assert.AreEqual(242, Map < TNullable < Integer >> (TValue.From<Int64>(42),
+      Options).Value);
+    Assert.AreEqual(42, Map < TNullable < Integer >>
+      (TValue.From<Int64>(42)).Value);
+    Assert.IsFalse(Map < TNullable < Integer >> (TValue.Empty, Options)
+      .HasValue);
+    // Explicit nullable construction still takes precedence over a converter
+    // returning the whole record, as it did before built-in registrations.
+    Options.RegisterNullable<Integer>;
+    Assert.AreEqual(42, Map < TNullable < Integer >> (TValue.From<Int64>(42),
+      Options).Value);
   finally
     Options.Free;
   end;

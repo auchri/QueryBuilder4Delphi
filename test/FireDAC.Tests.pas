@@ -174,6 +174,7 @@ type
 procedure TFireDACExecutionTests.NullableObjectMapping;
 var
   Books: TObjectList<TRatedBook>;
+  Book: TRatedBook;
 begin
   FConnection.ExecSQL
     ('create table NullableBooks (Id integer, Rating integer, Title text, Payload blob)');
@@ -195,6 +196,16 @@ begin
     Assert.AreEqual<Byte>(255, Books[1].Payload.Value[1]);
   finally
     Books.Free;
+  end;
+  Book := TQuery.Create('NullableBooks').Where('Id', 1).Execute(FExecutor)
+    .FirstOrDefault<TRatedBook>();
+  try
+    Assert.IsNotNull(Book);
+    Assert.IsFalse(Book.Rating.HasValue);
+    Assert.IsFalse(Book.Title.HasValue);
+    Assert.IsFalse(Book.Payload.HasValue);
+  finally
+    Book.Free;
   end;
 end;
 

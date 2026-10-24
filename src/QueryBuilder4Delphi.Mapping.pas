@@ -11,16 +11,19 @@ type
 
   TQueryMappingOptions = class
   private type
+    TNullableConverter = TFunc<TValue, Boolean, TQueryMappingOptions, TValue>;
+
     TConverter = record
       Source, Target: PTypeInfo;
       Convert: TFunc<TValue, TValue>;
     end;
   private
     FSkipNullAssignment: Boolean;
-    FNullables: TDictionary<PTypeInfo, TFunc<TValue, Boolean, TValue>>;
+    FNullables: TDictionary<PTypeInfo, TNullableConverter>;
     FConverters: TList<TConverter>;
-    function Convert(const Value: TValue; Target: PTypeInfo;
-      IsNull: Boolean): TValue;
+    class function ConvertMappedValue(const Value: TValue; Target: PTypeInfo;
+      IsNull: Boolean; Options: TQueryMappingOptions): TValue; static;
+    class function NullableConverter<T>: TNullableConverter; static;
   public
     constructor Create;
     destructor Destroy; override;
@@ -105,11 +108,63 @@ type
   TPropertyMapping = TQueryMapper.TPropertyMapping;
   TClassMapping = TArray<TPropertyMapping>;
 
+  TBuiltInNullables = class
+  private
+    class procedure Add<T>; static;
+  public
+    class procedure Initialize; static;
+  end;
+
 var
   // Retaining this context keeps every cached RTTI property/type alive.
   MappingContext: TRttiContext;
   MetadataLock: TCriticalSection;
   MetadataCache: TDictionary<TClass, TClassMapping>;
+  // Published by unit initialization; never mutated during mapping.
+  BuiltInNullables
+    : TDictionary<PTypeInfo, TQueryMappingOptions.TNullableConverter>;
+  BuiltInInnerTypes: TDictionary<PTypeInfo, PTypeInfo>;
+
+class procedure TBuiltInNullables.Add<T>;
+var
+  Inner: PTypeInfo;
+begin
+  if BuiltInInnerTypes.TryGetValue(TypeInfo(TNullable<T>), Inner) then
+  begin
+    // Compiler aliases can share the same closed generic RTTI identity.
+    if Inner <> TypeInfo(T) then
+      raise EQueryMappingException.Create
+        ('Conflicting built-in nullable RTTI identity');
+    Exit;
+  end;
+  BuiltInInnerTypes.Add(TypeInfo(TNullable<T>), TypeInfo(T));
+  BuiltInNullables.Add(TypeInfo(TNullable<T>),
+    TQueryMappingOptions.NullableConverter<T>());
+end;
+
+class procedure TBuiltInNullables.Initialize;
+begin
+  Add<ShortInt>;
+  Add<SmallInt>;
+  Add<Integer>;
+  Add<Int64>;
+  Add<Byte>;
+  Add<Word>;
+  Add<Cardinal>;
+  Add<UInt64>;
+  Add<Boolean>;
+  Add<string>;
+  Add<Single>;
+  Add<Double>;
+  Add<Extended>;
+  Add<Currency>;
+  Add<TDateTime>;
+  Add<TBcd>;
+  Add<TSQLTimeStamp>;
+  Add<TSQLTimeStampOffset>;
+  Add<TGUID>;
+  Add<TBytes>;
+end;
 
 function ClassMapping(AClass: TClass): TClassMapping;
 var
@@ -435,8 +490,7 @@ end;
 constructor TQueryMappingOptions.Create;
 begin
   inherited;
-  FNullables := TDictionary < PTypeInfo, TFunc < TValue, Boolean,
-    TValue >>.Create;
+  FNullables := TDictionary<PTypeInfo, TNullableConverter>.Create;
   FConverters := TList<TConverter>.Create;
 end;
 
@@ -451,17 +505,22 @@ procedure TQueryMappingOptions.RegisterNullable<T>;
 begin
   if FNullables.ContainsKey(TypeInfo(TNullable<T>)) then
     raise EQueryMappingException.Create('Nullable type is already registered');
-  FNullables.Add(TypeInfo(TNullable<T>),
-    function(Value: TValue; IsNull: Boolean): TValue
+  FNullables.Add(TypeInfo(TNullable<T>), NullableConverter<T>());
+end;
+
+class function TQueryMappingOptions.NullableConverter<T>: TNullableConverter;
+begin
+  Result := function(Value: TValue; IsNull: Boolean;
+      Options: TQueryMappingOptions): TValue
     var
       Inner: TValue;
     begin
       if IsNull then
         Exit(TValue.From < TNullable < T >> (TNullable<T>.Null));
-      Inner := Self.Convert(Value, TypeInfo(T), False);
+      Inner := ConvertMappedValue(Value, TypeInfo(T), False, Options);
       Result := TValue.From < TNullable < T >>
         (TNullable<T>.Create(Inner.AsType<T>));
-    end);
+    end;
 end;
 
 procedure TQueryMappingOptions.RegisterConverter<TSource, TTarget>
@@ -485,27 +544,31 @@ begin
   FConverters.Add(Item);
 end;
 
-function TQueryMappingOptions.Convert(const Value: TValue; Target: PTypeInfo;
-IsNull: Boolean): TValue;
+class function TQueryMappingOptions.ConvertMappedValue(const Value: TValue;
+  Target: PTypeInfo; IsNull: Boolean; Options: TQueryMappingOptions): TValue;
 var
-  Nullable: TFunc<TValue, Boolean, TValue>;
-  Item: TConverter;
+  Nullable: TQueryMappingOptions.TNullableConverter;
+  Item: TQueryMappingOptions.TConverter;
 begin
-  if FNullables.TryGetValue(Target, Nullable) then
-    Exit(Nullable(Value, IsNull));
+  if (Options <> nil) and Options.FNullables.TryGetValue(Target, Nullable) then
+    Exit(Nullable(Value, IsNull, Options));
+  // Preserve exact converters returning the complete destination, including
+  // nullable records. SQL NULL always follows nullable construction/policy.
+  if not IsNull and (Options <> nil) then
+    for Item in Options.FConverters do
+      if (Item.Source = Value.TypeInfo) and (Item.Target = Target) then
+        Exit(Item.Convert(Value));
+  if BuiltInNullables.TryGetValue(Target, Nullable) then
+    Exit(Nullable(Value, IsNull, Options));
   if IsNull then
     raise EQueryMappingException.Create
       ('SQL NULL requires a registered nullable target');
-  // Explicit registrations override one exact source/target pair in this call.
-  for Item in FConverters do
-    if (Item.Source = Value.TypeInfo) and (Item.Target = Target) then
-      Exit(Item.Convert(Value));
   Result := ConvertValue(Value, Target);
 end;
 
 class procedure TQueryMapper.MapObject(Instance: TObject;
-const Rows: IQueryResult; const Plan: TMappingPlan; RowNumber: Integer;
-Options: TQueryMappingOptions);
+  const Rows: IQueryResult; const Plan: TMappingPlan; RowNumber: Integer;
+  Options: TQueryMappingOptions);
 var
   Binding: TColumnMapping;
   Value: TValue;
@@ -521,19 +584,15 @@ begin
         Source := 'SQL NULL';
         if (Options <> nil) and Options.SkipNullAssignment then
           Continue;
-        if Options = nil then
-          raise EQueryMappingException.Create
-            ('SQL NULL requires a registered nullable target');
-        Value := Options.Convert(TValue.Empty, Binding.Metadata.Target, True);
+        Value := TQueryMappingOptions.ConvertMappedValue(TValue.Empty,
+          Binding.Metadata.Target, True, Options);
       end
       else
       begin
         Value := Rows.GetValue(Binding.Index);
         Source := TypeName(Value.TypeInfo);
-        if Options = nil then
-          Value := ConvertValue(Value, Binding.Metadata.Target)
-        else
-          Value := Options.Convert(Value, Binding.Metadata.Target, False);
+        Value := TQueryMappingOptions.ConvertMappedValue(Value,
+          Binding.Metadata.Target, False, Options);
       end;
       Binding.Metadata.Prop.SetValue(Instance, Value);
     except
@@ -553,7 +612,7 @@ begin
 end;
 
 class function TQueryMapper.ToList<T>(const Rows: IQueryResult;
-Options: TQueryMappingOptions): TObjectList<T>;
+  Options: TQueryMappingOptions): TObjectList<T>;
 var
   Plan: TMappingPlan;
   Instance: T;
@@ -582,7 +641,7 @@ begin
 end;
 
 class function TQueryMapper.FirstOrDefault<T>(const Rows: IQueryResult;
-Options: TQueryMappingOptions): T;
+  Options: TQueryMappingOptions): T;
 var
   Plan: TMappingPlan;
 begin
@@ -602,11 +661,17 @@ end;
 initialization
 
 MappingContext := TRttiContext.Create;
+BuiltInNullables :=
+  TDictionary<PTypeInfo, TQueryMappingOptions.TNullableConverter>.Create;
+BuiltInInnerTypes := TDictionary<PTypeInfo, PTypeInfo>.Create;
+TBuiltInNullables.Initialize;
+FreeAndNil(BuiltInInnerTypes);
 MetadataLock := TCriticalSection.Create;
 MetadataCache := TDictionary<TClass, TClassMapping>.Create;
 
 finalization
 
+BuiltInNullables.Free;
 MetadataCache.Free;
 MetadataLock.Free;
 MappingContext.Free;

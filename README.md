@@ -127,9 +127,10 @@ writable properties need RTTI; names match without case sensitivity, with
 `[Column]` and `[Ignore]` supported. Partial projections retain constructor
 defaults. Supported values include signed/unsigned integers, floating point,
 Currency, TBcd, Boolean, Unicode string, TDateTime, native SQL timestamp records,
-TGUID and TBytes. `TNullable<T>` represents SQL NULL through explicit typed
-registrations on operation-scoped `TQueryMappingOptions`. NULL to non-nullable
-properties and unsupported or lossy conversions raise exceptions. Options also
+TGUID and TBytes. `TNullable<T>` works automatically for these built-in types:
+`Execute(Executor).ToList<TBook>()` needs no options or registrations.
+`RegisterNullable<T>` extends mapping to custom application types. NULL to
+non-nullable properties and unsupported or lossy conversions raise exceptions. Options also
 provide opt-in `SkipNullAssignment` and exact-pair application converters.
 See [working examples and limits](docs/OBJECT_MAPPING.md).
 

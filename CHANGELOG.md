@@ -7,8 +7,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Provider-neutral `TNullable<T>` and typed, operation-scoped nullable mapping
-  registrations, optional NULL assignment skipping and exact-pair converters.
+- Provider-neutral `TNullable<T>` with automatic mapping for built-in types,
+  operation-scoped registrations for custom types, optional NULL assignment
+  skipping and exact-pair converters.
 - Checked signed/unsigned integer and exact integer/float conversions; native
   BCD, SQL timestamp/offset, GUID and byte-array mapping; exact Currency/BCD
   conversion with precision and overflow checks.

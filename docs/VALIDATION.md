@@ -1,47 +1,56 @@
 # Validation: October 24, 2026
 
-## Nullable values and result conversions (issue #16)
+## Automatic nullable mapping and result conversions (issue #16, PR #18)
 
 Both suites were rebuilt through IDE Project > Build, Base configuration, using
 Delphi 12 Community Edition / RAD Studio 23.0 (bds.exe 29.0.51961.7529).
-All four builds completed with zero compiler warnings/errors. Community Edition
-does not support command-line compilation. Tests were then run with
+All four final builds completed with zero compiler warnings/errors. Community
+Edition does not support command-line compilation. Tests were then run with
 `tools/build.ps1 -TestsOnly`, selecting Core/FireDAC and Win32/Win64:
 
 | Suite | Win32 | Win64 | Failed/errors/ignored/leaked |
 | --- | ---: | ---: | --- |
-| Core without FireDAC | 716 | 716 | 0/0/0/0 |
+| Core without FireDAC | 727 | 727 | 0/0/0/0 |
 | FireDAC/SQLite and memory fields | 46 | 46 | 0/0/0/0 |
 
-Before choosing the nullable mapping implementation, standalone Win32 and
-Win64 executable probes verified closed generic record type identity, typed
-TValue construction/extraction, public RTTI property assignment/readback, managed
-string lifetime, and NULL assignment. The permanent `ClosedGenericPropertyRTTI`
-DUnitX test repeats that proof. Explicit generic registrations supply the inner
-type without parsing type names or inspecting record layout.
+The 32 mapping-value tests include actual RTTI property assignment for all 20
+built-in nullable inner types without registration, SQL NULL versus zero/False/
+empty strings/empty byte arrays, signed/unsigned boundaries, managed lifetime,
+exact numeric precision and overflow rejection, BCD/GUID/timestamp records,
+custom nullable types, exact converter precedence, explicit built-in registration,
+duplicate/nil registration errors, scoped SkipNullAssignment, contextual converter
+failures and object cleanup. A compatibility regression first failed with 42
+instead of 242 when an exact converter returned a complete nullable record;
+the final dispatcher preserves that converter ahead of default construction,
+while explicit nullable registrations still take precedence. SQL NULL never
+reaches ordinary converters. The minimum Currency regression constructs exactly
+-922337203685477.5808 with typed Currency subtraction and verifies the BCD and
+Currency round trip on both platforms. No Currency conversion bug was found.
 
-The 21 new core tests cover NULL versus zero/False/empty strings, managed nullable
-copies, Integer/string/Boolean/TDateTime mapping, missing registrations,
-constructor preservation, scoped NULL policy, signed/unsigned boundaries and
-overflow, exact integer/float precision (including Win32 Extended versus Win64),
-nonfinite/fractional rejection, native BCD precision and scale, exact Currency/BCD
-conversion, GUID, empty/nonempty bytes, timestamp fractions and timezone fields,
-unsupported conversions, exact source/target callbacks, duplicate/nil callbacks,
-converter diagnostics, exception cleanup and fluent options/result lifetime.
-The preexisting empty-byte rejection test now verifies successful mapping.
+The alias regression compares inner and closed-generic RTTI identities for
+Double/Extended and Double/TDateTime on each target, then maps each specialization.
+Concurrent mapping runs 128 iterations through automatic integer/string/byte-array
+property assignments. The built-in registry is published once by unit initialization,
+is read-only during mapping and does not capture caller-owned options.
 
-The two new FireDAC cases exercise nullable DTOs against in-memory SQLite,
-and exact BCD/timestamp/offset memory fields through the existing field reader
-and mock result into the mapper. SQLite and memory fields do **not** prove
-SQL Server/Oracle server or driver behavior; no such servers were available.
-No separate Delphi 12.3+ installation was available.
+Fluent tests exercise ToList and FirstOrDefault without options, immediate facade
+release, independently retained facade/raw references, managed values after result
+destruction and ownership on failure. All existing PR #14 result-lifetime tests pass.
+SQLite integration runs both terminal methods on nullable DTOs without registrations;
+native BCD/timestamp/offset FireDAC field-reader regressions also pass.
 
-Both generator checks, the 69 paired reference scenarios, eight Python generator
-tests (using a workspace TEMP directory), formatting with the bundled Delphi
-formatter, and `git diff --check` pass. The
-[validation record](nullable-mapping-validation.json) includes executable/report
-hashes, PE architecture checks and the tested source hashes. Existing historical
-validation records below describe their own earlier versions.
+Both generator checks (including 69 paired reference scenarios), eight Python
+generator tests, Delphi formatting and `git diff --check` pass. The
+[validation record](nullable-mapping-validation.json) contains the final source,
+executable and report hashes with verified x86/x64 PE architectures. It replaces
+the earlier explicit-registration snapshot. Test logs contain no shutdown memory
+leak reports. The initial standalone generic-RTTI probes remain covered by the
+permanent `ClosedGenericPropertyRTTI` test.
+
+Limitations: no separate Delphi 12.3+ compiler installation was tested. SQLite
+and FireDAC memory fields do not prove SQL Server/Oracle server or driver behavior;
+no such servers were available. Public APIs, nullable layout, SQL compilation,
+providers and attribute behavior are unchanged by the automatic-registry update.
 
 ## Deterministic fluent result lifetime
 

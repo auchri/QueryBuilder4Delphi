@@ -216,41 +216,45 @@ Managed strings and arrays use ordinary compiler-managed record copies and
 finalization. Nullable object references, like ordinary object references, do
 not acquire ownership of the referenced object.
 
-Register each inner type on a caller-owned `TQueryMappingOptions` instance.
+Built-in nullable properties work automatically, without options or registration.
 For `TRatedBook` and its nullable Rating, Title and Payload properties in
 [the compiled SQLite example](../test/NullableMappingExamples.pas):
 
 ```delphi
-Options := TQueryMappingOptions.Create;
+Books := TQuery.Create('NullableBooks')
+  .Select(['Rating', 'Title', 'Payload']).OrderBy('Id')
+  .Execute(Executor).ToList<TRatedBook>();
 try
-  Options.RegisterNullable<Integer>;
-  Options.RegisterNullable<string>;
-  Options.RegisterNullable<TBytes>;
-  Books := TQuery.Create('NullableBooks')
-    .Select(['Rating', 'Title', 'Payload']).OrderBy('Id')
-    .Execute(Executor).ToList<TRatedBook>(Options);
-  try
-    for Book in Books do
-      if Book.Rating.HasValue then
-        Writeln(Book.Rating.Value);
-  finally
-    Books.Free;
-  end;
+  for Book in Books do
+    if Book.Rating.HasValue then
+      Writeln(Book.Rating.Value);
 finally
-  Options.Free;
+  Books.Free;
 end;
 ```
 
-`Options.RegisterNullable<TDateTime>` works identically for nullable dates.
-Both fluent methods and static `TQueryMapper` methods accept the optional
-`Options` argument. Existing calls without options retain their behavior.
-Registrations apply only to calls receiving that instance; they never enter the
-global class metadata cache. Configure options before mapping and keep them
-alive and unchanged until the call returns. They may be reused for later calls.
-No per-row registration or global initialization is required.
+`FirstOrDefault<TRatedBook>()` and the static `TQueryMapper` methods also work
+without options. Supported inner types are `ShortInt`, `SmallInt`, `Integer`,
+`Int64`, `Byte`, `Word`, `Cardinal`, `UInt64`, `Boolean`, `string`, `Single`,
+`Double`, `Extended`, `Currency`, `TDateTime`, `TBcd`, `TSQLTimeStamp`,
+`TSQLTimeStampOffset`, `TGUID` and `TBytes`. Nullable values use the same strict
+conversion rules as ordinary properties, including precision and overflow checks.
+
+The built-in registry is initialized once during unit initialization and is
+immutable during mapping, allowing concurrent lookups without per-row setup.
+It uses compile-time typed callbacks shared with `RegisterNullable<T>` and
+ordinary `TValue.From<TNullable<T>>` construction and RTTI property assignment.
+Compiler aliases sharing a closed specialization are accepted only when their
+inner RTTI identities also match. There is no generic-name parsing, record-layout
+assumption, unsafe pointer construction or provider dependency.
+
+Both fluent and static methods still accept optional `TQueryMappingOptions`.
+Configure options before mapping and keep them alive and unchanged until the
+call returns. They may be reused for later calls. Custom registrations and
+converters affect only operations receiving that instance.
 
 The mapper tests `IQueryResult.IsNull` before reading a value. NULL writes a
-registered nullable's Null record; NULL to a non-nullable or unregistered target
+supported nullable's Null record; NULL to a non-nullable or unregistered target
 raises `EQueryMappingException`. `TQueryNull` is still only a SQL input-parameter
 type hint, not a nullable DTO value or result sentinel. If the provider has
 already normalized an empty value to SQL NULL, the mapper cannot recover it.
@@ -260,23 +264,29 @@ properties unchanged, including nullable properties initialized by a
 constructor. This is an explicit opt-in; its default is False. Omitted columns
 continue to preserve constructor values independently of this setting.
 
-### Why explicit generic registrations
+### Custom nullable types and precedence
 
-Before implementing the registration, standalone Delphi 12 Community Edition
-probes were built and run for Win32 and Win64. Closed generic record property
-handles matched `TypeInfo(TNullable<string>)`, and `TRttiProperty.SetValue` /
-`GetValue` with `TValue.From<TNullable<string>>` / `AsType` correctly preserved
-managed strings and NULL. `ClosedGenericPropertyRTTI` is a permanent executable
-regression test; mapping tests also exercise Integer, string, Boolean and
-TDateTime specializations.
+`Options.RegisterNullable<TApplicationCode>` is an advanced extension point for
+custom application types. Public RTTI identifies closed generic specializations
+but cannot construct arbitrary specializations at runtime; this method supplies
+the typed construction at compile time. Custom inner types also need an exact
+application converter when ordinary conversion does not support them.
 
-Public RTTI supplies the identity of a closed specialization but no general API
-to construct an arbitrary generic specialization or invoke its constructor from
-an unknown inner type at runtime. `RegisterNullable<T>` supplies that connection
-at compile time. Its typed closure converts the inner value and constructs the
-complete `TNullable<T>` with normal Delphi operations. No generic-name parsing,
-field RTTI, record offsets, pointers or private-field mapping are involved.
-The trade-off is explicit registration for every inner type used in a DTO.
+Conversion first checks operation-scoped nullable registrations, then built-in
+nullable registrations, then the existing non-nullable rules. Within either
+nullable callback, an exact application source/inner-target converter takes
+precedence over built-in scalar conversion. Built-in callbacks receive the
+current operation's options and retain no reference to caller-owned options.
+
+For non-NULL values, an exact converter returning the complete destination
+record also remains supported before default built-in nullable construction.
+An explicit scoped nullable registration still takes precedence over such a
+whole-record converter. SQL NULL never reaches ordinary converters.
+
+Explicit `RegisterNullable<Integer>` and other built-in registrations remain
+supported and override the built-in entry for that operation. They do not mutate
+the global registry. Duplicate registration within one options instance still
+raises an error; a separate options instance retains its own conversion policy.
 
 ### Application converters
 

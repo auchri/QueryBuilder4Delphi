@@ -28,20 +28,9 @@ uses QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Mapping;
 
 function LoadRatedBooks(const Executor: IQueryExecutor)
   : TObjectList<TRatedBook>;
-var
-  Options: TQueryMappingOptions;
 begin
-  Options := TQueryMappingOptions.Create;
-  try
-    Options.RegisterNullable<Integer>;
-    Options.RegisterNullable<string>;
-    Options.RegisterNullable<TBytes>;
-    Result := TQuery.Create('NullableBooks')
-      .Select(['Rating', 'Title', 'Payload']).OrderBy('Id').Execute(Executor)
-      .ToList<TRatedBook>(Options);
-  finally
-    Options.Free;
-  end;
+  Result := TQuery.Create('NullableBooks').Select(['Rating', 'Title', 'Payload']
+    ).OrderBy('Id').Execute(Executor).ToList<TRatedBook>();
 end;
 
 end.
