@@ -96,57 +96,40 @@ compiler settings, transactions, error handling and custom providers.
 
 ## Object Mapping
 
-Map directly after execution with the fluent helper. Use `System.Generics.Collections`,
-`QueryBuilder4Delphi.Query.Core`, `QueryBuilder4Delphi.Query` and
-`QueryBuilder4Delphi.Mapping`. The last unit brings the record helper into scope.
-With the `TBook` class from [the compiled example](test/MappingExamples.pas):
+Import `QueryBuilder4Delphi.Mapping` for fluent mapping into ordinary classes
+with writable RTTI properties. With [TBook](test/MappingExamples.pas):
 
 ```delphi
-Books := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
-  .Where('IsPublished', True).Execute(Executor).ToList<TBook>();
+Book := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
+  .Where('Id', 42).Execute(Executor).FirstOrDefault<TBook>();
 try
-  // Books owns its objects.
+  if Assigned(Book) then
+    Writeln(Book.Title);
 finally
-  Books.Free;
+  Book.Free; // A database-mapped object belongs to the caller.
 end;
+
+Book := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
+  .Where('Id', 42).Execute(Executor).FirstOrElse<TBook>(
+  function: TBook
+  begin
+    Result := ExistingBook;
+  end);
 ```
 
-`Execute(Executor).FirstOrDefault<TBook>()` returns one caller-owned object or
-`nil`; free it when finished. The returned `TObjectList<TBook>` owns its objects.
-The static API remains available: `TQueryMapper.ToList<TBook>(Rows)` and
-`TQueryMapper.FirstOrDefault<TBook>(Rows)`.
-Fluent mapping consumes its facade and releases that reference before returning,
-including on exceptions and after reading only the first row. Copies and retained
-`IQueryResult` references keep their shared cursor alive. Materialized objects
-remain valid after result destruction; connection ownership stays with the application.
-Mapping calls `Next`, starting with the next remaining row. Public/published
-writable properties need RTTI; names match without case sensitivity, with
-`[Column]` and `[Ignore]` supported. Partial projections retain constructor
-defaults. Supported values include signed/unsigned integers, floating point,
-Currency, TBcd, Boolean, Unicode string, TDateTime, native SQL timestamp records,
-TGUID and TBytes. `TNullable<T>` works automatically for these built-in types:
-`Execute(Executor).ToList<TBook>()` needs no options or registrations.
-`RegisterNullable<T>` extends mapping to custom application types. NULL to
-non-nullable properties and unsupported or lossy conversions raise exceptions. Options also
-provide opt-in `SkipNullAssignment` and exact-pair application converters.
-Use `Query.Execute(Executor).First<TBook>()`, `.Single<TBook>()` or
-`.SingleOrDefault<TBook>()` for single objects. `Single` checks for a second row
-and never adds a SQL row limit. All terminal methods accept optional mapping
-options and release the receiving facade on success or exception.
-For large results, `Query.Execute(Executor).ForEach<TBook>(Callback)` borrows one
-object at a time and frees it after the callback. Keep the static mapper API for
-advanced cursor control, including `TQueryMapper.MapCurrent<TBook>(Rows)`.
-See [Object Mapping examples, ownership and cursor semantics](docs/EXAMPLES.md#object-mapping),
-[conversion rules](docs/OBJECT_MAPPING.md) and [benchmarks](docs/MAPPING_PERFORMANCE.md).
+The fallback runs only when no row remains. It returns `ExistingBook` unchanged,
+with exactly the same reference and ownership. **Do not free an externally owned
+fallback unless your application explicitly transfers ownership.** Newly mapped
+objects are caller-owned. Fluent calls release their result reference before
+returning or invoking an empty-result fallback; retained copies stay valid.
 
-`IQuery.Execute` now returns a `TQueryResult` record holding the same
-reference-counted cursor. Direct assignment to `IQueryResult` still works through
-a one-way implicit conversion; `Execute(Executor).AsRaw` is the explicit form.
-The facade also delegates all reader operations. Copies share cursor position.
-Use `Default(TQueryResult)` to clear a facade, and rebuild dependent units after
-the return-type change. Custom `IQuery` implementations must update their
-`Execute` signature; executor/provider contracts are unchanged. See
-[migration and helper scope](docs/OBJECT_MAPPING.md#result-facade-and-compatibility).
+Use `ToList<T>` for an owning list, `First<T>`/`Single<T>` for required rows,
+and `ForEach<T>` to borrow one mapped object per callback. `Single` variants
+detect multiple rows. All accept optional mapping options. The static mapper,
+including `MapCurrent<T>`, remains available for advanced cursor control.
+See [examples and ownership](docs/EXAMPLES.md#object-mapping),
+[mapping and compatibility](docs/OBJECT_MAPPING.md) and
+[benchmarks](docs/MAPPING_PERFORMANCE.md).
 
 ## SQL dialects
 

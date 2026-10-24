@@ -8,13 +8,16 @@ returns a `TQueryResult` record wrapping that interface. It delegates the reader
 API, supports `AsRaw` and a one-way implicit conversion to `IQueryResult`.
 With `QueryBuilder4Delphi.Mapping` in scope, its record helper supplies
 `ToList<T>()`, `First<T>()`, `FirstOrDefault<T>()`, `Single<T>()`,
-`SingleOrDefault<T>()` and `ForEach<T>(Callback)` by calling `TQueryMapper`.
-All accept optional `TQueryMappingOptions` (`ForEach` takes it after the callback).
+`SingleOrDefault<T>()`, `FirstOrElse<T>(Fallback)`, `SingleOrElse<T>(Fallback)`
+and `ForEach<T>(Callback)` by calling `TQueryMapper`.
+All accept optional `TQueryMappingOptions` (`ForEach` and `OrElse` methods take
+it after the callback).
 Each terminal method uses `TakeRaw`, clears the receiving facade, and releases
 its transferred reference in `finally` on success and exceptions. Independently
 retained interfaces or copied facades remain valid and share cursor position.
-Objects returned by single-row methods outlive the resultset and belong to the
-caller. Streaming objects are borrowed only until their callback returns or raises.
+Database-mapped objects outlive the resultset and belong to the caller. Fallback
+references retain their existing ownership. Streaming objects are borrowed only
+until their callback returns or raises.
 `Single` variants never change SQL to limit rows. `MapCurrent` remains static
 because it requires a caller-positioned cursor.
 Rebuild dependent units after the return-type change; see
@@ -188,9 +191,17 @@ FireDAC's own constructor retains its fixed :pN convention.
 
 The optional provider-independent `TQueryMapper` maps result rows to ordinary
 classes. Its static API supplies `ToList`, `First`, `FirstOrDefault`, `Single`,
-`SingleOrDefault`, `MapCurrent` and callback-based `ForEach`, all with the same
+`SingleOrDefault`, `FirstOrElse`, `SingleOrElse`, `MapCurrent` and callback-based `ForEach`, all with the same
 `class, constructor` constraint and optional `TQueryMappingOptions`. Returned
-objects/lists are caller-owned; streaming objects are borrowed for one callback.
+database objects/lists are caller-owned; streaming objects are borrowed for one callback.
+Lazy signatures are `TQueryMapper.FirstOrElse<T>(Rows, Fallback, Options = nil)`
+and `SingleOrElse<T>(Rows, Fallback, Options = nil)`; the fluent forms omit `Rows`.
+`Fallback` is `TFunc<T>`; nil raises `EArgumentNilException` before schema/cursor
+access, regardless of cardinality. Zero rows invoke it once; rows/errors never do.
+`SingleOrElse` rejects multiple rows. A nil return is permitted. The exact fallback
+reference retains its existing ownership: never free an externally owned fallback
+without an explicit application ownership transfer. Fluent empty-result fallbacks
+run after releasing the receiving reference; static calls keep caller-owned results.
 See [cursor semantics and examples](EXAMPLES.md#object-mapping),
 [benchmarks](MAPPING_PERFORMANCE.md), and [Object Mapping](OBJECT_MAPPING.md) for RTTI requirements,
 native values, automatic built-in `TNullable<T>` mapping, scoped options and custom

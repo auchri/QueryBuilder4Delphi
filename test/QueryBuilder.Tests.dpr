@@ -29,6 +29,7 @@ uses
   Execution.Tests in 'Execution.Tests.pas',
   Mapping.Tests in 'Mapping.Tests.pas',
   Mapping.Streaming.Tests in 'Mapping.Streaming.Tests.pas',
+  Mapping.Fallback.Tests in 'Mapping.Fallback.Tests.pas',
   Mapping.Values.Tests in 'Mapping.Values.Tests.pas',
   FluentMapping.Tests in 'FluentMapping.Tests.pas',
   FluentMapping.Operations.Tests in 'FluentMapping.Operations.Tests.pas',

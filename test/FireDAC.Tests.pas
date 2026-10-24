@@ -122,6 +122,37 @@ type
     procedure FluentStreamingFailureAndRetainedResults;
     [Test]
     procedure FluentMappingOptions;
+    [TestCase('StaticFirstEmpty', '0,0')]
+    [TestCase('StaticFirstOne', '0,1')]
+    [TestCase('StaticFirstMany', '0,2')]
+    [TestCase('StaticSingleEmpty', '1,0')]
+    [TestCase('StaticSingleOne', '1,1')]
+    [TestCase('StaticSingleMany', '1,2')]
+    [TestCase('FluentFirstEmpty', '2,0')]
+    [TestCase('FluentFirstOne', '2,1')]
+    [TestCase('FluentFirstMany', '2,2')]
+    [TestCase('FluentSingleEmpty', '3,0')]
+    [TestCase('FluentSingleOne', '3,1')]
+    [TestCase('FluentSingleMany', '3,2')]
+    procedure LazyMappingCardinality(Method, Count: Integer);
+    [TestCase('First', '0')]
+    [TestCase('Single', '1')]
+    procedure LazyMappingNestedQuery(Method: Integer);
+    [TestCase('First', '0')]
+    [TestCase('Single', '1')]
+    procedure LazyMappingSharedResults(Method: Integer);
+    [TestCase('FirstCallback', '0,0')]
+    [TestCase('SingleCallback', '1,0')]
+    [TestCase('FirstNil', '0,1')]
+    [TestCase('SingleNil', '1,1')]
+    [TestCase('FirstConversion', '0,2')]
+    [TestCase('SingleConversion', '1,2')]
+    procedure LazyMappingFailures(Method, Kind: Integer);
+    [TestCase('StaticFirst', '0')]
+    [TestCase('StaticSingle', '1')]
+    [TestCase('FluentFirst', '2')]
+    [TestCase('FluentSingle', '3')]
+    procedure LazyMappingOptions(Method: Integer);
 
   end;
 
@@ -1521,6 +1552,28 @@ begin
   end;
   Assert.AreEqual(0, FConnection.DataSetCount);
   PrintMappingExamples(FExecutor);
+  Book := TBookView.Create;
+  try
+    Book.Title := 'existing';
+    Assert.AreSame(Book, FindBookOrExisting(FExecutor, -1, Book));
+    Assert.AreSame(Book, FindSingleBookOrCreate(FExecutor, -1, Book));
+    Assert.AreEqual('existing', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Book := FindSingleBookOrCreate(FExecutor, -1, nil);
+  try
+    Assert.IsNotNull(Book);
+  finally
+    Book.Free;
+  end;
+  Book := FindBookOrExisting(FExecutor, 1, nil);
+  try
+    Assert.AreEqual('Alpha', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Assert.AreEqual(0, FConnection.DataSetCount);
 end;
 
 procedure TFireDACExecutionTests.FluentMappingOperations(Method,
@@ -1668,6 +1721,223 @@ begin
     Assert.AreEqual(2, Seen);
     Assert.AreEqual(0, FConnection.DataSetCount);
   finally
+    Options.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.LazyMappingCardinality(Method, Count: Integer);
+var
+  Q: IQuery;
+  Raw: IQueryResult;
+  Owner: TObjectList<TBook>;
+  Existing, Book: TBook;
+  Fallback: TFunc<TBook>;
+  Calls: Integer;
+  Raised: Boolean;
+begin
+  Owner := TObjectList<TBook>.Create(True);
+  Existing := TBook.Create;
+  Owner.Add(Existing);
+  Existing.Title := 'cached';
+  Book := nil;
+  Calls := 0;
+  Raised := False;
+  Fallback := function: TBook
+    begin
+      Inc(Calls);
+      if Method >= 2 then
+        Assert.AreEqual(0, FConnection.DataSetCount);
+      Result := Existing;
+    end;
+  try
+    Q := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
+      .Where('Id', '<=', Count).OrderBy('Id');
+    if Method < 2 then
+      Raw := Q.Execute(FExecutor).TakeRaw;
+    try
+      case Method of
+        0:
+          Book := TQueryMapper.FirstOrElse<TBook>(Raw, Fallback);
+        1:
+          Book := TQueryMapper.SingleOrElse<TBook>(Raw, Fallback);
+        2:
+          Book := Q.Execute(FExecutor).FirstOrElse<TBook>(Fallback);
+        3:
+          Book := Q.Execute(FExecutor).SingleOrElse<TBook>(Fallback);
+      end;
+    except
+      on E: EQueryMappingException do
+        Raised := True;
+    end;
+    Assert.IsTrue(Raised = ((Method in [1, 3]) and (Count > 1)));
+    if Count = 0 then
+    begin
+      Assert.AreEqual(1, Calls);
+      Assert.AreSame(Existing, Book);
+    end
+    else
+      Assert.AreEqual(0, Calls);
+    if Method < 2 then
+      Assert.AreEqual(1, FConnection.DataSetCount);
+    Raw := nil;
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    if (Count > 0) and not Raised then
+      Assert.AreEqual('Alpha', Book.Title);
+    Assert.AreEqual('cached', Existing.Title);
+    Assert.AreSame(Existing, Owner[0]);
+  finally
+    if Book <> Existing then
+      Book.Free;
+    Owner.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.LazyMappingNestedQuery(Method: Integer);
+var
+  Q: IQuery;
+  Book: TBookView;
+  Fallback: TFunc<TBookView>;
+begin
+  Q := TQuery.Create('Books').Select('Id').Where('Id', -1);
+  Fallback := function: TBookView
+    begin
+      Assert.AreEqual(0, FConnection.DataSetCount,
+        'Empty outer result must close before querying the same connection');
+      Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
+        .Where('Id', 1).Execute(FExecutor).Single<TBookView>();
+      Assert.AreEqual(0, FConnection.DataSetCount);
+    end;
+  if Method = 0 then
+    Book := Q.Execute(FExecutor).FirstOrElse<TBookView>(Fallback)
+  else
+    Book := Q.Execute(FExecutor).SingleOrElse<TBookView>(Fallback);
+  try
+    Assert.AreEqual('Alpha', Book.Title);
+    Assert.AreEqual(0, FConnection.DataSetCount);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.LazyMappingSharedResults(Method: Integer);
+var
+  A, B: TQueryResult;
+  Raw: IQueryResult;
+  Book: TBook;
+  Fallback: TFunc<TBook>;
+begin
+  A := TQuery.Create('Books').Select('Id').Where('Id', -1).Execute(FExecutor);
+  B := A;
+  Raw := A.AsRaw;
+  Fallback := function: TBook
+    begin
+      Assert.AreEqual(1, FConnection.DataSetCount);
+      Result := nil;
+    end;
+  if Method = 0 then
+    Book := A.FirstOrElse<TBook>(Fallback)
+  else
+    Book := A.SingleOrElse<TBook>(Fallback);
+  Assert.IsNull(Book);
+  Assert.IsNull(A.AsRaw);
+  Assert.IsFalse(B.Next);
+  Assert.AreEqual('Id', Raw.GetColumnName(0));
+  B := Default (TQueryResult);
+  Assert.AreEqual(1, FConnection.DataSetCount);
+  Assert.IsFalse(Raw.Next);
+  Raw := nil;
+  Assert.AreEqual(0, FConnection.DataSetCount);
+end;
+
+procedure TFireDACExecutionTests.LazyMappingFailures(Method, Kind: Integer);
+var
+  Q: IQuery;
+  Book: TBook;
+  Fallback: TFunc<TBook>;
+  Calls: Integer;
+begin
+  Calls := 0;
+  Book := nil;
+  Fallback := function: TBook
+    begin
+      Inc(Calls);
+      Assert.AreEqual(0, FConnection.DataSetCount);
+      raise EInvalidOp.Create('fallback exception');
+    end;
+  Q := TQuery.Create('Books').Select('Id').Where('Id', -1);
+  if Kind = 1 then
+    Fallback := nil
+  else if Kind = 2 then
+    Q := TQuery.Create('Books').Select('Title as Id').Where('Id', 1);
+  try
+    try
+      if Method = 0 then
+        Book := Q.Execute(FExecutor).FirstOrElse<TBook>(Fallback)
+      else
+        Book := Q.Execute(FExecutor).SingleOrElse<TBook>(Fallback);
+      Assert.Fail('Expected exception');
+    except
+      on E: EInvalidOp do
+        Assert.AreEqual(0, Kind);
+      on E: EArgumentNilException do
+        Assert.AreEqual(1, Kind);
+      on E: EQueryMappingException do
+        Assert.AreEqual(2, Kind);
+    end;
+    if Kind = 0 then
+      Assert.AreEqual(1, Calls)
+    else
+      Assert.AreEqual(0, Calls);
+    Assert.AreEqual(0, FConnection.DataSetCount);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.LazyMappingOptions(Method: Integer);
+var
+  Q: IQuery;
+  Raw: IQueryResult;
+  Options: TQueryMappingOptions;
+  Book: TBookView;
+  Fallback: TFunc<TBookView>;
+  Calls: Integer;
+begin
+  Calls := 0;
+  Book := nil;
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.RegisterConverter<string, string>(
+      function(Value: string): string
+      begin
+        Result := Value.ToUpper;
+      end);
+    Fallback := function: TBookView
+      begin
+        Inc(Calls);
+        Result := nil;
+      end;
+    Q := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+      .Where('Id', 2);
+    if Method < 2 then
+      Raw := Q.Execute(FExecutor).TakeRaw;
+    case Method of
+      0:
+        Book := TQueryMapper.FirstOrElse<TBookView>(Raw, Fallback, Options);
+      1:
+        Book := TQueryMapper.SingleOrElse<TBookView>(Raw, Fallback, Options);
+      2:
+        Book := Q.Execute(FExecutor).FirstOrElse<TBookView>(Fallback, Options);
+      3:
+        Book := Q.Execute(FExecutor).SingleOrElse<TBookView>(Fallback, Options);
+    end;
+    Raw := nil;
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.AreEqual(0, Calls);
+    Assert.AreEqual('BETA', Book.Title);
+    Assert.IsFalse(Book.Price.HasValue);
+  finally
+    Book.Free;
     Options.Free;
   end;
 end;

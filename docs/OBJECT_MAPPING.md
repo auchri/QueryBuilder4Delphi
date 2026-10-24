@@ -8,8 +8,9 @@ For classes compiled with restricted RTTI, enable property RTTI explicitly.
 
 Prefer `Query.Execute(Executor).ToList<T>()`, `.First<T>()`,
 `.FirstOrDefault<T>()`, `.Single<T>()`, `.SingleOrDefault<T>()` and
-`.ForEach<T>(Callback)` for terminal mapping. All accept optional
-`TQueryMappingOptions`; for `ForEach` pass options after the callback.
+`.ForEach<T>(Callback)` for terminal mapping. Lazy `.FirstOrElse<T>(Fallback)`
+and `.SingleOrElse<T>(Fallback)` accept a `TFunc<T>`. All accept optional
+`TQueryMappingOptions`; for `ForEach` and both `OrElse` methods pass options after the callback.
 These record helper methods require `QueryBuilder4Delphi.Mapping` in the calling
 unit's `uses` clause. They delegate to `TQueryMapper` without changing mapping,
 conversion or cursor semantics. `Single` variants inspect at most two rows and
@@ -69,13 +70,43 @@ end;
 end.
 ```
 
+## Lazy fallback and ownership
+
+`First` requires at least one remaining row; `Single` requires exactly one.
+`FirstOrDefault` and `SingleOrDefault` return nil for zero rows. `Single` variants
+raise `EQueryMappingException` for multiple rows, inspecting at most two rows.
+`FirstOrElse` and `SingleOrElse` have the same row/cardinality behavior as the
+corresponding `OrDefault` method, but invoke the callback exactly once for zero
+rows. They never invoke it for mapping, conversion, provider or cardinality errors.
+Schema validation still happens on empty resultsets. No method rewinds or adds
+a SQL row limit. First variants call `Next` at most once.
+
+A nil fallback raises `EArgumentNilException` **before schema validation or
+cursor movement**, even if a row exists. Fluent calls still consume and release
+their receiving facade on this error. A callback may return nil.
+
+The mapper returns the **exact reference** supplied by the callback: it never
+clones, modifies or frees a fallback, and never infers ownership. Database-mapped
+objects are newly allocated and caller-owned. Fallback ownership stays as arranged
+by the application: a newly allocated fallback normally needs caller cleanup;
+an existing cache/list/component-owned object remains borrowed. **Do not free
+an externally owned fallback unless ownership was explicitly transferred.**
+The callback is responsible for its own allocations if it raises before returning.
+
+The fluent helper releases its transferred result reference before invoking an
+empty-result fallback, so that callback can query the same connection. Copied
+facades and independently retained interfaces may legitimately keep the shared
+result alive. Static methods never release the caller's result reference; release
+it explicitly when a static fallback needs an exclusive connection resource.
+See [tested lazy examples](EXAMPLES.md#lazy-fallbacks).
+
 ## Result facade and compatibility
 
 `IQuery.Execute` returns `TQueryResult`, a record in
 `QueryBuilder4Delphi.Query.Core` containing one `IQueryResult`. It delegates
 every reader operation and never advances the cursor on construction. Core
 does not depend on Mapping. Delphi interfaces cannot declare generic methods
-(E2535), so `TQueryResultMappingHelper` in Mapping supplies the six generic terminal methods
+(E2535), so `TQueryResultMappingHelper` in Mapping supplies the eight generic terminal methods
 and calls the existing `TQueryMapper` directly. Only the helper must be in scope;
 executors still return `IQueryResult` and need no mapping implementation.
 
@@ -121,7 +152,7 @@ reader operations on it raise `EQueryException`, and mapping preserves the
 static mapper's `EArgumentNilException`. Command results without a resultset
 raise `EQueryMappingException` before constructing any object.
 
-All six fluent terminal methods consume the receiving facade, including a
+All eight fluent terminal methods consume the receiving facade, including a
 named variable: `TakeRaw` transfers its interface reference to a local and clears
 the facade before calling the existing mapper. A `finally` releases the local
 on success or exception. This avoids waiting for Delphi's managed expression
@@ -136,7 +167,7 @@ their compiler-generated temporaries may live until the enclosing routine exits.
 Copied facades and separately retained interfaces remain valid and share cursor
 position. Their references can legitimately delay destruction until the final
 owner releases them. Mapping never closes or invalidates another owner's result.
-Mapped objects and owning lists are independent of the live resultset and remain
+Database-mapped objects and owning lists are independent of the live resultset and remain
 valid after its destruction. The facade owns no connection; application-owned
 connections must outlive all retained live results. Mapping errors preserve the
 mapper's exception class, message context and object cleanup.

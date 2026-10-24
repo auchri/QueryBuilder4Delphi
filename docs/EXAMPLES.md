@@ -1115,6 +1115,8 @@ position; a fresh result starts before row one.
 | `FirstOrDefault<T>` | nil | One `Next` | Caller frees object |
 | `Single<T>` | Mapping exception | At most two `Next` calls | Caller frees object |
 | `SingleOrDefault<T>` | nil | At most two `Next` calls | Caller frees object |
+| `FirstOrElse<T>` | Call fallback once | One `Next` | Fallback ownership unchanged; mapped object caller-owned |
+| `SingleOrElse<T>` | Call fallback once | At most two `Next` calls | Fallback ownership unchanged; mapped object caller-owned |
 | `MapCurrent<T>` | Provider cursor exception | No `Next` | Caller frees object |
 | `ForEach<T>` | No callbacks | `Next` until False | Callback borrows object |
 
@@ -1133,9 +1135,66 @@ as FireDAC and the mock do. Error context uses row 0 for this API because
 independent objects for the same row and rebuild a local schema plan; for large
 resultsets use `ForEach`, which resolves the plan once for the entire call.
 
+### Lazy fallbacks
+
+These functions are compiled in `test/MappingApiExamples.pas` and exercised by the
+SQLite suite. `FirstOrElse` returns the first remaining mapped row; `SingleOrElse`
+requires at most one remaining row and raises `EQueryMappingException` for multiple
+rows. Neither adds SQL LIMIT/TOP. They call the fallback exactly once only when
+there are zero remaining rows, never to hide a schema, mapping, conversion,
+provider or cardinality error. Schema validation also applies to empty results.
+
+```delphi
+function FindBookOrExisting(const Executor: IQueryExecutor; Id: Integer;
+  ExistingBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrElse<TBookView>(
+    function: TBookView
+    begin
+      Result := ExistingBook;
+    end);
+end;
+
+function FindSingleBookOrCreate(const Executor: IQueryExecutor; Id: Integer;
+  CachedBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrElse<TBookView>(
+    function: TBookView
+    begin
+      if Assigned(CachedBook) then
+        Result := CachedBook
+      else
+        Result := TBookView.Create;
+    end);
+end;
+```
+
+**Existing fallback objects retain their existing ownership.** The mapper returns
+the exact reference, without cloning, modifying or freeing it. Database-mapped
+objects belong to the caller; newly allocated fallbacks normally do too. An object
+owned by a list, cache or component stays borrowed unless the application transfers
+ownership. For the first function, free the result only if it differs from the
+externally owned `ExistingBook`. Do not blindly use `Book.Free` for both outcomes.
+If the callback raises while constructing a fallback, it must clean up its own
+unfinished object. A callback returning nil is allowed.
+
+A nil callback raises `EArgumentNilException` before schema access or `Next`,
+even when rows exist. Fluent calls consume and release their facade on that error.
+Options follow the callback: `.FirstOrElse<TBookView>(Fallback, Options)`.
+First variants inspect at most one row; Single variants inspect at most two and
+free a mapped first object if uniqueness fails.
+
+Fluent empty-result calls release their result reference **before the callback**,
+allowing another query on the same connection. Independently retained interfaces
+or copied facades remain valid and can keep the shared result alive. Static calls
+such as `TQueryMapper.SingleOrElse<TBookView>(Rows, Fallback, Options)` never
+release the caller-owned `Rows` reference.
+
 ### Fluent lifetime and advanced cursor control
 
-All six fluent terminal methods consume the receiving `TQueryResult` facade via
+All eight fluent terminal methods consume the receiving `TQueryResult` facade via
 `TakeRaw` and release that reference before returning, including exceptional
 exits. Named facade variables are consumed too. Independently retained
 `IQueryResult` interfaces and copied facades remain valid and share cursor

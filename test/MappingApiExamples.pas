@@ -43,6 +43,10 @@ function FindUniqueBookView(const Executor: IQueryExecutor; Id: Integer)
 procedure StreamBooks(const Executor: IQueryExecutor;
   const ProcessBook: TProc<TBookView>);
 procedure PrintMappingExamples(const Executor: IQueryExecutor);
+function FindBookOrExisting(const Executor: IQueryExecutor; Id: Integer;
+  ExistingBook: TBookView): TBookView;
+function FindSingleBookOrCreate(const Executor: IQueryExecutor; Id: Integer;
+  CachedBook: TBookView): TBookView;
 
 implementation
 
@@ -94,8 +98,33 @@ begin
     .Where('Id', Id).Execute(Executor).SingleOrDefault<TBookView>();
 end;
 
+function FindBookOrExisting(const Executor: IQueryExecutor; Id: Integer;
+  ExistingBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrElse<TBookView>(
+    function: TBookView
+    begin
+      Result := ExistingBook;
+    end);
+end;
+
+function FindSingleBookOrCreate(const Executor: IQueryExecutor; Id: Integer;
+CachedBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrElse<TBookView>(
+    function: TBookView
+    begin
+      if Assigned(CachedBook) then
+        Result := CachedBook
+      else
+        Result := TBookView.Create;
+    end);
+end;
+
 procedure StreamBooks(const Executor: IQueryExecutor;
-  const ProcessBook: TProc<TBookView>);
+const ProcessBook: TProc<TBookView>);
 begin
   TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
     .OrderBy('Id').Execute(Executor).ForEach<TBookView>(ProcessBook);

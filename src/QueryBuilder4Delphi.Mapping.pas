@@ -48,6 +48,10 @@ type
       (Options: TQueryMappingOptions = nil): T;
     procedure ForEach<T: class, constructor>(const Callback: TProc<T>;
       Options: TQueryMappingOptions = nil);
+    function FirstOrElse<T: class, constructor>(const Fallback: TFunc<T>;
+      Options: TQueryMappingOptions = nil): T;
+    function SingleOrElse<T: class, constructor>(const Fallback: TFunc<T>;
+      Options: TQueryMappingOptions = nil): T;
   end;
 
   TQueryMapper = class
@@ -78,7 +82,8 @@ type
     // Validate schema before Next. ToList/ForEach consume all remaining rows;
     // First/FirstOrDefault call Next once; Single variants call it at most twice
     // (on multiple rows the cursor remains on row two, which is not mapped).
-    // Returned lists own their objects; returned objects belong to the caller.
+    // Returned lists own their objects; database-mapped objects belong to the caller.
+    // OrElse fallback references retain their application's existing ownership.
     // Static methods never consume the caller's IQueryResult reference.
     class function ToList<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): TObjectList<T>; static;
@@ -98,6 +103,13 @@ type
     // Callback objects are borrowed, valid only until the callback returns.
     class procedure ForEach<T: class, constructor>(const Rows: IQueryResult;
       const Callback: TProc<T>; Options: TQueryMappingOptions = nil); static;
+    // Validate Fallback before schema/cursor access, even if a row exists.
+    // Only empty, valid results invoke it. Return its exact reference (or nil)
+    // without modifying ownership; only database-mapped objects are caller-owned.
+    class function FirstOrElse<T: class, constructor>(const Rows: IQueryResult;
+      const Fallback: TFunc<T>; Options: TQueryMappingOptions = nil): T; static;
+    class function SingleOrElse<T: class, constructor>(const Rows: IQueryResult;
+      const Fallback: TFunc<T>; Options: TQueryMappingOptions = nil): T; static;
   end;
 
 implementation
@@ -179,6 +191,42 @@ begin
   finally
     Rows := nil;
   end;
+end;
+
+function TQueryResultMappingHelper.FirstOrElse<T>(const Fallback: TFunc<T>;
+  Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    if not Assigned(Fallback) then
+      raise EArgumentNilException.Create('Fallback');
+    Result := TQueryMapper.FirstOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+  // Deliberately invoke outside the result's lifetime: the callback may query
+  // the same connection. Static OrDefault supplies all mapping/validation.
+  if Result = nil then
+    Result := Fallback();
+end;
+
+function TQueryResultMappingHelper.SingleOrElse<T>(const Fallback: TFunc<T>;
+  Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    if not Assigned(Fallback) then
+      raise EArgumentNilException.Create('Fallback');
+    Result := TQueryMapper.SingleOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+  if Result = nil then
+    Result := Fallback();
 end;
 
 type
@@ -816,6 +864,26 @@ begin
       Instance.Free;
     end;
   end;
+end;
+
+class function TQueryMapper.FirstOrElse<T>(const Rows: IQueryResult;
+  const Fallback: TFunc<T>; Options: TQueryMappingOptions): T;
+begin
+  if not Assigned(Fallback) then
+    raise EArgumentNilException.Create('Fallback');
+  Result := FirstOrDefault<T>(Rows, Options);
+  if Result = nil then
+    Result := Fallback();
+end;
+
+class function TQueryMapper.SingleOrElse<T>(const Rows: IQueryResult;
+  const Fallback: TFunc<T>; Options: TQueryMappingOptions): T;
+begin
+  if not Assigned(Fallback) then
+    raise EArgumentNilException.Create('Fallback');
+  Result := SingleOrDefault<T>(Rows, Options);
+  if Result = nil then
+    Result := Fallback();
 end;
 
 initialization
