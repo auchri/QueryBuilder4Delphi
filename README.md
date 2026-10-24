@@ -96,17 +96,16 @@ compiler settings, transactions, error handling and custom providers.
 
 ## Object Mapping
 
-Fluent mapping is the recommended API. Use `System.Generics.Collections`,
+Use the static mapper API for lists, single objects and streaming. The existing
+fluent helper also supports `ToList` and `FirstOrDefault`. Use `System.Generics.Collections`,
 `QueryBuilder4Delphi.Query.Core`, `QueryBuilder4Delphi.Query` and
 `QueryBuilder4Delphi.Mapping`. The last unit brings the record helper into scope.
 With the `TBook` class from [the compiled example](test/MappingExamples.pas):
 
 ```delphi
-Books := TQuery.Create('Books')
-  .Select(['Id', 'Title AS BookTitle'])
-  .Where('IsPublished', True)
-  .Execute(Executor)
-  .ToList<TBook>();
+Books := TQueryMapper.ToList<TBook>(
+  TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+    .Where('IsPublished', True).Execute(Executor));
 try
   // Books owns its objects.
 finally
@@ -132,7 +131,11 @@ TGUID and TBytes. `TNullable<T>` works automatically for these built-in types:
 `RegisterNullable<T>` extends mapping to custom application types. NULL to
 non-nullable properties and unsupported or lossy conversions raise exceptions. Options also
 provide opt-in `SkipNullAssignment` and exact-pair application converters.
-See [working examples and limits](docs/OBJECT_MAPPING.md).
+For large results, `TQueryMapper.ForEach<TBook>(Rows, Callback)` maps one borrowed
+object at a time and frees it after the callback. `First`, `Single` and their
+OrDefault variants return caller-owned objects; `MapCurrent` reads without advancing.
+See [Object Mapping examples, ownership and cursor semantics](docs/EXAMPLES.md#object-mapping),
+[conversion rules](docs/OBJECT_MAPPING.md) and [benchmarks](docs/MAPPING_PERFORMANCE.md).
 
 `IQuery.Execute` now returns a `TQueryResult` record holding the same
 reference-counted cursor. Direct assignment to `IQueryResult` still works through

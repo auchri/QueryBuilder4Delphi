@@ -340,3 +340,41 @@ The reference golden SQL remains unchanged: local SqlKata source commit
 `df4a2377750d34fc057c81886b481e7309ef975e`, 552 reference results, 540 direct
 comparisons and 12 corrected behavior cases. The C# oracle was not regenerated
 in this documentation task.
+
+## Mapping API, streaming and performance (issue #17)
+
+On 2026-10-24 the core and FireDAC projects were rebuilt through Delphi 12
+Community Edition's Project / Build command, Base configuration, for both Win32
+and Win64. Fresh native executables passed 754/754 core cases and 48/48 FireDAC
+SQLite cases on each platform, with zero failed, errored, ignored or leaked
+cases. The validation JSON files contain the executable hashes and verified PE
+architectures. Existing execution, six-dialect compiler, nullable/native-value
+and fluent mapper tests remain included.
+
+The new core fixture adds 27 cases: cardinality and exact Next call counts,
+MapCurrent before/on/after a row, returned and borrowed ownership, streaming
+empty/one/many rows, callback/mapping/Next failures, preservation of callback
+exception identity, short-circuiting before invalid later rows, cold concurrent
+mappings of two different DTO classes, changing schemas, copied managed values,
+nullable BCD/Currency and scoped converters. Existing concurrent metadata/schema
+and advanced scalar/nullable suites provide additional regression coverage.
+Two integration cases cover the new methods against a real FireDAC cursor and
+execute every routine in MappingApiExamples.pas against an in-memory SQLite
+schema, including partial projection and a LEFT JOIN with a missing author.
+
+All seven new documentation routines were compared with their compiled source
+(whitespace ignored). The two generator checks pass, including 69 paired Oracle
+scenarios, and all eight Python generator regression tests pass. Formatter.exe
+was applied to Pascal sources; git diff --check passes.
+
+The initial BCD test literal was corrected to use invariant format settings.
+The documentation schema declares Price as DECIMAL(18,4), because this SQLite
+FireDAC configuration infers bare NUMERIC as Int64. The mapper's supported
+conversions and null policies were not relaxed to accommodate driver inference.
+
+[Performance methodology, medians, ranges and limitations](MAPPING_PERFORMANCE.md)
+include optimized Win32/Win64 measurements at 100, 10,000 and 100,000 rows,
+ToList versus ForEach, cold versus warm metadata, live heap samples and exact
+peak DTO counts. Each platform records 108 validated observations in committed
+CSV files. Timings are local observations rather than acceptance thresholds;
+heap samples do not include the mock input or constitute OS memory peaks.

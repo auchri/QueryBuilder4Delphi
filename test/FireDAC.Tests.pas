@@ -101,6 +101,10 @@ type
     procedure NullableObjectMapping;
     [Test]
     procedure MappingNativeFieldValues;
+    [Test]
+    procedure MappingConvenienceAndStreaming;
+    [Test]
+    procedure MappingDocumentedExamples;
 
   end;
 
@@ -118,7 +122,8 @@ uses
   QueryBuilder4Delphi.Providers.FireDAC.Parameters,
   QueryBuilder4Delphi.Providers.FireDAC.Values,
   QueryBuilder4Delphi.Compilers.SqliteCompiler, ExecutionExamples,
-  MappingExamples, NullableMappingExamples, QueryBuilder4Delphi.Nullable,
+  MappingExamples, MappingApiExamples, NullableMappingExamples,
+  QueryBuilder4Delphi.Nullable,
   Execution.Mock,
   QueryBuilder4Delphi.Mapping;
 
@@ -1337,6 +1342,143 @@ begin
   Assert.AreEqual(1, FConnection.DataSetCount);
   Raw := nil;
   Assert.AreEqual(0, FConnection.DataSetCount);
+end;
+
+procedure TFireDACExecutionTests.MappingConvenienceAndStreaming;
+var
+  R: IQueryResult;
+  Book: TBook;
+  Seen: Integer;
+begin
+  R := TQuery.Create('Books').Select(['Id', 'Title as BookTitle']).OrderBy('Id')
+    .Execute(FExecutor);
+  Assert.WillRaise(
+    procedure
+    begin
+      TQueryMapper.MapCurrent<TBook>(R).Free;
+    end, EQueryException);
+  Book := TQueryMapper.First<TBook>(R);
+  try
+    Assert.AreEqual(1, Book.Id);
+  finally
+    Book.Free;
+  end;
+  Book := TQueryMapper.MapCurrent<TBook>(R);
+  try
+    Assert.AreEqual('Alpha', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Book := TQueryMapper.Single<TBook>(R);
+  try
+    Assert.AreEqual(2, Book.Id);
+  finally
+    Book.Free;
+  end;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQueryMapper.MapCurrent<TBook>(R).Free;
+    end, EQueryException);
+  R := Rows;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQueryMapper.SingleOrDefault<TBook>(R).Free;
+    end, EQueryMappingException);
+  Assert.AreEqual<Int64>(2, R.GetValue('Id').AsInt64);
+  R := Rows;
+  Seen := 0;
+  TQueryMapper.ForEach<TBook>(R,
+    procedure(Item: TBook)
+    begin
+      Inc(Seen, Item.Id);
+    end);
+  Assert.AreEqual(3, Seen);
+  R := Rows;
+  Assert.WillRaise(
+    procedure
+    begin
+      TQueryMapper.ForEach<TBook>(R,
+        procedure(Item: TBook)
+        begin
+          raise EInvalidOp.Create('callback failure');
+        end);
+    end, EInvalidOp);
+  Assert.IsTrue(R.Next);
+  Assert.AreEqual<Int64>(2, R.GetValue('Id').AsInt64);
+end;
+
+procedure TFireDACExecutionTests.MappingDocumentedExamples;
+var
+  Books: TObjectList<TBookView>;
+  Joined: TObjectList<TBookAuthorView>;
+  Book: TBookView;
+  Seen: Integer;
+begin
+  // Declare decimal precision/scale: bare SQLite NUMERIC is inferred as Int64
+  // by this driver and cannot represent fractional prices faithfully.
+  FConnection.ExecSQL('DROP TABLE Books');
+  FConnection.ExecSQL
+    ('CREATE TABLE Books (Id integer PRIMARY KEY, Title text, Price decimal(18,4))');
+  FConnection.ExecSQL('INSERT INTO Books VALUES (1, ''Alpha'', 12.5)');
+  FConnection.ExecSQL('INSERT INTO Books VALUES (2, ''Beta'', NULL)');
+  FConnection.ExecSQL
+    ('ALTER TABLE Books ADD COLUMN AuthorId integer DEFAULT 1');
+  FConnection.ExecSQL
+    ('CREATE TABLE Authors (Id integer PRIMARY KEY, Name text)');
+  FConnection.ExecSQL('INSERT INTO Authors VALUES (1, ''Ada'')');
+  FConnection.ExecSQL('UPDATE Books SET AuthorId = NULL WHERE Id = 2');
+  Books := LoadBookViews(FExecutor);
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.AreEqual('Alpha', Books[0].Title);
+    Assert.AreEqual<Currency>(12.5, Books[0].Price.Value);
+    Assert.IsFalse(Books[1].Price.HasValue);
+    Assert.AreEqual('', Books[0].LocalNote);
+  finally
+    Books.Free;
+  end;
+  Books := LoadTitleViews(FExecutor);
+  try
+    Assert.AreEqual('Alpha', Books[0].Title);
+    Assert.AreEqual(0, Books[0].Id);
+    Assert.IsFalse(Books[0].Price.HasValue);
+  finally
+    Books.Free;
+  end;
+  Joined := LoadBookAuthors(FExecutor);
+  try
+    Assert.AreEqual('Ada', Joined[0].AuthorName.Value);
+    Assert.IsFalse(Joined[1].AuthorName.HasValue);
+  finally
+    Joined.Free;
+  end;
+  Book := FirstBook(FExecutor);
+  try
+    Assert.AreEqual(1, Book.Id);
+  finally
+    Book.Free;
+  end;
+  Book := SingleBook(FExecutor, 2);
+  try
+    Assert.AreEqual('Beta', Book.Title);
+  finally
+    Book.Free;
+  end;
+  Assert.WillRaise(
+    procedure
+    begin
+      SingleBook(FExecutor, -1).Free;
+    end, EQueryMappingException);
+  Seen := 0;
+  StreamBooks(FExecutor,
+    procedure(Item: TBookView)
+    begin
+      Inc(Seen, Item.Id);
+    end);
+  Assert.AreEqual(3, Seen);
+  PrintMappingExamples(FExecutor);
 end;
 
 initialization

@@ -6,8 +6,12 @@ Classes need a public parameterless constructor and writable public/published
 properties with RTTI. No base class, interface, table attribute or key is needed.
 For classes compiled with restricted RTTI, enable property RTTI explicitly.
 
-Prefer `Execute(Executor).ToList<T>()` and
-`Execute(Executor).FirstOrDefault<T>()` for new code. The methods below are
+The primary API is `TQueryMapper.ToList<T>(Query.Execute(Executor))`. For the
+complete mapper API, streaming, ownership and cursor semantics see
+[Object Mapping examples](EXAMPLES.md#object-mapping) and
+[performance measurements](MAPPING_PERFORMANCE.md). Existing fluent helpers
+remain available: `Execute(Executor).ToList<T>()` and
+`Execute(Executor).FirstOrDefault<T>()`. The methods below are
 record helper methods and require `QueryBuilder4Delphi.Mapping` in the calling
 unit's `uses` clause.
 

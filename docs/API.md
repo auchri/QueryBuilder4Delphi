@@ -178,7 +178,12 @@ must preserve the same result cursor, NULL, metadata and ownership contract.
 FireDAC's own constructor retains its fixed :pN convention.
 
 The optional provider-independent `TQueryMapper` maps result rows to ordinary
-classes. See [Object Mapping](OBJECT_MAPPING.md) for ownership, RTTI requirements,
+classes. Its static API supplies `ToList`, `First`, `FirstOrDefault`, `Single`,
+`SingleOrDefault`, `MapCurrent` and callback-based `ForEach`, all with the same
+`class, constructor` constraint and optional `TQueryMappingOptions`. Returned
+objects/lists are caller-owned; streaming objects are borrowed for one callback.
+See [cursor semantics and examples](EXAMPLES.md#object-mapping),
+[benchmarks](MAPPING_PERFORMANCE.md), and [Object Mapping](OBJECT_MAPPING.md) for RTTI requirements,
 native values, automatic built-in `TNullable<T>` mapping, scoped options and custom
 converters. `RegisterNullable<T>` is an advanced extension point for application
 types; standard nullable properties need no options or registration.

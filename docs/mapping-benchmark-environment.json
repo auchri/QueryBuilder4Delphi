@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-24",
+  "compiler": "Delphi 12 Community Edition, RAD Studio 23.0",
+  "configuration": "Base, optimization enabled, no debugger",
+  "cpu": "AMD Ryzen 5 7600X 6-Core Processor",
+  "os": "Windows NT 10.0 build 26300, x64",
+  "memoryMeasurement": "GetMemoryManagerState; live allocated usable block sizes above fixture baseline",
+  "freshProcessesPerPair": 3,
+  "warmCallsPerProcess": 5,
+  "sourceSha256": {
+    "benchmarks/MappingBenchmarks.dpr": "490ee33d83260798f4d230d18c390acc2c915205375d21658ee3dda2c86a69b8",
+    "src/QueryBuilder4Delphi.Mapping.pas": "67f785273dcdf4efd76259d222bb56fde0bc5357911014e2db210a05721ad94a",
+    "test/Execution.Mock.pas": "de029e1a0275f083851e94d9ba322715cbcc28aedd7f921bd41e52244846782d"
+  },
+  "results": [
+    {
+      "platform": "Win32",
+      "observations": 108,
+      "executableSha256": "99a0ada14270ec1ab7a5201b6842b7e7963dd1d3b652433c015269ce3bd5d92a",
+      "csvSha256": "3e782270acf34d37975cd62ab5205e72a05dbd85dda0ee0317a2eab073861182"
+    },
+    {
+      "platform": "Win64",
+      "observations": 108,
+      "executableSha256": "efe13b95edd5a91ba3ead7e897592a49dca0347a79027f38c0abeefb2cd430a7",
+      "csvSha256": "f699f2684ec1a32ce4a0eb5956f251a7951728f88a4a022b7fe819499770dce7"
+    }
+  ]
+}
