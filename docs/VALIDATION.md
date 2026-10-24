@@ -1,4 +1,44 @@
-# Validation: October 23, 2026
+# Validation: October 24, 2026
+
+## Deterministic fluent result lifetime
+
+All four projects were rebuilt using Delphi 12 Community Edition, RAD Studio
+23.0, bds.exe 29.0.51961.7529, IDE Project > Build, Base configuration. All
+builds had zero warnings/errors. The resulting executables passed:
+
+| Suite | Win32 | Win64 | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 695 | 695 | 0/0/0/0 |
+| FireDAC/SQLite in-memory | 44 | 44 | 0/0/0/0 |
+
+Before implementation, a separate compiled generic record-helper probe on
+both targets verified transferring a facade's interface through `TakeRaw`,
+clearing its field, and releasing the local in `finally`. Destructor counts
+reached zero immediately after a temporary expression, on success and mapping
+failure, in the same routine. Named receivers were emptied, copied records
+survived, and the last independently retained interface controlled destruction.
+The implementation uses only normal managed interface assignments.
+
+The core regression tests now measure result destruction before the calling
+routine exits, including NULL/type failures for both mapping methods, empty
+results and anonymous-method calls. Three additional cases check consuming
+copies/raw references, shared mapping failure and a single-row first result.
+Existing ownership counters also verify independent mapped-object lifetime.
+Static mapping, reader operations, implicit conversion and AsRaw remain covered.
+
+Three additional SQLite cases verify consecutive fluent SELECTs, early first
+mapping with one/multiple/no rows, deliberately shared results with 120 rows
+across fetch boundaries, and cached row/NULL/metadata access after FetchAll
+with AutoClose enabled. DataSetCount proves provider query destruction in the
+calling scope, including mapping exceptions. The connection remains open.
+AutoClose is supplementary: early release still frees the result-owned TFDQuery.
+
+Only the installed Delphi compiler above was available; a separate Delphi 12.3
+or newer compiler was not independently tested. Both generator checks, all eight
+Python tests and git diff --check pass. The JSON reports record executable
+hashes and verified x86/x64 PE headers for these runs.
+
+## Previous validation: October 23, 2026
 
 ## Fluent object mapping facade
 

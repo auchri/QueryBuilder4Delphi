@@ -84,8 +84,10 @@ begin
       Query.ResourceOptions.MacroCreate := False;
       Query.ResourceOptions.MacroExpand := False;
       Query.ResourceOptions.EscapeExpand := False;
-      // Expose the first result only; closing the result closes the command.
-      Query.FetchOptions.AutoClose := False;
+      // Only the first result is exposed. Release the command after the final
+      // fetch; cached rows/metadata remain usable until the result is released.
+      // Partially fetched results still rely on the owning result's destructor.
+      Query.FetchOptions.AutoClose := True;
       Query.SQL.Text := Statement.SQL;
       Query.Params.Assign(Params);
       if Mode = emRows then

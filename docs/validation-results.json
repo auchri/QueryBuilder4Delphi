@@ -1,33 +1,33 @@
 {
-  "date": "2026-10-23",
+  "date": "2026-10-24",
   "compiler": "Delphi 12 Community Edition, RAD Studio 23.0",
   "sourceCommit": "df4a2377750d34fc057c81886b481e7309ef975e",
   "buildMethod": "IDE: Project / Build, Base configuration, zero warnings",
   "referenceResults": 552,
   "directComparisons": 540,
   "correctedBehaviorCases": 12,
-  "additionalTests": 140,
+  "additionalTests": 143,
   "goldenSha256": "f6e99652a3ead2ed37d670efee94b879043d56147c2055afe31b68d7804f0cbe",
   "results": [
     {
       "platform": "Win32",
       "peMachine": "0x14c",
-      "tests": 692,
-      "passed": 692,
+      "tests": 695,
+      "passed": 695,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "de1cc7d27b374268f7bde742dbb2df556e4a90eb757bb9b99bf3f509ef0392e6"
+      "executableSha256": "9b761ec5a37d47bc2d90c5c62a4033ea088c3f144029761d7888bfe135d7d9c7"
     },
     {
       "platform": "Win64",
       "peMachine": "0x8664",
-      "tests": 692,
-      "passed": 692,
+      "tests": 695,
+      "passed": 695,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "13e94a99e578a572204b2babf36a05991e3693a8131c7b06dcbad09d3b755414"
+      "executableSha256": "3e7daf8b69880a9311d8f1b6ac7454d2e1120951407a04bade0b507aa01e77a4"
     }
   ]
 }

@@ -49,13 +49,27 @@ uses
   System.SyncObjs, System.Math;
 
 function TQueryResultMappingHelper.ToList<T>: TObjectList<T>;
+var
+  Rows: IQueryResult;
 begin
-  Result := TQueryMapper.ToList<T>(Self.AsRaw);
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.ToList<T>(Rows);
+  finally
+    Rows := nil;
+  end;
 end;
 
 function TQueryResultMappingHelper.FirstOrDefault<T>: T;
+var
+  Rows: IQueryResult;
 begin
-  Result := TQueryMapper.FirstOrDefault<T>(Self.AsRaw);
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.FirstOrDefault<T>(Rows);
+  finally
+    Rows := nil;
+  end;
 end;
 
 type

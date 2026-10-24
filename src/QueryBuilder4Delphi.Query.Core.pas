@@ -63,6 +63,8 @@ type
   public
     constructor Create(const AResult: IQueryResult);
     function AsRaw: IQueryResult;
+    // Transfer this facade's reference; independently retained copies survive.
+    function TakeRaw: IQueryResult;
     class operator Implicit(const Value: TQueryResult): IQueryResult;
     function Next: Boolean;
     function GetHasResultSet: Boolean;
@@ -732,6 +734,12 @@ end;
 function TQueryResult.AsRaw: IQueryResult;
 begin
   Result := FResult;
+end;
+
+function TQueryResult.TakeRaw: IQueryResult;
+begin
+  Result := FResult;
+  FResult := nil;
 end;
 
 class operator TQueryResult.Implicit(const Value: TQueryResult): IQueryResult;

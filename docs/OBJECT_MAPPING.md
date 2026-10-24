@@ -112,22 +112,42 @@ reader operations on it raise `EQueryException`, and mapping preserves the
 static mapper's `EArgumentNilException`. Command results without a resultset
 raise `EQueryMappingException` before constructing any object.
 
-Mapping errors preserve the mapper's exception class, message context and
-object cleanup. Result resources are released with the final interface/record
-reference, including compiler-managed expression temporaries. The facade owns
-no connection; borrowed connections must outlive all retained results.
-Delphi can retain an expression temporary until the enclosing routine exits,
-so fluent mapping need not close the cursor at the end of the statement.
-Use a small loading function (as above) when the result must be released before
-the caller closes the connection. Mapped objects/list remain valid afterward.
+Fluent `ToList` and `FirstOrDefault` consume the receiving facade, including a
+named variable: `TakeRaw` transfers its interface reference to a local and clears
+the facade before calling the existing mapper. A `finally` releases the local
+on success or exception. This avoids waiting for Delphi's managed expression
+temporaries to finalize. With no other references, the underlying result is
+destroyed before the mapping call returns or propagates an exception.
+`FirstOrDefault` also releases an incompletely read cursor. The facade is empty
+after either call; use `TQueryMapper.FirstOrDefault<TBook>(Rows.AsRaw)` when a
+named facade must remain available for subsequent reads. The static mapper
+remains non-owning. `AsRaw` and implicit conversion retain rather than consume;
+their compiler-generated temporaries may live until the enclosing routine exits.
+
+Copied facades and separately retained interfaces remain valid and share cursor
+position. Their references can legitimately delay destruction until the final
+owner releases them. Mapping never closes or invalidates another owner's result.
+Mapped objects and owning lists are independent of the live resultset and remain
+valid after its destruction. The facade owns no connection; application-owned
+connections must outlive all retained live results. Mapping errors preserve the
+mapper's exception class, message context and object cleanup.
+
+The FireDAC executor sets `FetchOptions.AutoClose := True`: after all rows are
+fetched it releases the underlying command while keeping the dataset's cached
+rows and metadata readable. This API exposes only the first resultset, so
+discarding subsequent command resultsets is intentional. Partially fetched
+results remain readable; destruction of the owning result also frees its
+`TFDQuery`, so early termination does not depend on AutoClose. See
+[FireDAC fetching semantics](https://docwiki.embarcadero.com/RADStudio/Athens/en/Fetching_Rows_(FireDAC)).
 
 Free the owning `TObjectList<TBook>` returned by `LoadBooks` in a `finally` block.
 Free the single object returned by `FindBook` similarly (`nil.Free` is safe).
 For an empty result with a compatible column schema, `ToList` returns an empty
 owning list and `FirstOrDefault` returns `nil`. Both call `Next` before mapping:
 a row already selected by the caller is skipped. `ToList` consumes all remaining
-rows; `FirstOrDefault` consumes at most one, leaving later rows available.
-Neither rewinds the cursor or explicitly frees the caller's result interface.
+rows; `FirstOrDefault` consumes at most one, leaving later rows available to any
+retained owner. Neither rewinds the cursor. The static API does not release the
+caller's result interface.
 Do not share one cursor between concurrent calls.
 
 Names are matched case-insensitively against result column names, including

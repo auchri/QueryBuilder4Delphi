@@ -118,6 +118,10 @@ end;
 `nil`; free it when finished. The returned `TObjectList<TBook>` owns its objects.
 The static API remains available: `TQueryMapper.ToList<TBook>(Rows)` and
 `TQueryMapper.FirstOrDefault<TBook>(Rows)`.
+Fluent mapping consumes its facade and releases that reference before returning,
+including on exceptions and after reading only the first row. Copies and retained
+`IQueryResult` references keep their shared cursor alive. Materialized objects
+remain valid after result destruction; connection ownership stays with the application.
 Mapping calls `Next`, starting with the next remaining row. Public/published
 writable properties need RTTI; names match without case sensitivity, with
 `[Column]` and `[Ignore]` supported. Partial projections retain constructor

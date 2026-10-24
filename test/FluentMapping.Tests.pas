@@ -12,7 +12,6 @@ type
   private
     FExecutor: IQueryExecutor;
     FResultBaseline, FCreated, FDestroyed: Integer;
-    procedure FailMapping(First: Integer);
   public
     [Setup]
     procedure Setup;
@@ -48,6 +47,12 @@ type
     procedure EmptyFacade;
     [Test]
     procedure FluentMappingInAnonymousMethod;
+    [Test]
+    procedure ConsumingCopiesAndRawReferences;
+    [Test]
+    procedure SharedMappingFailure;
+    [Test]
+    procedure FirstWithOneRow;
   end;
 
 implementation
@@ -84,6 +89,7 @@ begin
   Books := TQuery.Create('Books').Select(['Id AS BookId', 'Title AS BookTitle'])
     .OrderBy('Id').Execute(FExecutor).ToList<TMappingBook>();
   try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
     Assert.AreEqual<NativeInt>(2, Books.Count);
     Assert.IsTrue(Books.OwnsObjects);
     Assert.AreEqual(1, Books[0].Id);
@@ -103,6 +109,7 @@ begin
   Book := TQuery.Create('Books').Where('Id', 42).Execute(FExecutor)
     .FirstOrDefault<TMappingBook>();
   try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
     Assert.IsNotNull(Book);
     Assert.AreEqual(1, Book.Id);
     Assert.AreEqual('Alpha', Book.Title);
@@ -121,6 +128,7 @@ begin
   TMockQueryExecutor.Data := nil;
   Books := TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>();
   try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
     Assert.AreEqual<NativeInt>(0, Books.Count);
     Assert.IsTrue(Books.OwnsObjects);
   finally
@@ -129,6 +137,7 @@ begin
   Book := TQuery.Create('Books').Execute(FExecutor)
     .FirstOrDefault<TMappingBook>();
   try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
     Assert.IsNull(Book);
   finally
     Book.Free;
@@ -247,13 +256,13 @@ var
   Books: TObjectList<TMappingBook>;
 begin
   Rows := TQuery.Create('Books').Execute(FExecutor);
-  Book := Rows.FirstOrDefault<TMappingBook>();
+  Book := TQueryMapper.FirstOrDefault<TMappingBook>(Rows.AsRaw);
   try
     Assert.AreEqual(1, Book.Id);
   finally
     Book.Free;
   end;
-  Books := Rows.ToList<TMappingBook>();
+  Books := TQueryMapper.ToList<TMappingBook>(Rows.AsRaw);
   try
     Assert.AreEqual<NativeInt>(1, Books.Count);
     Assert.AreEqual(2, Books[0].Id);
@@ -271,15 +280,6 @@ begin
   end;
 end;
 
-procedure TFluentMappingTests.FailMapping(First: Integer);
-begin
-  if First = 1 then
-    TQuery.Create('Books').Execute(FExecutor)
-      .FirstOrDefault<TMappingBook>().Free
-  else
-    TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>().Free;
-end;
-
 procedure TFluentMappingTests.MappingErrorsReleaseResources(First,
   Invalid: Integer);
 var
@@ -294,13 +294,17 @@ begin
   else
     TMockQueryExecutor.Data := TRows.Create(TValues.Create(1, 'good'),
       TValues.Create(Value, 'bad'));
-  Assert.WillRaise(TTestLocalMethod(
-    procedure
-    begin
-      FailMapping(First);
-    end), EQueryMappingException);
-  // A nested call scope ensures compiler-managed expression temporaries have
-  // finalized before measuring resource lifetime.
+  try
+    if First = 1 then
+      TQuery.Create('Books').Execute(FExecutor)
+        .FirstOrDefault<TMappingBook>().Free
+    else
+      TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>().Free;
+    Assert.Fail('Expected a mapping exception');
+  except
+    on E: EQueryMappingException do
+      Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+  end;
   Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
   Assert.AreEqual(TMappingBook.Created - FCreated, TMappingBook.Destroyed -
     FDestroyed);
@@ -366,6 +370,7 @@ begin
     begin
       Books := TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>();
       try
+        Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
         Assert.AreEqual<NativeInt>(2, Books.Count);
         Assert.AreEqual('Beta', Books[1].Title);
       finally
@@ -373,6 +378,91 @@ begin
       end;
     end;
   Action();
+end;
+
+procedure TFluentMappingTests.ConsumingCopiesAndRawReferences;
+var
+  A, B: TQueryResult;
+  Raw, Empty: IQueryResult;
+  Book: TMappingBook;
+  Books: TObjectList<TMappingBook>;
+begin
+  A := TQuery.Create('Books').Execute(FExecutor);
+  B := A;
+  Raw := A.AsRaw;
+  Book := A.FirstOrDefault<TMappingBook>();
+  try
+    Empty := A.AsRaw;
+    Assert.IsNull(Empty);
+    Assert.AreEqual(FResultBaseline + 1, TMockQueryResult.LiveCount);
+    Assert.AreEqual('Alpha', Book.Title);
+    Assert.AreEqual('Alpha', B.GetValue('BookTitle').AsString);
+    Assert.IsTrue(Raw.Next);
+    Assert.AreEqual('Beta', B.GetValue('BookTitle').AsString);
+    B := Default (TQueryResult);
+    Assert.AreEqual(FResultBaseline + 1, TMockQueryResult.LiveCount);
+    Raw := nil;
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+    Assert.AreEqual(1, Book.Id);
+  finally
+    Book.Free;
+  end;
+  // Both queries use the same executor, and both materialized lists survive.
+  Books := TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>();
+  try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+    Book := TQuery.Create('Books').Execute(FExecutor)
+      .FirstOrDefault<TMappingBook>();
+    try
+      Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+      Assert.AreEqual('Beta', Books[1].Title);
+      Assert.AreEqual('Alpha', Book.Title);
+    finally
+      Book.Free;
+    end;
+  finally
+    Books.Free;
+  end;
+end;
+
+procedure TFluentMappingTests.SharedMappingFailure;
+var
+  A, B: TQueryResult;
+  Raw: IQueryResult;
+begin
+  TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty, 'bad'),
+    TValues.Create(2, 'good'));
+  A := TQuery.Create('Books').Execute(FExecutor);
+  B := A;
+  Raw := A.AsRaw;
+  try
+    A.FirstOrDefault<TMappingBook>().Free;
+    Assert.Fail('Expected a mapping exception');
+  except
+    on E: EQueryMappingException do
+      Assert.AreEqual(FResultBaseline + 1, TMockQueryResult.LiveCount);
+  end;
+  Assert.IsTrue(B.Next);
+  Assert.AreEqual('good', Raw.GetValue('BookTitle').AsString);
+  B := Default (TQueryResult);
+  Raw := nil;
+  Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+end;
+
+procedure TFluentMappingTests.FirstWithOneRow;
+var
+  Book: TMappingBook;
+begin
+  TMockQueryExecutor.Data := TRows.Create(TValues.Create(42, 'only'));
+  Book := TQuery.Create('Books').Execute(FExecutor)
+    .FirstOrDefault<TMappingBook>();
+  try
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+    Assert.AreEqual(42, Book.Id);
+    Assert.AreEqual('only', Book.Title);
+  finally
+    Book.Free;
+  end;
 end;
 
 initialization
