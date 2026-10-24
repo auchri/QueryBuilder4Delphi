@@ -16,17 +16,15 @@ type
 implementation
 
 uses
-  QueryBuilder4Delphi.Query.Core;
+  QueryBuilder4Delphi.Mapping.Metadata;
 
 class function TQueryDataMapper.GetPairs(Data: TObject;
   const OnKey: TProc<string, TValue>): TArray<TPair<string, TValue>>;
 var
   Context: TRttiContext;
-  Prop: TRttiProperty;
-  Attr: TCustomAttribute;
+  Item: TQueryPropertyMapping;
+  Metadata: TArray<TQueryPropertyMapping>;
   Pairs: TList<TPair<string, TValue>>;
-  Name: string;
-  Skip, IsKey: Boolean;
   Value: TValue;
 begin
   if Data = nil then
@@ -34,28 +32,13 @@ begin
   Context := TRttiContext.Create;
   Pairs := TList < TPair < string, TValue >>.Create;
   try
-    for Prop in Context.GetType(Data.ClassType).GetProperties do
+    Metadata := QueryPropertyMappings(Data.ClassType, Context, False);
+    for Item in Metadata do
     begin
-      if not Prop.IsReadable then
-        Continue;
-      Name := Prop.Name;
-      Skip := False;
-      IsKey := False;
-      for Attr in Prop.GetAttributes do
-      begin
-        if Attr is IgnoreAttribute then
-          Skip := True;
-        if Attr is ColumnAttribute then
-          Name := ColumnAttribute(Attr).Name;
-        if Attr is KeyAttribute then
-          IsKey := True;
-      end;
-      if Skip then
-        Continue;
-      Value := Prop.GetValue(Data);
-      Pairs.Add(TPair<string, TValue>.Create(Name, Value));
-      if IsKey and Assigned(OnKey) then
-        OnKey(Name, Value);
+      Value := Item.Prop.GetValue(Data);
+      Pairs.Add(TPair<string, TValue>.Create(Item.Column, Value));
+      if Item.IsKey and Assigned(OnKey) then
+        OnKey(Item.Column, Value);
     end;
     Result := Pairs.ToArray;
   finally

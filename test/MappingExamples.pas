@@ -16,16 +16,36 @@ type
     [Column('BookTitle')]
     property Title: string read FTitle write FTitle;
   end;
+
+  TBookData = class
+  private
+    FId: Integer;
+    FTitle, FNote: string;
+  public
+    [Key('book_id')]
+    property Id: Integer read FId write FId;
+    [Column('book_title')]
+    property Title: string read FTitle write FTitle;
+    [Ignore]
+    property InternalNote: string read FNote write FNote;
+  end;
 {$RTTI INHERIT}
 
 function LoadBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 function LoadPublishedBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 function FindBook(const Executor: IQueryExecutor; Id: Integer): TBook;
+function SaveBookData(const Executor: IQueryExecutor; Book: TBookData): Int64;
 
 implementation
 
 uses
   QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Mapping;
+
+function SaveBookData(const Executor: IQueryExecutor; Book: TBookData): Int64;
+begin
+  Result := TQuery.Create('MappedBooks').AsUpdate(Book).Execute(Executor)
+    .RowsAffected;
+end;
 
 function LoadBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
 begin

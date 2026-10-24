@@ -1,5 +1,75 @@
 # Object Mapping
 
+## Shared read/write attributes
+
+Both `TQueryMapper` and `TQueryDataMapper` use the same property name and
+attribute resolver. For example, `TBookData` in
+[MappingExamples.pas](../test/MappingExamples.pas) works in both directions:
+
+```delphi
+{$RTTI EXPLICIT METHODS([vcPublic]) PROPERTIES([vcPublic]) FIELDS([])}
+TBookData = class
+private
+  FId: Integer;
+  FTitle, FNote: string;
+public
+  [Key('book_id')]
+  property Id: Integer read FId write FId;
+  [Column('book_title')]
+  property Title: string read FTitle write FTitle;
+  [Ignore]
+  property InternalNote: string read FNote write FNote;
+end;
+{$RTTI INHERIT}
+
+Book := TQuery.Create('MappedBooks')
+  .Select(['book_id AS BOOK_ID', 'book_title AS BOOK_TITLE'])
+  .Where('book_id', 7).Execute(Executor).Single<TBookData>();
+try
+  Book.Title := 'Updated';
+  TQuery.Create('MappedBooks').AsUpdate(Book).Execute(Executor);
+finally
+  Book.Free;
+end;
+```
+
+Without an attribute the property name is the column name. `[Column]` replaces
+that name; reading matches **result aliases**, case-insensitively, while writing
+emits the configured name unchanged. `[Key]` also supplies a column name. Only
+`GetPairs` with an `OnKey` callback and object `AsUpdate` use its key semantics:
+updates add key predicates and retain the key in the update columns, as before.
+Object `AsInsert`, `Where` and `Having` use all eligible non-ignored properties
+without special key handling. `[Ignore]` always wins, including over conflicting
+or empty attributes on that property, and prevents getter/callback invocation.
+
+Both directions reject case-insensitive duplicate effective column names,
+multiple `[Column]`/`[Key]` attributes (even with identical names), and empty or
+whitespace-only column names with `EQueryMappingException` (an `EQueryException`).
+The exception remains available from `QueryBuilder4Delphi.Mapping`; the shared
+declaration is in `QueryBuilder4Delphi.Mapping.Metadata`. Validation covers the
+whole eligible property set before reading rows, getters or key callbacks.
+Other getter and callback exceptions retain their original class.
+
+Reading requires writable public/published properties; writing requires readable
+properties. Inherited properties follow the same rules. For compatibility,
+writing continues to include nonpublic properties if their RTTI was explicitly
+emitted; reading continues to exclude them. Prefer public/published properties
+for DTOs used in both directions. A read-only and a write-only property may use
+the same column because only one is eligible in each direction. An empty write
+property set still returns an empty pair array; reading requires a matching
+writable property even for empty results.
+
+Fields are excluded in both directions, even when public field RTTI and mapping
+attributes are present. Private backing fields are never inspected implicitly.
+Field support is deferred: enabling it automatically would add columns for
+existing DTOs and requires a separate compatibility policy for property/field
+collisions. Use a property wrapper today. `FIELDS([])` is sufficient for the
+examples; enable `PROPERTIES([vcPublic, vcPublished])` as appropriate. Published
+properties also require the usual Delphi published RTTI support (`{$M+}` or an
+appropriate base class).
+
+## Reading objects
+
 `QueryBuilder4Delphi.Mapping` maps `IQueryResult` rows through Delphi RTTI.
 It requires only RTL and the query core; it works with any executor/provider.
 Classes need a public parameterless constructor and writable public/published
@@ -194,8 +264,8 @@ Names are matched case-insensitively against result column names, including
 aliases. `[Column('BookTitle')]` replaces the default property-name match.
 `[Ignore]` excludes a property. `[Key('BookId')]` retains its inherited column
 mapping behavior without identity or persistence semantics. Read-only and
-nonpublic properties and all fields are excluded. Inherited writable properties
-follow the same mapping rules. Extra columns are ignored, even when NULL or
+nonpublic properties and all fields are excluded when reading. Inherited writable
+properties follow the same mapping rules. Extra columns are ignored, even when NULL or
 unsupported. Missing columns leave constructor values intact.
 Duplicate result names raise `EQueryMappingException` when a mapped property
 would be ambiguous; use distinct aliases to resolve them. Classes without any
@@ -210,8 +280,8 @@ case. Two `[Column]` names, or an explicit name and another property's implicit
 name, cannot refer to the same column. Such class metadata is rejected even if
 the current projection omits the conflicting column. `[Ignore]` properties do
 not participate in these checks. A property may have at most one column mapping
-attribute (`[Column]` or its subclass `[Key]`); multiple attributes are rejected
-instead of selecting one arbitrarily. Errors identify the class and conflicting
+attribute (`[Column]` or its subclass `[Key]`); empty or whitespace-only names
+and multiple attributes are rejected. Errors identify the class and conflicting
 properties or attributes.
 
 | Destination | Accepted source |
@@ -374,5 +444,4 @@ Rows are read directly with no intermediate result array. Classes from runtime
 packages must remain loaded while cached metadata is in use.
 
 This API is an object mapper only: it adds no change tracking, identity map,
-lazy loading or CRUD. Existing object-to-INSERT/UPDATE mapping through
-`TQueryDataMapper` is unchanged.
+lazy loading or implicit CRUD.

@@ -1,5 +1,32 @@
 # Validation: October 24, 2026
 
+## Shared attribute mapping (issue #19)
+
+Compiled both test projects for Win32 and Win64 in Delphi 12 Community Edition
+(RAD Studio 23.0), Base configuration. Command-line compilation is unavailable
+in this edition; compilation used the IDE and execution used
+`tools/build.ps1 -Suite Core/FireDAC -Platform Win32/Win64 -TestsOnly`.
+
+| Suite | Win32 passed | Win64 passed | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 905 | 905 | 0/0/0/0 |
+| FireDAC/SQLite and memory fields | 89 | 89 | 0/0/0/0 |
+
+Core regressions cover shared read/write names, case-insensitive aliases,
+inherited and ignored properties, key callbacks and object write operations,
+duplicate names, conflicting/blank attributes, direction-specific eligibility,
+validation before getters/callbacks, explicit nonpublic write property RTTI,
+and exclusion of fields even with field RTTI. Existing conversion, nullable,
+streaming, concurrency and ownership tests remain passing. The FireDAC suite
+includes an attributed DTO insert/read/update/read round trip using differently
+named physical columns and result aliases. Final test logs contain no shutdown
+memory leak reports. Delphi formatting and `git diff --check` pass.
+
+Field support remains deferred to avoid automatically adding write columns to
+existing DTOs; the property-only contract and compatibility behavior are documented
+in [Object Mapping](OBJECT_MAPPING.md#shared-readwrite-attributes). SQLite and
+memory-field tests do not establish other database server/driver behavior.
+
 ## Automatic nullable mapping and result conversions (issue #16, PR #18)
 
 Both suites were rebuilt through IDE Project > Build, Base configuration, using

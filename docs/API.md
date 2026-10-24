@@ -240,7 +240,14 @@ TRows/TValues for multiple insert rows, or explicit column/value arrays when
 order matters. Dates should be wrapped with TValue.From<TDateTime>. Object
 write data is read from RTTI-accessible properties; Column, Key and Ignore
 attributes control column names, key predicates and omitted properties.
-This write helper is separate from result object mapping through `TQueryMapper`.
+`TQueryDataMapper` and `TQueryMapper` share attribute resolution and validation:
+effective column names must be unique ignoring case, nonblank, and supplied by
+at most one Column/Key attribute. Ignore excludes a property before validation.
+Reads require writable public/published properties; writes require readable
+properties (including explicitly emitted nonpublic property RTTI for compatibility).
+Fields are excluded in both directions. Invalid metadata raises
+`EQueryMappingException` before getters or key callbacks run. See the
+[shared DTO example and RTTI contract](OBJECT_MAPPING.md#shared-readwrite-attributes).
 
 `TUnsafeLiteral` and `TVariable` are value records and need no Free. Ordinary
 values use bindings; TUnsafeLiteral deliberately inserts SQL and must never
