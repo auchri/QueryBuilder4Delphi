@@ -340,3 +340,90 @@ The reference golden SQL remains unchanged: local SqlKata source commit
 `df4a2377750d34fc057c81886b481e7309ef975e`, 552 reference results, 540 direct
 comparisons and 12 corrected behavior cases. The C# oracle was not regenerated
 in this documentation task.
+
+## Mapping API, streaming and performance (issue #17)
+
+On 2026-10-24 the core and FireDAC projects were rebuilt through Delphi 12
+Community Edition's Project / Build command, Base configuration, for both Win32
+and Win64. Fresh native executables passed 754/754 core cases and 48/48 FireDAC
+SQLite cases on each platform, with zero failed, errored, ignored or leaked
+cases. The validation JSON files contain the executable hashes and verified PE
+architectures. Existing execution, six-dialect compiler, nullable/native-value
+and fluent mapper tests remain included.
+
+The new core fixture adds 27 cases: cardinality and exact Next call counts,
+MapCurrent before/on/after a row, returned and borrowed ownership, streaming
+empty/one/many rows, callback/mapping/Next failures, preservation of callback
+exception identity, short-circuiting before invalid later rows, cold concurrent
+mappings of two different DTO classes, changing schemas, copied managed values,
+nullable BCD/Currency and scoped converters. Existing concurrent metadata/schema
+and advanced scalar/nullable suites provide additional regression coverage.
+Two integration cases cover the new methods against a real FireDAC cursor and
+execute every routine in MappingApiExamples.pas against an in-memory SQLite
+schema, including partial projection and a LEFT JOIN with a missing author.
+
+All seven new documentation routines were compared with their compiled source
+(whitespace ignored). The two generator checks pass, including 69 paired Oracle
+scenarios, and all eight Python generator regression tests pass. Formatter.exe
+was applied to Pascal sources; git diff --check passes.
+
+The initial BCD test literal was corrected to use invariant format settings.
+The documentation schema declares Price as DECIMAL(18,4), because this SQLite
+FireDAC configuration infers bare NUMERIC as Int64. The mapper's supported
+conversions and null policies were not relaxed to accommodate driver inference.
+
+[Performance methodology, medians, ranges and limitations](MAPPING_PERFORMANCE.md)
+include optimized Win32/Win64 measurements at 100, 10,000 and 100,000 rows,
+ToList versus ForEach, cold versus warm metadata, live heap samples and exact
+peak DTO counts. Each platform records 108 validated observations in committed
+CSV files. Timings are local observations rather than acceptance thresholds;
+heap samples do not include the mock input or constitute OS memory peaks.
+
+## Fluent mapper completion (PR #21)
+
+The helper now exposes First, Single, SingleOrDefault and ForEach alongside its
+unchanged ToList and FirstOrDefault implementations. Every new method delegates
+to the existing static mapper after TakeRaw and clears the transferred interface
+in finally. No static mapping/conversion, provider, cursor, Execute or SQL
+compiler implementation changed. MapCurrent remains static.
+
+Fresh Delphi 12 Community Edition Base builds and complete DUnitX runs passed:
+
+| Suite | Win32 | Win64 |
+| --- | ---: | ---: |
+| Core | 822/822 | 822/822 |
+| FireDAC / SQLite in memory | 62/62 | 62/62 |
+
+Every run reports zero failed, errored, ignored and leaked cases, with no
+shutdown memory-leak report. The validation JSON files record PE architecture
+checks and executable SHA-256 hashes. Both builds completed without compiler
+warnings. There are 68 new core cases in FluentMapping.Operations.Tests.pas and
+14 new FireDAC cases, plus the existing documentation integration case now runs
+nine fluent example routines.
+
+Coverage includes temporary results with zero/one/multiple rows; exact Next call
+counts; returned objects surviving result destruction; borrowed objects freed
+between callbacks and on failure; immediate caller-scope resource release;
+schema, NULL, conversion, setter, custom-converter, provider Next and callback
+exceptions; consumed named facades; retained raw interfaces and copied facades;
+nullable values, SkipNullAssignment and custom mapping options. SQLite checks
+DataSetCount immediately after terminal calls, including callback failures, and
+confirms that shared readers remain usable. Single variants detect multiple rows
+without SQL limits.
+
+Anonymous test callbacks avoid capturing the facade being assigned a query
+result: Delphi may otherwise retain a separate managed expression temporary in
+the callback's activation record. The nullable test explicitly clears its local
+anonymous check procedure to break a test-only reference cycle. Direct terminal
+mapping itself releases its transferred result reference deterministically.
+
+All nine example routines in EXAMPLES.md match MappingApiExamples.pas after
+ignoring presentation whitespace and execute in the SQLite integration suite.
+README, OBJECT_MAPPING, API and EXAMPLES now prefer fluent terminal calls while
+retaining the static API for advanced cursor control. Existing benchmark CSVs
+remain the historical static-engine measurements at commit 279b0da; this
+follow-up does not change that engine or claim new performance measurements.
+
+Both generator checks pass (including 69 paired Oracle scenarios), all eight
+Python generator tests pass, local Markdown file links resolve, and
+`git diff --check` passes. Formatter.exe was applied to Pascal files.

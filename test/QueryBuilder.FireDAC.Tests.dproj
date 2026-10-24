@@ -34,6 +34,7 @@
         <DCCReference Include="..\src\QueryBuilder4Delphi.Compilers.Factory.pas"/>
         <DCCReference Include="ExecutionExamples.pas"/>
         <DCCReference Include="MappingExamples.pas"/>
+        <DCCReference Include="MappingApiExamples.pas"/>
         <DCCReference Include="NullableMappingExamples.pas"/>
         <DCCReference Include="Execution.Mock.pas"/>
         <DCCReference Include="FireDAC.Tests.pas"/>

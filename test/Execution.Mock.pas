@@ -23,6 +23,8 @@ type
   public
     ColumnNameReads: Integer;
     ColumnIndexLookups: Integer;
+    NextCalls: Integer;
+    NextFailureAt: Integer;
     constructor Create(const Names: TArray<string>;
       const Types: TArray<TQueryValueType>; const Rows: TRows; HasRows: Boolean;
       Affected: Int64);
@@ -98,6 +100,9 @@ end;
 
 function TMockQueryResult.Next: Boolean;
 begin
+  Inc(NextCalls);
+  if (NextFailureAt > 0) and (NextCalls = NextFailureAt) then
+    raise EInvalidOp.Create('Provider Next failed');
   RequireRows;
   if FPosition < Length(FRows) then
     Inc(FPosition);

@@ -40,6 +40,18 @@ type
       : TObjectList<T>;
     function FirstOrDefault<T: class, constructor>
       (Options: TQueryMappingOptions = nil): T;
+    function First<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    function Single<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    function SingleOrDefault<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    procedure ForEach<T: class, constructor>(const Callback: TProc<T>;
+      Options: TQueryMappingOptions = nil);
+    function FirstOrElse<T: class, constructor>(const Fallback: TFunc<T>;
+      Options: TQueryMappingOptions = nil): T;
+    function SingleOrElse<T: class, constructor>(const Fallback: TFunc<T>;
+      Options: TQueryMappingOptions = nil): T;
   end;
 
   TQueryMapper = class
@@ -63,14 +75,41 @@ type
     class procedure MapObject(Instance: TObject; const Rows: IQueryResult;
       const Plan: TMappingPlan; RowNumber: Integer;
       Options: TQueryMappingOptions); static;
+    class function CreateMapped<T: class, constructor>(const Rows: IQueryResult;
+      const Plan: TMappingPlan; RowNumber: Integer;
+      Options: TQueryMappingOptions): T; static;
   public
-    // Calls Next: ToList consumes all remaining rows; FirstOrDefault consumes
-    // at most one. The caller owns the returned list/object.
+    // Validate schema before Next. ToList/ForEach consume all remaining rows;
+    // First/FirstOrDefault call Next once; Single variants call it at most twice
+    // (on multiple rows the cursor remains on row two, which is not mapped).
+    // Returned lists own their objects; database-mapped objects belong to the caller.
+    // OrElse fallback references retain their application's existing ownership.
+    // Static methods never consume the caller's IQueryResult reference.
     class function ToList<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): TObjectList<T>; static;
     class function FirstOrDefault<T: class, constructor>
       (const Rows: IQueryResult; Options: TQueryMappingOptions = nil)
       : T; static;
+    class function First<T: class, constructor>(const Rows: IQueryResult;
+      Options: TQueryMappingOptions = nil): T; static;
+    class function Single<T: class, constructor>(const Rows: IQueryResult;
+      Options: TQueryMappingOptions = nil): T; static;
+    class function SingleOrDefault<T: class, constructor>
+      (const Rows: IQueryResult; Options: TQueryMappingOptions = nil)
+      : T; static;
+    // Never calls Next. Provider row access must reject an unpositioned cursor.
+    class function MapCurrent<T: class, constructor>(const Rows: IQueryResult;
+      Options: TQueryMappingOptions = nil): T; static;
+    // Callback objects are borrowed, valid only until the callback returns.
+    class procedure ForEach<T: class, constructor>(const Rows: IQueryResult;
+      const Callback: TProc<T>; Options: TQueryMappingOptions = nil); static;
+    // Validate Fallback before schema/cursor access, even if a row exists.
+    // Only empty, valid results invoke it. Return its exact reference (or nil)
+    // without modifying ownership; only database-mapped objects are caller-owned.
+    class function FirstOrElse<T: class, constructor>(const Rows: IQueryResult;
+      const Fallback: TFunc<T>; Options: TQueryMappingOptions = nil): T; static;
+    class function SingleOrElse<T: class, constructor>(const Rows: IQueryResult;
+      const Fallback: TFunc<T>; Options: TQueryMappingOptions = nil): T; static;
   end;
 
 implementation
@@ -102,6 +141,92 @@ begin
   finally
     Rows := nil;
   end;
+end;
+
+function TQueryResultMappingHelper.First<T>(Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.First<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.Single<T>(Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.Single<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.SingleOrDefault<T>
+  (Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.SingleOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+procedure TQueryResultMappingHelper.ForEach<T>(const Callback: TProc<T>;
+  Options: TQueryMappingOptions);
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    TQueryMapper.ForEach<T>(Rows, Callback, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.FirstOrElse<T>(const Fallback: TFunc<T>;
+  Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    if not Assigned(Fallback) then
+      raise EArgumentNilException.Create('Fallback');
+    Result := TQueryMapper.FirstOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+  // Deliberately invoke outside the result's lifetime: the callback may query
+  // the same connection. Static OrDefault supplies all mapping/validation.
+  if Result = nil then
+    Result := Fallback();
+end;
+
+function TQueryResultMappingHelper.SingleOrElse<T>(const Fallback: TFunc<T>;
+  Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    if not Assigned(Fallback) then
+      raise EArgumentNilException.Create('Fallback');
+    Result := TQueryMapper.SingleOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+  if Result = nil then
+    Result := Fallback();
 end;
 
 type
@@ -573,15 +698,19 @@ var
   Binding: TColumnMapping;
   Value: TValue;
   Source: string;
+  ReadValue, NullValue: Boolean;
+  SourceInfo: PTypeInfo;
 begin
   for Binding in Plan do
   begin
-    Source := '<unread>';
+    ReadValue := False;
+    NullValue := False;
+    SourceInfo := nil;
     try
       // Do not use TValue.IsEmpty: a typed empty byte array can be IsEmpty.
       if Rows.IsNull(Binding.Index) then
       begin
-        Source := 'SQL NULL';
+        NullValue := True;
         if (Options <> nil) and Options.SkipNullAssignment then
           Continue;
         Value := TQueryMappingOptions.ConvertMappedValue(TValue.Empty,
@@ -590,7 +719,8 @@ begin
       else
       begin
         Value := Rows.GetValue(Binding.Index);
-        Source := TypeName(Value.TypeInfo);
+        SourceInfo := Value.TypeInfo;
+        ReadValue := True;
         Value := TQueryMappingOptions.ConvertMappedValue(Value,
           Binding.Metadata.Target, False, Options);
       end;
@@ -598,6 +728,12 @@ begin
     except
       on E: Exception do
       begin
+        // Allocate diagnostic strings only on failure, never per mapped value.
+        Source := '<unread>';
+        if NullValue then
+          Source := 'SQL NULL'
+        else if ReadValue then
+          Source := TypeName(SourceInfo);
         // Keep the original exception class and object (including setter/provider
         // errors), adding the mapping site before a bare re-raise.
         E.Message :=
@@ -625,9 +761,8 @@ begin
     while Rows.Next do
     begin
       Inc(RowNumber);
-      Instance := T.Create;
+      Instance := CreateMapped<T>(Rows, Plan, RowNumber, Options);
       try
-        MapObject(Instance, Rows, Plan, RowNumber, Options);
         Result.Add(Instance);
       except
         Instance.Free;
@@ -649,13 +784,106 @@ begin
   Result := nil;
   if not Rows.Next then
     Exit;
+  Result := CreateMapped<T>(Rows, Plan, 1, Options);
+end;
+
+class function TQueryMapper.CreateMapped<T>(const Rows: IQueryResult;
+  const Plan: TMappingPlan; RowNumber: Integer;
+  Options: TQueryMappingOptions): T;
+begin
   Result := T.Create;
   try
-    MapObject(Result, Rows, Plan, 1, Options);
+    MapObject(Result, Rows, Plan, RowNumber, Options);
   except
     Result.Free;
     raise;
   end;
+end;
+
+class function TQueryMapper.First<T>(const Rows: IQueryResult;
+  Options: TQueryMappingOptions): T;
+begin
+  Result := FirstOrDefault<T>(Rows, Options);
+  if Result = nil then
+    raise EQueryMappingException.Create
+      ('First requires at least one remaining row');
+end;
+
+class function TQueryMapper.SingleOrDefault<T>(const Rows: IQueryResult;
+  Options: TQueryMappingOptions): T;
+begin
+  Result := FirstOrDefault<T>(Rows, Options);
+  if Result = nil then
+    Exit;
+  try
+    if Rows.Next then
+      raise EQueryMappingException.Create
+        ('Single requires exactly one remaining row; multiple rows found');
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+class function TQueryMapper.Single<T>(const Rows: IQueryResult;
+  Options: TQueryMappingOptions): T;
+begin
+  Result := SingleOrDefault<T>(Rows, Options);
+  if Result = nil then
+    raise EQueryMappingException.Create
+      ('Single requires exactly one remaining row; no rows found');
+end;
+
+class function TQueryMapper.MapCurrent<T>(const Rows: IQueryResult;
+  Options: TQueryMappingOptions): T;
+var
+  Plan: TMappingPlan;
+begin
+  Plan := BuildPlan(GetTypeData(TypeInfo(T))^.ClassType, Rows);
+  Result := CreateMapped<T>(Rows, Plan, 0, Options);
+end;
+
+class procedure TQueryMapper.ForEach<T>(const Rows: IQueryResult;
+  const Callback: TProc<T>; Options: TQueryMappingOptions);
+var
+  Plan: TMappingPlan;
+  Instance: T;
+  RowNumber: Integer;
+begin
+  if not Assigned(Callback) then
+    raise EArgumentNilException.Create('Callback');
+  Plan := BuildPlan(GetTypeData(TypeInfo(T))^.ClassType, Rows);
+  RowNumber := 0;
+  while Rows.Next do
+  begin
+    Inc(RowNumber);
+    Instance := CreateMapped<T>(Rows, Plan, RowNumber, Options);
+    try
+      Callback(Instance);
+    finally
+      Instance.Free;
+    end;
+  end;
+end;
+
+class function TQueryMapper.FirstOrElse<T>(const Rows: IQueryResult;
+  const Fallback: TFunc<T>; Options: TQueryMappingOptions): T;
+begin
+  if not Assigned(Fallback) then
+    raise EArgumentNilException.Create('Fallback');
+  Result := FirstOrDefault<T>(Rows, Options);
+  if Result = nil then
+    Result := Fallback();
+end;
+
+class function TQueryMapper.SingleOrElse<T>(const Rows: IQueryResult;
+  const Fallback: TFunc<T>; Options: TQueryMappingOptions): T;
+begin
+  if not Assigned(Fallback) then
+    raise EArgumentNilException.Create('Fallback');
+  Result := SingleOrDefault<T>(Rows, Options);
+  if Result = nil then
+    Result := Fallback();
 end;
 
 initialization

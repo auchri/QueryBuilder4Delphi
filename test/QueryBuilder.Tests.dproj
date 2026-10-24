@@ -45,8 +45,11 @@
         <DCCReference Include="Execution.Mock.pas"/>
         <DCCReference Include="Execution.Tests.pas"/>
         <DCCReference Include="Mapping.Tests.pas"/>
+        <DCCReference Include="Mapping.Streaming.Tests.pas"/>
+        <DCCReference Include="Mapping.Fallback.Tests.pas"/>
         <DCCReference Include="Mapping.Values.Tests.pas"/>
         <DCCReference Include="FluentMapping.Tests.pas"/>
+        <DCCReference Include="FluentMapping.Operations.Tests.pas"/>
         <DCCReference Include="DocumentationExamples.pas"/>
         <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryWrites.Tests.pas"/>

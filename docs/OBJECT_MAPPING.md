@@ -6,10 +6,20 @@ Classes need a public parameterless constructor and writable public/published
 properties with RTTI. No base class, interface, table attribute or key is needed.
 For classes compiled with restricted RTTI, enable property RTTI explicitly.
 
-Prefer `Execute(Executor).ToList<T>()` and
-`Execute(Executor).FirstOrDefault<T>()` for new code. The methods below are
-record helper methods and require `QueryBuilder4Delphi.Mapping` in the calling
-unit's `uses` clause.
+Prefer `Query.Execute(Executor).ToList<T>()`, `.First<T>()`,
+`.FirstOrDefault<T>()`, `.Single<T>()`, `.SingleOrDefault<T>()` and
+`.ForEach<T>(Callback)` for terminal mapping. Lazy `.FirstOrElse<T>(Fallback)`
+and `.SingleOrElse<T>(Fallback)` accept a `TFunc<T>`. All accept optional
+`TQueryMappingOptions`; for `ForEach` and both `OrElse` methods pass options after the callback.
+These record helper methods require `QueryBuilder4Delphi.Mapping` in the calling
+unit's `uses` clause. They delegate to `TQueryMapper` without changing mapping,
+conversion or cursor semantics. `Single` variants inspect at most two rows and
+never add SQL LIMIT/TOP clauses.
+
+Use the static mapper for advanced cursor control. In particular,
+`TQueryMapper.MapCurrent<T>(Rows)` requires an explicitly positioned cursor and
+has no fluent terminal counterpart. See [examples and cursor semantics](EXAMPLES.md#object-mapping)
+and [performance measurements](MAPPING_PERFORMANCE.md).
 
 The following example is compiled in [MappingExamples.pas](../test/MappingExamples.pas)
 and exercised against SQLite through the execution API:
@@ -60,13 +70,43 @@ end;
 end.
 ```
 
+## Lazy fallback and ownership
+
+`First` requires at least one remaining row; `Single` requires exactly one.
+`FirstOrDefault` and `SingleOrDefault` return nil for zero rows. `Single` variants
+raise `EQueryMappingException` for multiple rows, inspecting at most two rows.
+`FirstOrElse` and `SingleOrElse` have the same row/cardinality behavior as the
+corresponding `OrDefault` method, but invoke the callback exactly once for zero
+rows. They never invoke it for mapping, conversion, provider or cardinality errors.
+Schema validation still happens on empty resultsets. No method rewinds or adds
+a SQL row limit. First variants call `Next` at most once.
+
+A nil fallback raises `EArgumentNilException` **before schema validation or
+cursor movement**, even if a row exists. Fluent calls still consume and release
+their receiving facade on this error. A callback may return nil.
+
+The mapper returns the **exact reference** supplied by the callback: it never
+clones, modifies or frees a fallback, and never infers ownership. Database-mapped
+objects are newly allocated and caller-owned. Fallback ownership stays as arranged
+by the application: a newly allocated fallback normally needs caller cleanup;
+an existing cache/list/component-owned object remains borrowed. **Do not free
+an externally owned fallback unless ownership was explicitly transferred.**
+The callback is responsible for its own allocations if it raises before returning.
+
+The fluent helper releases its transferred result reference before invoking an
+empty-result fallback, so that callback can query the same connection. Copied
+facades and independently retained interfaces may legitimately keep the shared
+result alive. Static methods never release the caller's result reference; release
+it explicitly when a static fallback needs an exclusive connection resource.
+See [tested lazy examples](EXAMPLES.md#lazy-fallbacks).
+
 ## Result facade and compatibility
 
 `IQuery.Execute` returns `TQueryResult`, a record in
 `QueryBuilder4Delphi.Query.Core` containing one `IQueryResult`. It delegates
 every reader operation and never advances the cursor on construction. Core
 does not depend on Mapping. Delphi interfaces cannot declare generic methods
-(E2535), so `TQueryResultMappingHelper` in Mapping supplies the generic methods
+(E2535), so `TQueryResultMappingHelper` in Mapping supplies the eight generic terminal methods
 and calls the existing `TQueryMapper` directly. Only the helper must be in scope;
 executors still return `IQueryResult` and need no mapping implementation.
 
@@ -112,14 +152,14 @@ reader operations on it raise `EQueryException`, and mapping preserves the
 static mapper's `EArgumentNilException`. Command results without a resultset
 raise `EQueryMappingException` before constructing any object.
 
-Fluent `ToList` and `FirstOrDefault` consume the receiving facade, including a
+All eight fluent terminal methods consume the receiving facade, including a
 named variable: `TakeRaw` transfers its interface reference to a local and clears
 the facade before calling the existing mapper. A `finally` releases the local
 on success or exception. This avoids waiting for Delphi's managed expression
 temporaries to finalize. With no other references, the underlying result is
 destroyed before the mapping call returns or propagates an exception.
-`FirstOrDefault` also releases an incompletely read cursor. The facade is empty
-after either call; use `TQueryMapper.FirstOrDefault<TBook>(Rows.AsRaw)` when a
+`First`/`FirstOrDefault` also release an incompletely read cursor. The facade is empty
+after any terminal call; use `TQueryMapper.FirstOrDefault<TBook>(Rows.AsRaw)` when a
 named facade must remain available for subsequent reads. The static mapper
 remains non-owning. `AsRaw` and implicit conversion retain rather than consume;
 their compiler-generated temporaries may live until the enclosing routine exits.
@@ -127,7 +167,7 @@ their compiler-generated temporaries may live until the enclosing routine exits.
 Copied facades and separately retained interfaces remain valid and share cursor
 position. Their references can legitimately delay destruction until the final
 owner releases them. Mapping never closes or invalidates another owner's result.
-Mapped objects and owning lists are independent of the live resultset and remain
+Database-mapped objects and owning lists are independent of the live resultset and remain
 valid after its destruction. The facade owns no connection; application-owned
 connections must outlive all retained live results. Mapping errors preserve the
 mapper's exception class, message context and object cleanup.
@@ -163,7 +203,7 @@ eligible properties raise a descriptive exception, including on empty results.
 At least one result column must match an eligible property. A schema with no
 matches raises `EQueryMappingException` naming the class and available columns,
 even if the result has no rows. Validation happens before advancing the cursor
-or constructing objects in both mapper methods.
+or constructing objects in every mapper operation.
 
 Effective mapping names must be unique across eligible properties, ignoring
 case. Two `[Column]` names, or an explicit name and another property's implicit

@@ -9,6 +9,7 @@ These examples target Delphi 12+ on Windows (Win32 and Win64).
 - [Writing data](#writing-data)
 - [SQL compilation](#sql-compilation)
 - [Query execution](#query-execution)
+- [Object Mapping](#object-mapping)
 - [Custom providers](#custom-providers)
 - [Example verification](#example-verification)
 
@@ -907,48 +908,317 @@ alive and connected until every dependent result is released. Interfaces handle
 normal exits and exceptions; no manual Free is needed for interface objects.
 Executors, mutable queries and cursors must not be shared unsafely across threads.
 
-## Fluent object mapping
+## Object Mapping
 
-For new code, map directly after execution. Add `System.Generics.Collections`,
-`QueryBuilder4Delphi.Query.Core`, `QueryBuilder4Delphi.Query` and
-`QueryBuilder4Delphi.Mapping` to the calling unit's `uses` clause. Mapping
-provides the record helper, so it must be in scope at the fluent call site.
-Use the `TBook` class (with `[Column('BookTitle')]` on `Title`) from
-[the complete mapping example](OBJECT_MAPPING.md).
-
-This function is compiled in `test/MappingExamples.pas` and executed against
-SQLite with an `IsPublished` column:
+Use the fluent helper from `QueryBuilder4Delphi.Mapping` to map ordinary classes
+after execution with any `IQueryResult` provider. Import `System.SysUtils`,
+`System.Generics.Collections`, `QueryBuilder4Delphi.Query.Core`,
+`QueryBuilder4Delphi.Query`, `QueryBuilder4Delphi.Nullable` and the Mapping unit.
+Classes need a public parameterless constructor and writable public/published
+properties with RTTI. The example uses `Books(Id, Title, Price, AuthorId)` and
+`Authors(Id, Name)`, with `Price` declared `DECIMAL(18,4)`. Declare decimal
+precision/scale explicitly: bare SQLite NUMERIC can be inferred as Int64 by
+FireDAC. The mapper converts the actual provider value and never guesses from
+column metadata. These DTOs have no persistence behavior:
 
 ```delphi
-function LoadPublishedBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
+type
+{$RTTI EXPLICIT METHODS([vcPublic]) PROPERTIES([vcPublic]) FIELDS([])}
+  TBookView = class
+  private
+    FId: Integer;
+    FTitle: string;
+    FPrice: TNullable<Currency>;
+    FLocalNote: string;
+  public
+    property Id: Integer read FId write FId;
+    [Column('BookTitle')]
+    property Title: string read FTitle write FTitle;
+    property Price: TNullable<Currency> read FPrice write FPrice;
+    [Ignore]
+    property LocalNote: string read FLocalNote write FLocalNote;
+  end;
+
+  TBookAuthorView = class(TBookView)
+  private
+    FAuthorName: TNullable<string>;
+  public
+    property AuthorName: TNullable<string> read FAuthorName write FAuthorName;
+  end;
+{$RTTI INHERIT}
+```
+
+`ColumnAttribute` replaces the implicit property name; `IgnoreAttribute` prevents
+assignment. Names match without case sensitivity. Unselected properties keep
+their constructor defaults. At least one result column must match a writable,
+non-ignored property, even for an empty resultset. Unknown result columns are
+ignored; ambiguous mapped names raise `EQueryMappingException`.
+
+### SELECT results, lists and partial projections
+
+```delphi
+function LoadBookViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin
-  Result := TQuery.Create('Books')
-    .Select(['Id', 'Title AS BookTitle'])
-    .Where('IsPublished', True)
-    .Execute(Executor)
-    .ToList<TBook>();
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ToList<TBookView>();
 end;
 ```
 
-`Execute(Executor).FirstOrDefault<TBook>()` returns a caller-owned object or
-nil; free it in a finally block. Free the `TObjectList<TBook>` from `ToList` in
-a finally block too: it owns every mapped object. `ToList` consumes all remaining
-rows and `FirstOrDefault` consumes at most one. Both call `Next` before reading;
-neither rewinds the cursor. Partial projections leave constructor defaults.
-SQL NULL maps automatically to built-in `TNullable<T>` properties. For ordinary
-properties it raises `EQueryMappingException`, unless `SkipNullAssignment` is
-enabled on the operation's `TQueryMappingOptions`. Pass options to either fluent
-mapping method;
-see [nullable values and conversion rules](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
+The returned list owns every object. A partial projection leaves `Id` at zero
+and `Price.HasValue` false in this class:
 
-The static API `TQueryMapper.ToList<TBook>(Rows)` and
-`TQueryMapper.FirstOrDefault<TBook>(Rows)` remains available. For direct cursor
-access, assign `Execute(Executor).AsRaw` to `Rows: IQueryResult`; direct assignment
-of `Execute(Executor)` also works through the one-way implicit conversion.
-The new `TQueryResult` return type shares one reference-counted cursor across
-copies. Rebuild dependent units, and use `Default(TQueryResult)` instead of nil
-to clear an inferred facade variable. Custom executors/providers do not change.
-See [compatibility details](OBJECT_MAPPING.md#result-facade-and-compatibility).
+```delphi
+function LoadTitleViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
+begin
+  Result := TQuery.Create('Books').Select('Title as BookTitle').OrderBy('Id')
+    .Execute(Executor).ToList<TBookView>();
+end;
+```
+
+### JOIN results and nullable columns
+
+Map explicit aliases into a DTO; a JOIN does not load relationships. Here an
+unmatched LEFT JOIN produces `AuthorName.HasValue = False`. SQL NULL in `Price`
+also produces a null `TNullable<Currency>`, whereas zero is a present value.
+Built-in nullable types require no registration. Non-nullable NULL assignments
+and lossy conversions raise mapping exceptions. See
+[conversion rules and scoped options](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
+
+```delphi
+function LoadBookAuthors(const Executor: IQueryExecutor)
+  : TObjectList<TBookAuthorView>;
+begin
+  Result := TQuery.Create('Books as b').LeftJoin('Authors as a', 'a.Id',
+    'b.AuthorId').Select(['b.Id', 'b.Title as BookTitle', 'b.Price',
+    'a.Name as AuthorName']).OrderBy('b.Id').Execute(Executor)
+    .ToList<TBookAuthorView>();
+end;
+```
+
+### First and Single
+
+```delphi
+function FirstBook(const Executor: IQueryExecutor): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).First<TBookView>();
+end;
+
+function SingleBook(const Executor: IQueryExecutor; Id: Integer): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).Single<TBookView>();
+end;
+```
+
+Use the OrDefault variants when an empty result should return nil:
+
+```delphi
+function FindBookView(const Executor: IQueryExecutor; Id: Integer): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrDefault<TBookView>();
+end;
+
+function FindUniqueBookView(const Executor: IQueryExecutor; Id: Integer)
+  : TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrDefault<TBookView>();
+end;
+```
+
+Use deterministic ordering for `First`. `Single` verifies uniqueness in the
+returned rows; applying SQL `Limit(1)` would hide additional matches.
+
+### Streaming
+
+```delphi
+procedure StreamBooks(const Executor: IQueryExecutor;
+  const ProcessBook: TProc<TBookView>);
+begin
+  TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ForEach<TBookView>(ProcessBook);
+end;
+```
+
+`ForEach<T>` builds one mapping plan and creates one object per row, calls the
+callback, then immediately frees that object. The callback receives a **borrowed**
+object: do not free or retain it. To retain data, copy values or create an
+independent object (deep-copy mutable arrays/objects as appropriate). The callback
+must not advance the same cursor or mutate/free the options during mapping.
+No object list is created. A provider may still buffer its own rows.
+
+### Ownership, try/finally and error handling
+
+```delphi
+procedure PrintMappingExamples(const Executor: IQueryExecutor);
+var
+  Books: TObjectList<TBookView>;
+  Book: TBookView;
+  Titles: TList<string>;
+begin
+  Books := LoadBookViews(Executor);
+  try
+    for Book in Books do
+      if Book.Price.HasValue then
+        Writeln(Book.Title, ': ', Book.Price.Value:0:2)
+      else
+        Writeln(Book.Title, ': price unknown');
+  finally
+    Books.Free; // Frees every contained object.
+  end;
+  try
+    Book := FirstBook(Executor);
+    try
+      Writeln(Book.Title);
+    finally
+      Book.Free; // A returned object belongs to the caller.
+    end;
+  except
+    on E: EQueryMappingException do
+      Writeln('Cannot map the first book: ', E.Message);
+  end;
+  Titles := TList<string>.Create;
+  try
+    StreamBooks(Executor,
+      procedure(BorrowedBook: TBookView)
+      begin
+        // Retain a value copy, never BorrowedBook itself. Do not Free it.
+        Titles.Add(BorrowedBook.Title);
+      end);
+    Writeln('Processed ', Titles.Count, ' books');
+  finally
+    Titles.Free;
+  end;
+end;
+```
+
+This demonstration intentionally collects copied titles; for bounded memory,
+process each borrowed object without collecting its data. `PrintMappingExamples`
+shows nullable values, list/object cleanup, and mapping exception handling.
+Provider, constructor, setter, converter and callback exceptions propagate;
+partially mapped objects are freed. Callback exceptions retain their original
+class, identity and message. Property mapping failures add class/property,
+column, source/target types and call-relative row context to the exception.
+
+### Cursor consumption
+
+All static methods validate the schema before iterating, never rewind, and keep
+`IQueryResult` ownership with the caller. “Remaining” means rows after the current
+position; a fresh result starts before row one.
+
+| Method | Empty result | Cursor effect | Returned ownership |
+| --- | --- | --- | --- |
+| `ToList<T>` | Empty owning list | `Next` until False | Caller frees list |
+| `First<T>` | Mapping exception | One `Next` | Caller frees object |
+| `FirstOrDefault<T>` | nil | One `Next` | Caller frees object |
+| `Single<T>` | Mapping exception | At most two `Next` calls | Caller frees object |
+| `SingleOrDefault<T>` | nil | At most two `Next` calls | Caller frees object |
+| `FirstOrElse<T>` | Call fallback once | One `Next` | Fallback ownership unchanged; mapped object caller-owned |
+| `SingleOrElse<T>` | Call fallback once | At most two `Next` calls | Fallback ownership unchanged; mapped object caller-owned |
+| `MapCurrent<T>` | Provider cursor exception | No `Next` | Caller frees object |
+| `ForEach<T>` | No callbacks | `Next` until False | Callback borrows object |
+
+The Single variants map the first remaining row, then check one more row. On a
+second row they free the mapped object and raise without mapping the second row;
+the cursor stays on that second row. On exactly one row the uniqueness check
+exhausts the cursor. Mapping/conversion errors may occur before uniqueness is
+checked. A callback/mapping exception stops streaming on the offending row;
+no later row is read.
+
+`MapCurrent<T>` requires the caller to have obtained True from `Next` and not
+subsequently exhausted the cursor. It uses provider row-access validation;
+custom providers must reject reads before the first row and after exhaustion,
+as FireDAC and the mock do. Error context uses row 0 for this API because
+`IQueryResult` exposes no absolute row number. Repeated `MapCurrent` calls create
+independent objects for the same row and rebuild a local schema plan; for large
+resultsets use `ForEach`, which resolves the plan once for the entire call.
+
+### Lazy fallbacks
+
+These functions are compiled in `test/MappingApiExamples.pas` and exercised by the
+SQLite suite. `FirstOrElse` returns the first remaining mapped row; `SingleOrElse`
+requires at most one remaining row and raises `EQueryMappingException` for multiple
+rows. Neither adds SQL LIMIT/TOP. They call the fallback exactly once only when
+there are zero remaining rows, never to hide a schema, mapping, conversion,
+provider or cardinality error. Schema validation also applies to empty results.
+
+```delphi
+function FindBookOrExisting(const Executor: IQueryExecutor; Id: Integer;
+  ExistingBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrElse<TBookView>(
+    function: TBookView
+    begin
+      Result := ExistingBook;
+    end);
+end;
+
+function FindSingleBookOrCreate(const Executor: IQueryExecutor; Id: Integer;
+  CachedBook: TBookView): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrElse<TBookView>(
+    function: TBookView
+    begin
+      if Assigned(CachedBook) then
+        Result := CachedBook
+      else
+        Result := TBookView.Create;
+    end);
+end;
+```
+
+**Existing fallback objects retain their existing ownership.** The mapper returns
+the exact reference, without cloning, modifying or freeing it. Database-mapped
+objects belong to the caller; newly allocated fallbacks normally do too. An object
+owned by a list, cache or component stays borrowed unless the application transfers
+ownership. For the first function, free the result only if it differs from the
+externally owned `ExistingBook`. Do not blindly use `Book.Free` for both outcomes.
+If the callback raises while constructing a fallback, it must clean up its own
+unfinished object. A callback returning nil is allowed.
+
+A nil callback raises `EArgumentNilException` before schema access or `Next`,
+even when rows exist. Fluent calls consume and release their facade on that error.
+Options follow the callback: `.FirstOrElse<TBookView>(Fallback, Options)`.
+First variants inspect at most one row; Single variants inspect at most two and
+free a mapped first object if uniqueness fails.
+
+Fluent empty-result calls release their result reference **before the callback**,
+allowing another query on the same connection. Independently retained interfaces
+or copied facades remain valid and can keep the shared result alive. Static calls
+such as `TQueryMapper.SingleOrElse<TBookView>(Rows, Fallback, Options)` never
+release the caller-owned `Rows` reference.
+
+### Fluent lifetime and advanced cursor control
+
+All eight fluent terminal methods consume the receiving `TQueryResult` facade via
+`TakeRaw` and release that reference before returning, including exceptional
+exits. Named facade variables are consumed too. Independently retained
+`IQueryResult` interfaces and copied facades remain valid and share cursor
+position. Returned objects are independent of the released cursor. Fluent
+`ForEach` objects are borrowed and destroyed after each callback, even on errors.
+
+All methods accept optional `TQueryMappingOptions`, for example
+`Query.Execute(Executor).Single<TBookView>(Options)` or
+`Query.Execute(Executor).ForEach<TBookView>(Callback, Options)`. Configure options
+before the call and keep them alive until it completes.
+
+The static `TQueryMapper` methods remain available for advanced cursor control:
+use `TQueryMapper.First<TBookView>(Rows)` when retaining a reader yourself, or
+`TQueryMapper.MapCurrent<TBookView>(Rows)` after `Rows.Next` returns True. There
+is no fluent `MapCurrent` because it requires an explicitly positioned cursor.
+The cursor table above describes both static and fluent mapping; only the
+fluent calls consume their receiving facade reference. See
+[facade compatibility](OBJECT_MAPPING.md#result-facade-and-compatibility).
+
+The complete unit is [MappingApiExamples.pas](../test/MappingApiExamples.pas).
+The FireDAC SQLite in-memory suite executes every function above with Books and
+Authors tables, including a missing author, a NULL price and partial selections.
+Core tests use a custom provider with the same mapping engine. See
+[benchmarks](MAPPING_PERFORMANCE.md) for reproducible timings and memory samples.
 
 ## Custom providers
 
