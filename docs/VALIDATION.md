@@ -1,5 +1,48 @@
 # Validation: October 24, 2026
 
+## Nullable values and result conversions (issue #16)
+
+Both suites were rebuilt through IDE Project > Build, Base configuration, using
+Delphi 12 Community Edition / RAD Studio 23.0 (bds.exe 29.0.51961.7529).
+All four builds completed with zero compiler warnings/errors. Community Edition
+does not support command-line compilation. Tests were then run with
+`tools/build.ps1 -TestsOnly`, selecting Core/FireDAC and Win32/Win64:
+
+| Suite | Win32 | Win64 | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 716 | 716 | 0/0/0/0 |
+| FireDAC/SQLite and memory fields | 46 | 46 | 0/0/0/0 |
+
+Before choosing the nullable mapping implementation, standalone Win32 and
+Win64 executable probes verified closed generic record type identity, typed
+TValue construction/extraction, public RTTI property assignment/readback, managed
+string lifetime, and NULL assignment. The permanent `ClosedGenericPropertyRTTI`
+DUnitX test repeats that proof. Explicit generic registrations supply the inner
+type without parsing type names or inspecting record layout.
+
+The 21 new core tests cover NULL versus zero/False/empty strings, managed nullable
+copies, Integer/string/Boolean/TDateTime mapping, missing registrations,
+constructor preservation, scoped NULL policy, signed/unsigned boundaries and
+overflow, exact integer/float precision (including Win32 Extended versus Win64),
+nonfinite/fractional rejection, native BCD precision and scale, exact Currency/BCD
+conversion, GUID, empty/nonempty bytes, timestamp fractions and timezone fields,
+unsupported conversions, exact source/target callbacks, duplicate/nil callbacks,
+converter diagnostics, exception cleanup and fluent options/result lifetime.
+The preexisting empty-byte rejection test now verifies successful mapping.
+
+The two new FireDAC cases exercise nullable DTOs against in-memory SQLite,
+and exact BCD/timestamp/offset memory fields through the existing field reader
+and mock result into the mapper. SQLite and memory fields do **not** prove
+SQL Server/Oracle server or driver behavior; no such servers were available.
+No separate Delphi 12.3+ installation was available.
+
+Both generator checks, the 69 paired reference scenarios, eight Python generator
+tests (using a workspace TEMP directory), formatting with the bundled Delphi
+formatter, and `git diff --check` pass. The
+[validation record](nullable-mapping-validation.json) includes executable/report
+hashes, PE architecture checks and the tested source hashes. Existing historical
+validation records below describe their own earlier versions.
+
 ## Deterministic fluent result lifetime
 
 All four projects were rebuilt using Delphi 12 Community Edition, RAD Studio

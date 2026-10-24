@@ -125,9 +125,13 @@ remain valid after result destruction; connection ownership stays with the appli
 Mapping calls `Next`, starting with the next remaining row. Public/published
 writable properties need RTTI; names match without case sensitivity, with
 `[Column]` and `[Ignore]` supported. Partial projections retain constructor
-defaults. Supported scalars are Integer/Int64, Boolean, Unicode string,
-Single/Double/Extended, Currency and TDateTime. SQL NULL and unsupported or
-lossy conversions raise exceptions. See [working examples and limits](docs/OBJECT_MAPPING.md).
+defaults. Supported values include signed/unsigned integers, floating point,
+Currency, TBcd, Boolean, Unicode string, TDateTime, native SQL timestamp records,
+TGUID and TBytes. `TNullable<T>` represents SQL NULL through explicit typed
+registrations on operation-scoped `TQueryMappingOptions`. NULL to non-nullable
+properties and unsupported or lossy conversions raise exceptions. Options also
+provide opt-in `SkipNullAssignment` and exact-pair application converters.
+See [working examples and limits](docs/OBJECT_MAPPING.md).
 
 `IQuery.Execute` now returns a `TQueryResult` record holding the same
 reference-counted cursor. Direct assignment to `IQueryResult` still works through

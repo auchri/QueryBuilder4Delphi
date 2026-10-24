@@ -28,6 +28,7 @@ uses
   Execution.Mock in 'Execution.Mock.pas',
   Execution.Tests in 'Execution.Tests.pas',
   Mapping.Tests in 'Mapping.Tests.pas',
+  Mapping.Values.Tests in 'Mapping.Values.Tests.pas',
   FluentMapping.Tests in 'FluentMapping.Tests.pas',
   DocumentationExamples in 'DocumentationExamples.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',

@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-24",
+  "issue": 16,
+  "compiler": "Delphi 12 Community Edition, RAD Studio 23.0, bds.exe 29.0.51961.7529",
+  "buildMethod": "IDE Project > Build, Base configuration; zero compiler warnings/errors",
+  "baseCommit": "99ca8caebd2e7af5500170ed8cf871bb022a751d",
+  "limitations": [
+    "No separate Delphi 12.3+ compiler tested",
+    "No SQL Server or Oracle server integration; SQLite and FireDAC memory fields only"
+  ],
+  "genericRttiProbe": [
+    "Win32: passed before mapper registration implementation",
+    "Win64: passed before mapper registration implementation"
+  ],
+  "results": [
+    {
+      "suite": "Core",
+      "platform": "Win32",
+      "peMachine": "0x14c",
+      "passed": 716,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "01ee85eb2fb669089f131bd268b5c096e5d6097b6fa02381621ef929f8da351f",
+      "reportSha256": "caf89bb4e201088c65e9e52c7b352fa081b083b0a726ac41510dc1d5062925f9"
+    },
+    {
+      "suite": "Core",
+      "platform": "Win64",
+      "peMachine": "0x8664",
+      "passed": 716,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "fa96efc492e5feae715b3d263072250c6ffc541f0e0c32e08e899608ec97d83e",
+      "reportSha256": "75b2e1fc29c16ad4c4fb3880ac1c1a8bb82eaac3d669ef2b93ee679d3625c4b3"
+    },
+    {
+      "suite": "FireDAC",
+      "platform": "Win32",
+      "peMachine": "0x14c",
+      "passed": 46,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "acc10b00f66bdfd8edc65f76e5bdb395c910ec537adb5d6053846a5675547202",
+      "reportSha256": "0e9f551005cd9fbd557ab28ae521cbc4878c72ebd0d8465bcdd6b3d7a6df4452"
+    },
+    {
+      "suite": "FireDAC",
+      "platform": "Win64",
+      "peMachine": "0x8664",
+      "passed": 46,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "0ab83f439465a76a16070fbbde39545568b26a92b7ff1f7ccc2227c31ceb9097",
+      "reportSha256": "0500327e1a6ee88a213fa69f08553d81568adfa3a4b1adef07275e9ea2e49733"
+    }
+  ],
+  "testedSourceSha256": {
+    "src/QueryBuilder4Delphi.Mapping.pas": "b247aa1821eb656d8104006ecf3ffaa5e65916709e32ba08122e8fff601998b2",
+    "src/QueryBuilder4Delphi.Nullable.pas": "40ef27484daa398ea3c7489a32b4683ff0f79312d5c74cc3b1d303edc94ff013",
+    "test/Mapping.Values.Tests.pas": "832018a415cd055643f5966b1fa572dae02d40b7c469c4739eaf5a664830b557",
+    "test/Mapping.Tests.pas": "4322dd9de4bd521bac5afd004d81afa3842bdce0397bb53f789b40e7e7e91489",
+    "test/NullableMappingExamples.pas": "27e5e65c7eb4a07234e2a2657a8134d3ef458e2d9cad13b3fa9f5ccd67e63569",
+    "test/FireDAC.Tests.pas": "88a7d3dca301caf4908c543e5140992d7cc0f0191ca12ed43b555e614d6436f3",
+    "test/QueryBuilder.Tests.dpr": "01afcbf745ed913c5369e1f12eee6b8141040a20a8620385096f508c06e514e1",
+    "test/QueryBuilder.FireDAC.Tests.dpr": "661375d5aaef3fc052e1a23cad5094c125ab815a5fb64ec77bba9d039db36ce6"
+  }
+}

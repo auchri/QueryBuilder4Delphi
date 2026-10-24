@@ -171,7 +171,7 @@ type
     [Test]
     procedure NullFailsAndReleasesObject;
     [Test]
-    procedure EmptyBytesAreUnsupportedNotNull;
+    procedure EmptyBytesAreValuesNotNull;
     [Test]
     procedure ThirdRowFailureReleasesAllObjects;
     [Test]
@@ -506,11 +506,17 @@ begin
   ExpectFailure('Flag', TValue.Empty, 'SQL NULL', 'Boolean');
 end;
 
-procedure TMappingTests.EmptyBytesAreUnsupportedNotNull;
+procedure TMappingTests.EmptyBytesAreValuesNotNull;
+var
+  Item: TScalarDTO;
 begin
-  ExpectFailure('Bytes', TValue.From<TBytes>(nil),
-    string(PTypeInfo(TypeInfo(TBytes))^.Name),
-    string(PTypeInfo(TypeInfo(TBytes))^.Name));
+  Item := TQueryMapper.FirstOrDefault<TScalarDTO>
+    (Rows(['Bytes'], TRows.Create(TValues.Create(TValue.From<TBytes>(nil)))));
+  try
+    Assert.AreEqual<NativeInt>(0, Length(Item.Bytes));
+  finally
+    Item.Free;
+  end;
 end;
 
 procedure TMappingTests.ThirdRowFailureReleasesAllObjects;
