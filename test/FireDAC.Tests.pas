@@ -89,6 +89,14 @@ type
     procedure DocumentationExecutionExamples;
     [Test]
     procedure ObjectMappingExamples;
+    [Test]
+    procedure FluentMappingLifetimeAndErrors;
+    [Test]
+    procedure ConsecutiveFluentQueries;
+    [Test]
+    procedure SharedPartialFluentResult;
+    [Test]
+    procedure AutoClosePreservesCachedRows;
 
   end;
 
@@ -1015,12 +1023,209 @@ begin
   finally
     Book.Free;
   end;
+  FConnection.ExecSQL
+    ('ALTER TABLE Books ADD COLUMN IsPublished integer DEFAULT 1');
+  FConnection.ExecSQL('UPDATE Books SET IsPublished = 0 WHERE Id = 2');
+  Books := LoadPublishedBooks(FExecutor);
+  try
+    Assert.AreEqual<NativeInt>(1, Books.Count);
+    Assert.AreEqual(1, Books[0].Id);
+    Assert.AreEqual('Alpha', Books[0].Title);
+  finally
+    Books.Free;
+  end;
   FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
   Assert.WillRaise(
     procedure
     begin
       LoadBooks(FExecutor).Free;
     end, EQueryMappingException);
+end;
+
+procedure TFireDACExecutionTests.FluentMappingLifetimeAndErrors;
+var
+  A, B: TQueryResult;
+  Raw: IQueryResult;
+  Books: TObjectList<TBook>;
+begin
+  A := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle']).OrderBy('Id')
+    .Execute(FExecutor);
+  B := A;
+  A := Default (TQueryResult);
+  Raw := B.AsRaw;
+  B := Default (TQueryResult);
+  Books := TQueryMapper.ToList<TBook>(Raw);
+  try
+    Assert.AreEqual<NativeInt>(2, Books.Count);
+    Assert.AreEqual('Alpha', Books[0].Title);
+    Assert.AreEqual(2, Books[1].Id);
+  finally
+    Books.Free;
+  end;
+  Raw := nil;
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  Books := TQuery.Create('Books').Where('Id', -1).Execute(FExecutor)
+    .ToList<TBook>();
+  try
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.AreEqual<NativeInt>(0, Books.Count);
+  finally
+    Books.Free;
+  end;
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  Assert.WillRaise(TTestLocalMethod(
+    procedure
+    begin
+      TQuery.Create('Books').Where('Id', -1).AsDelete.Execute(FExecutor)
+        .ToList<TBook>().Free;
+    end), EQueryMappingException);
+  FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
+  try
+    TQuery.Create('Books').Select('Title AS BookTitle').OrderBy('Id')
+      .Execute(FExecutor).FirstOrDefault<TBook>().Free;
+    Assert.Fail('Expected NULL mapping failure');
+  except
+    on E: EQueryMappingException do
+      Assert.AreEqual(0, FConnection.DataSetCount);
+  end;
+  try
+    TQuery.Create('Books').SelectRaw('Title AS Id').Where('Id', 2)
+      .Execute(FExecutor).ToList<TBook>().Free;
+    Assert.Fail('Expected type mapping failure');
+  except
+    on E: EQueryMappingException do
+      Assert.AreEqual(0, FConnection.DataSetCount);
+  end;
+  // Failed temporary mapping must release the provider-owned query.
+  Assert.AreEqual(0, FConnection.DataSetCount);
+  Assert.IsTrue(FConnection.Connected);
+end;
+
+procedure TFireDACExecutionTests.ConsecutiveFluentQueries;
+var
+  Books, MoreBooks: TObjectList<TBook>;
+  Book: TBook;
+begin
+  Books := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+    .OrderBy('Id').Execute(FExecutor).ToList<TBook>();
+  try
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    MoreBooks := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+      .OrderBy('Id').Execute(FExecutor).ToList<TBook>();
+    try
+      Assert.AreEqual(0, FConnection.DataSetCount);
+      Assert.AreEqual('Beta', Books[1].Title);
+      Assert.AreEqual(1, MoreBooks[0].Id);
+    finally
+      MoreBooks.Free;
+    end;
+    // FirstOrDefault deliberately leaves unread rows, but releases its owner.
+    Book := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+      .OrderBy('Id').Execute(FExecutor).FirstOrDefault<TBook>();
+    try
+      Assert.AreEqual(0, FConnection.DataSetCount);
+      Assert.AreEqual('Alpha', Book.Title);
+    finally
+      Book.Free;
+    end;
+    Book := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+      .Where('Id', 2).Execute(FExecutor).FirstOrDefault<TBook>();
+    try
+      Assert.AreEqual(0, FConnection.DataSetCount);
+      Assert.AreEqual('Beta', Book.Title);
+    finally
+      Book.Free;
+    end;
+    Book := TQuery.Create('Books').Where('Id', -1).Execute(FExecutor)
+      .FirstOrDefault<TBook>();
+    try
+      Assert.IsNull(Book);
+      Assert.AreEqual(0, FConnection.DataSetCount);
+    finally
+      Book.Free;
+    end;
+  finally
+    Books.Free;
+  end;
+  Assert.IsTrue(FConnection.Connected);
+end;
+
+procedure TFireDACExecutionTests.SharedPartialFluentResult;
+var
+  A, B, C: TQueryResult;
+  Raw, Other: IQueryResult;
+  Book: TBook;
+  I: Integer;
+begin
+  // Cross FireDAC's fetch boundary so early termination also covers unfetched rows.
+  FConnection.ExecSQL
+    ('WITH RECURSIVE n(x) AS (SELECT 3 UNION ALL SELECT x+1 FROM n WHERE x<120) '
+    + 'INSERT INTO Books(Id, Title) SELECT x, ''Book '' || x FROM n');
+  Book := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle'])
+    .OrderBy('Id').Execute(FExecutor).FirstOrDefault<TBook>();
+  try
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.AreEqual('Alpha', Book.Title);
+  finally
+    Book.Free;
+  end;
+  A := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle']).OrderBy('Id')
+    .Execute(FExecutor);
+  B := A;
+  Raw := A.AsRaw;
+  Book := A.FirstOrDefault<TBook>();
+  try
+    Assert.AreEqual(1, FConnection.DataSetCount);
+    Assert.AreEqual('Alpha', B.GetValue('BookTitle').AsString);
+    Assert.IsFalse(TFDQuery(FConnection.DataSets[0]).SourceEOF);
+    C := TQuery.Create('Books').Where('Id', 2).Execute(FExecutor);
+    Other := C.AsRaw;
+    C := Default (TQueryResult);
+    Assert.AreEqual(2, FConnection.DataSetCount);
+    Assert.IsTrue(Other.Next);
+    Assert.AreEqual('Beta', Other.GetValue('Title').AsString);
+    Other := nil;
+    Assert.AreEqual(1, FConnection.DataSetCount);
+    for I := 2 to 120 do
+    begin
+      Assert.IsTrue(B.Next);
+      Assert.AreEqual<Int64>(I, Raw.GetValue('Id').AsInt64);
+    end;
+    Assert.IsFalse(B.Next);
+    B := Default (TQueryResult);
+    Assert.IsFalse(Raw.Next);
+    Raw := nil;
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.AreEqual('Alpha', Book.Title);
+  finally
+    Book.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.AutoClosePreservesCachedRows;
+var
+  ResultSet: TQueryResult;
+  Raw: IQueryResult;
+  Query: TFDQuery;
+begin
+  ResultSet := TQuery.Create('Books').OrderBy('Id').Execute(FExecutor);
+  Raw := ResultSet.AsRaw;
+  Query := TFDQuery(FConnection.DataSets[0]);
+  Assert.IsTrue(Query.FetchOptions.AutoClose);
+  Query.FetchAll;
+  Assert.IsTrue(Query.SourceEOF);
+  Assert.IsTrue(Query.Active);
+  Assert.IsTrue(Raw.Next);
+  Assert.AreEqual('Alpha', Raw.GetValue('Title').AsString);
+  Assert.IsFalse(Raw.IsNull('Title'));
+  Assert.IsTrue(ResultSet.Next);
+  Assert.AreEqual('Beta', ResultSet.GetValue('Title').AsString);
+  Assert.IsFalse(Raw.Next);
+  Assert.AreEqual('Id', Raw.GetColumnName(0));
+  ResultSet := Default (TQueryResult);
+  Assert.AreEqual(1, FConnection.DataSetCount);
+  Raw := nil;
+  Assert.AreEqual(0, FConnection.DataSetCount);
 end;
 
 initialization

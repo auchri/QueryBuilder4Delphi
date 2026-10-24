@@ -3,7 +3,14 @@
 ## Execution and optional FireDAC provider
 
 The query describes the operation; the compiler generates parameterized SQL;
-`IQueryExecutor` executes it and `IQueryResult` exposes its rows. The contracts
+`IQueryExecutor` executes it and `IQueryResult` exposes its rows. `IQuery.Execute`
+returns a `TQueryResult` record wrapping that interface. It delegates the reader
+API, supports `AsRaw` and a one-way implicit conversion to `IQueryResult`.
+With `QueryBuilder4Delphi.Mapping` in scope, its record helper supplies
+`ToList<T>()` and `FirstOrDefault<T>()` by calling `TQueryMapper`.
+Rebuild dependent units after the return-type change; see
+[compatibility](OBJECT_MAPPING.md#result-facade-and-compatibility).
+The contracts
 live beside `IQuery` in `QueryBuilder4Delphi.Query.Core`, avoiding circular unit
 references. They use only RTL types. `QueryBuilder4Delphi.Execution` supplies
 `TQueryExecutor`, a reusable compiler/dialect implementation for providers.

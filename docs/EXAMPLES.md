@@ -907,6 +907,47 @@ alive and connected until every dependent result is released. Interfaces handle
 normal exits and exceptions; no manual Free is needed for interface objects.
 Executors, mutable queries and cursors must not be shared unsafely across threads.
 
+## Fluent object mapping
+
+For new code, map directly after execution. Add `System.Generics.Collections`,
+`QueryBuilder4Delphi.Query.Core`, `QueryBuilder4Delphi.Query` and
+`QueryBuilder4Delphi.Mapping` to the calling unit's `uses` clause. Mapping
+provides the record helper, so it must be in scope at the fluent call site.
+Use the `TBook` class (with `[Column('BookTitle')]` on `Title`) from
+[the complete mapping example](OBJECT_MAPPING.md).
+
+This function is compiled in `test/MappingExamples.pas` and executed against
+SQLite with an `IsPublished` column:
+
+```delphi
+function LoadPublishedBooks(const Executor: IQueryExecutor): TObjectList<TBook>;
+begin
+  Result := TQuery.Create('Books')
+    .Select(['Id', 'Title AS BookTitle'])
+    .Where('IsPublished', True)
+    .Execute(Executor)
+    .ToList<TBook>();
+end;
+```
+
+`Execute(Executor).FirstOrDefault<TBook>()` returns a caller-owned object or
+nil; free it in a finally block. Free the `TObjectList<TBook>` from `ToList` in
+a finally block too: it owns every mapped object. `ToList` consumes all remaining
+rows and `FirstOrDefault` consumes at most one. Both call `Next` before reading;
+neither rewinds the cursor. Partial projections leave constructor defaults.
+SQL NULL in a mapped property raises `EQueryMappingException`; use direct
+`IsNull`/`GetValue` access when nullable values are needed. Conversion and
+mapping errors retain the existing mapper behavior.
+
+The static API `TQueryMapper.ToList<TBook>(Rows)` and
+`TQueryMapper.FirstOrDefault<TBook>(Rows)` remains available. For direct cursor
+access, assign `Execute(Executor).AsRaw` to `Rows: IQueryResult`; direct assignment
+of `Execute(Executor)` also works through the one-way implicit conversion.
+The new `TQueryResult` return type shares one reference-counted cursor across
+copies. Rebuild dependent units, and use `Default(TQueryResult)` instead of nil
+to clear an inferred facade variable. Custom executors/providers do not change.
+See [compatibility details](OBJECT_MAPPING.md#result-facade-and-compatibility).
+
 ## Custom providers
 
 The SQL dialect chooses grammar. The provider chooses a driver and how values

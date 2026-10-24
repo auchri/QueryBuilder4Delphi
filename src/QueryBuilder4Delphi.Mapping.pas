@@ -9,6 +9,11 @@ uses
 type
   EQueryMappingException = class(EQueryException);
 
+  TQueryResultMappingHelper = record helper for TQueryResult
+    function ToList<T: class, constructor>: TObjectList<T>;
+    function FirstOrDefault<T: class, constructor>: T;
+  end;
+
   TQueryMapper = class
   private type
     TPropertyMapping = record
@@ -42,6 +47,30 @@ implementation
 
 uses
   System.SyncObjs, System.Math;
+
+function TQueryResultMappingHelper.ToList<T>: TObjectList<T>;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.ToList<T>(Rows);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.FirstOrDefault<T>: T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.FirstOrDefault<T>(Rows);
+  finally
+    Rows := nil;
+  end;
+end;
 
 type
   TPropertyMapping = TQueryMapper.TPropertyMapping;

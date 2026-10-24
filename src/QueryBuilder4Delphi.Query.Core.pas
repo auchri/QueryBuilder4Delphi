@@ -54,6 +54,35 @@ type
     property ColumnNames[Index: Integer]: string read GetColumnName;
   end;
 
+  // A reference-counted view of one cursor. Copies share its position.
+  // Object mapping is supplied by the helper in QueryBuilder4Delphi.Mapping.
+  TQueryResult = record
+  private
+    FResult: IQueryResult;
+    function RequireResult: IQueryResult;
+  public
+    constructor Create(const AResult: IQueryResult);
+    function AsRaw: IQueryResult;
+    // Transfer this facade's reference; independently retained copies survive.
+    function TakeRaw: IQueryResult;
+    class operator Implicit(const Value: TQueryResult): IQueryResult;
+    function Next: Boolean;
+    function GetHasResultSet: Boolean;
+    function GetRowsAffected: Int64;
+    function GetColumnCount: Integer;
+    function GetColumnName(Index: Integer): string;
+    function GetColumnType(Index: Integer): TQueryValueType;
+    function GetColumnIndex(const Name: string): Integer;
+    function GetValue(Index: Integer): TValue; overload;
+    function GetValue(const Name: string): TValue; overload;
+    function IsNull(Index: Integer): Boolean; overload;
+    function IsNull(const Name: string): Boolean; overload;
+    property HasResultSet: Boolean read GetHasResultSet;
+    property RowsAffected: Int64 read GetRowsAffected;
+    property ColumnCount: Integer read GetColumnCount;
+    property ColumnNames[Index: Integer]: string read GetColumnName;
+  end;
+
   IQueryExecutor = interface
     ['{6793FB16-8CA0-4785-AB75-63C8DE7BC09A}']
     function Execute(const Query: IQuery; Mode: TQueryExecutionMode = emAuto)
@@ -106,7 +135,7 @@ type
   IQuery = interface
     ['{408F2E7B-CA64-4B3A-B88D-972214A15CAA}']
     function Execute(const Executor: IQueryExecutor;
-      Mode: TQueryExecutionMode = emAuto): IQueryResult;
+      Mode: TQueryExecutionMode = emAuto): TQueryResult;
     function GetEngineScope: string;
     procedure PutEngineScope(const Value: string);
     function GetQueryAlias: string;
@@ -696,6 +725,89 @@ implementation
 
 uses
   System.Variants;
+
+constructor TQueryResult.Create(const AResult: IQueryResult);
+begin
+  FResult := AResult;
+end;
+
+function TQueryResult.AsRaw: IQueryResult;
+begin
+  Result := FResult;
+end;
+
+function TQueryResult.TakeRaw: IQueryResult;
+begin
+  Result := FResult;
+  FResult := nil;
+end;
+
+class operator TQueryResult.Implicit(const Value: TQueryResult): IQueryResult;
+begin
+  Result := Value.AsRaw;
+end;
+
+function TQueryResult.RequireResult: IQueryResult;
+begin
+  if FResult = nil then
+    raise EQueryException.Create('The result facade has no underlying result');
+  Result := FResult;
+end;
+
+function TQueryResult.Next: Boolean;
+begin
+  Result := RequireResult.Next;
+end;
+
+function TQueryResult.GetHasResultSet: Boolean;
+begin
+  Result := RequireResult.HasResultSet;
+end;
+
+function TQueryResult.GetRowsAffected: Int64;
+begin
+  Result := RequireResult.RowsAffected;
+end;
+
+function TQueryResult.GetColumnCount: Integer;
+begin
+  Result := RequireResult.ColumnCount;
+end;
+
+function TQueryResult.GetColumnName(Index: Integer): string;
+begin
+  Result := RequireResult.GetColumnName(Index);
+end;
+
+function TQueryResult.GetColumnType(Index: Integer): TQueryValueType;
+begin
+  Result := RequireResult.GetColumnType(Index);
+end;
+
+function TQueryResult.GetColumnIndex(const Name: string): Integer;
+begin
+  Result := RequireResult.GetColumnIndex(Name);
+end;
+
+function TQueryResult.GetValue(Index: Integer): TValue;
+begin
+  Result := RequireResult.GetValue(Index);
+end;
+
+function TQueryResult.GetValue(const Name: string): TValue;
+begin
+  Result := RequireResult.GetValue(Name);
+end;
+
+function TQueryResult.IsNull(Index: Integer): Boolean;
+begin
+  Result := RequireResult.IsNull(Index);
+end;
+
+function TQueryResult.IsNull(const Name: string): Boolean;
+begin
+  Result := RequireResult.IsNull(Name);
+end;
 
 constructor TQueryNull.Create(ValueType: TQueryValueType);
 begin
