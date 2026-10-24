@@ -37,6 +37,9 @@ function LoadBookAuthors(const Executor: IQueryExecutor)
   : TObjectList<TBookAuthorView>;
 function FirstBook(const Executor: IQueryExecutor): TBookView;
 function SingleBook(const Executor: IQueryExecutor; Id: Integer): TBookView;
+function FindBookView(const Executor: IQueryExecutor; Id: Integer): TBookView;
+function FindUniqueBookView(const Executor: IQueryExecutor; Id: Integer)
+  : TBookView;
 procedure StreamBooks(const Executor: IQueryExecutor;
   const ProcessBook: TProc<TBookView>);
 procedure PrintMappingExamples(const Executor: IQueryExecutor);
@@ -47,48 +50,55 @@ uses QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Mapping;
 
 function LoadBookViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin
-  Result := TQueryMapper.ToList<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).OrderBy('Id')
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ToList<TBookView>();
 end;
 
 function LoadTitleViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin
-  Result := TQueryMapper.ToList<TBookView>(TQuery.Create('Books')
-    .Select('Title as BookTitle').OrderBy('Id').Execute(Executor));
+  Result := TQuery.Create('Books').Select('Title as BookTitle').OrderBy('Id')
+    .Execute(Executor).ToList<TBookView>();
 end;
 
 function LoadBookAuthors(const Executor: IQueryExecutor)
   : TObjectList<TBookAuthorView>;
 begin
-  Result := TQueryMapper.ToList<TBookAuthorView>(TQuery.Create('Books as b')
-    .LeftJoin('Authors as a', 'a.Id', 'b.AuthorId')
-    .Select(['b.Id', 'b.Title as BookTitle', 'b.Price', 'a.Name as AuthorName'])
-    .OrderBy('b.Id').Execute(Executor));
+  Result := TQuery.Create('Books as b').LeftJoin('Authors as a', 'a.Id',
+    'b.AuthorId').Select(['b.Id', 'b.Title as BookTitle', 'b.Price',
+    'a.Name as AuthorName']).OrderBy('b.Id').Execute(Executor)
+    .ToList<TBookAuthorView>();
 end;
 
 function FirstBook(const Executor: IQueryExecutor): TBookView;
 begin
-  Result := TQueryMapper.First<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).OrderBy('Id')
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).First<TBookView>();
 end;
 
 function SingleBook(const Executor: IQueryExecutor; Id: Integer): TBookView;
 begin
-  Result := TQueryMapper.Single<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).Where('Id', Id)
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).Single<TBookView>();
+end;
+
+function FindBookView(const Executor: IQueryExecutor; Id: Integer): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrDefault<TBookView>();
+end;
+
+function FindUniqueBookView(const Executor: IQueryExecutor; Id: Integer)
+  : TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrDefault<TBookView>();
 end;
 
 procedure StreamBooks(const Executor: IQueryExecutor;
   const ProcessBook: TProc<TBookView>);
-var
-  Rows: IQueryResult;
 begin
-  Rows := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
-    .OrderBy('Id').Execute(Executor);
-  TQueryMapper.ForEach<TBookView>(Rows, ProcessBook);
+  TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ForEach<TBookView>(ProcessBook);
 end;
 
 procedure PrintMappingExamples(const Executor: IQueryExecutor);

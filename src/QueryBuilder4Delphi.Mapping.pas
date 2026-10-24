@@ -40,6 +40,14 @@ type
       : TObjectList<T>;
     function FirstOrDefault<T: class, constructor>
       (Options: TQueryMappingOptions = nil): T;
+    function First<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    function Single<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    function SingleOrDefault<T: class, constructor>
+      (Options: TQueryMappingOptions = nil): T;
+    procedure ForEach<T: class, constructor>(const Callback: TProc<T>;
+      Options: TQueryMappingOptions = nil);
   end;
 
   TQueryMapper = class
@@ -118,6 +126,56 @@ begin
   Rows := Self.TakeRaw;
   try
     Result := TQueryMapper.FirstOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.First<T>(Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.First<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.Single<T>(Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.Single<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+function TQueryResultMappingHelper.SingleOrDefault<T>
+  (Options: TQueryMappingOptions): T;
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    Result := TQueryMapper.SingleOrDefault<T>(Rows, Options);
+  finally
+    Rows := nil;
+  end;
+end;
+
+procedure TQueryResultMappingHelper.ForEach<T>(const Callback: TProc<T>;
+  Options: TQueryMappingOptions);
+var
+  Rows: IQueryResult;
+begin
+  Rows := Self.TakeRaw;
+  try
+    TQueryMapper.ForEach<T>(Rows, Callback, Options);
   finally
     Rows := nil;
   end;

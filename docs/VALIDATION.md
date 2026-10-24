@@ -378,3 +378,52 @@ ToList versus ForEach, cold versus warm metadata, live heap samples and exact
 peak DTO counts. Each platform records 108 validated observations in committed
 CSV files. Timings are local observations rather than acceptance thresholds;
 heap samples do not include the mock input or constitute OS memory peaks.
+
+## Fluent mapper completion (PR #21)
+
+The helper now exposes First, Single, SingleOrDefault and ForEach alongside its
+unchanged ToList and FirstOrDefault implementations. Every new method delegates
+to the existing static mapper after TakeRaw and clears the transferred interface
+in finally. No static mapping/conversion, provider, cursor, Execute or SQL
+compiler implementation changed. MapCurrent remains static.
+
+Fresh Delphi 12 Community Edition Base builds and complete DUnitX runs passed:
+
+| Suite | Win32 | Win64 |
+| --- | ---: | ---: |
+| Core | 822/822 | 822/822 |
+| FireDAC / SQLite in memory | 62/62 | 62/62 |
+
+Every run reports zero failed, errored, ignored and leaked cases, with no
+shutdown memory-leak report. The validation JSON files record PE architecture
+checks and executable SHA-256 hashes. Both builds completed without compiler
+warnings. There are 68 new core cases in FluentMapping.Operations.Tests.pas and
+14 new FireDAC cases, plus the existing documentation integration case now runs
+nine fluent example routines.
+
+Coverage includes temporary results with zero/one/multiple rows; exact Next call
+counts; returned objects surviving result destruction; borrowed objects freed
+between callbacks and on failure; immediate caller-scope resource release;
+schema, NULL, conversion, setter, custom-converter, provider Next and callback
+exceptions; consumed named facades; retained raw interfaces and copied facades;
+nullable values, SkipNullAssignment and custom mapping options. SQLite checks
+DataSetCount immediately after terminal calls, including callback failures, and
+confirms that shared readers remain usable. Single variants detect multiple rows
+without SQL limits.
+
+Anonymous test callbacks avoid capturing the facade being assigned a query
+result: Delphi may otherwise retain a separate managed expression temporary in
+the callback's activation record. The nullable test explicitly clears its local
+anonymous check procedure to break a test-only reference cycle. Direct terminal
+mapping itself releases its transferred result reference deterministically.
+
+All nine example routines in EXAMPLES.md match MappingApiExamples.pas after
+ignoring presentation whitespace and execute in the SQLite integration suite.
+README, OBJECT_MAPPING, API and EXAMPLES now prefer fluent terminal calls while
+retaining the static API for advanced cursor control. Existing benchmark CSVs
+remain the historical static-engine measurements at commit 279b0da; this
+follow-up does not change that engine or claim new performance measurements.
+
+Both generator checks pass (including 69 paired Oracle scenarios), all eight
+Python generator tests pass, local Markdown file links resolve, and
+`git diff --check` passes. Formatter.exe was applied to Pascal files.

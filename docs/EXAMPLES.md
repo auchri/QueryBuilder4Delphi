@@ -910,8 +910,8 @@ Executors, mutable queries and cursors must not be shared unsafely across thread
 
 ## Object Mapping
 
-Use `TQueryMapper` from `QueryBuilder4Delphi.Mapping` for ordinary classes and
-any `IQueryResult` provider. Import `System.SysUtils`,
+Use the fluent helper from `QueryBuilder4Delphi.Mapping` to map ordinary classes
+after execution with any `IQueryResult` provider. Import `System.SysUtils`,
 `System.Generics.Collections`, `QueryBuilder4Delphi.Query.Core`,
 `QueryBuilder4Delphi.Query`, `QueryBuilder4Delphi.Nullable` and the Mapping unit.
 Classes need a public parameterless constructor and writable public/published
@@ -959,9 +959,8 @@ ignored; ambiguous mapped names raise `EQueryMappingException`.
 ```delphi
 function LoadBookViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin
-  Result := TQueryMapper.ToList<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).OrderBy('Id')
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ToList<TBookView>();
 end;
 ```
 
@@ -971,8 +970,8 @@ and `Price.HasValue` false in this class:
 ```delphi
 function LoadTitleViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin
-  Result := TQueryMapper.ToList<TBookView>(TQuery.Create('Books')
-    .Select('Title as BookTitle').OrderBy('Id').Execute(Executor));
+  Result := TQuery.Create('Books').Select('Title as BookTitle').OrderBy('Id')
+    .Execute(Executor).ToList<TBookView>();
 end;
 ```
 
@@ -989,10 +988,10 @@ and lossy conversions raise mapping exceptions. See
 function LoadBookAuthors(const Executor: IQueryExecutor)
   : TObjectList<TBookAuthorView>;
 begin
-  Result := TQueryMapper.ToList<TBookAuthorView>(TQuery.Create('Books as b')
-    .LeftJoin('Authors as a', 'a.Id', 'b.AuthorId')
-    .Select(['b.Id', 'b.Title as BookTitle', 'b.Price', 'a.Name as AuthorName'])
-    .OrderBy('b.Id').Execute(Executor));
+  Result := TQuery.Create('Books as b').LeftJoin('Authors as a', 'a.Id',
+    'b.AuthorId').Select(['b.Id', 'b.Title as BookTitle', 'b.Price',
+    'a.Name as AuthorName']).OrderBy('b.Id').Execute(Executor)
+    .ToList<TBookAuthorView>();
 end;
 ```
 
@@ -1001,16 +1000,31 @@ end;
 ```delphi
 function FirstBook(const Executor: IQueryExecutor): TBookView;
 begin
-  Result := TQueryMapper.First<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).OrderBy('Id')
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).First<TBookView>();
 end;
 
 function SingleBook(const Executor: IQueryExecutor; Id: Integer): TBookView;
 begin
-  Result := TQueryMapper.Single<TBookView>(TQuery.Create('Books')
-    .Select(['Id', 'Title as BookTitle', 'Price']).Where('Id', Id)
-    .Execute(Executor));
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).Single<TBookView>();
+end;
+```
+
+Use the OrDefault variants when an empty result should return nil:
+
+```delphi
+function FindBookView(const Executor: IQueryExecutor; Id: Integer): TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).FirstOrDefault<TBookView>();
+end;
+
+function FindUniqueBookView(const Executor: IQueryExecutor; Id: Integer)
+  : TBookView;
+begin
+  Result := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .Where('Id', Id).Execute(Executor).SingleOrDefault<TBookView>();
 end;
 ```
 
@@ -1022,12 +1036,9 @@ returned rows; applying SQL `Limit(1)` would hide additional matches.
 ```delphi
 procedure StreamBooks(const Executor: IQueryExecutor;
   const ProcessBook: TProc<TBookView>);
-var
-  Rows: IQueryResult;
 begin
-  Rows := TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
-    .OrderBy('Id').Execute(Executor);
-  TQueryMapper.ForEach<TBookView>(Rows, ProcessBook);
+  TQuery.Create('Books').Select(['Id', 'Title as BookTitle', 'Price'])
+    .OrderBy('Id').Execute(Executor).ForEach<TBookView>(ProcessBook);
 end;
 ```
 
@@ -1122,14 +1133,26 @@ as FireDAC and the mock do. Error context uses row 0 for this API because
 independent objects for the same row and rebuild a local schema plan; for large
 resultsets use `ForEach`, which resolves the plan once for the entire call.
 
-### Optional fluent facade
+### Fluent lifetime and advanced cursor control
 
-The existing record helper still supports `Query.Execute(Executor).ToList<T>()`
-and `.FirstOrDefault<T>()`. It consumes its receiving facade and releases that
-reference on return or exception; retained copies share the cursor position.
-Use the static API above for the complete mapper surface and explicit cursor
-control. This PR does not change `IQuery.Execute`, `IQueryResult` or the existing
-facade contract. Delphi interfaces cannot expose generic methods. See
+All six fluent terminal methods consume the receiving `TQueryResult` facade via
+`TakeRaw` and release that reference before returning, including exceptional
+exits. Named facade variables are consumed too. Independently retained
+`IQueryResult` interfaces and copied facades remain valid and share cursor
+position. Returned objects are independent of the released cursor. Fluent
+`ForEach` objects are borrowed and destroyed after each callback, even on errors.
+
+All methods accept optional `TQueryMappingOptions`, for example
+`Query.Execute(Executor).Single<TBookView>(Options)` or
+`Query.Execute(Executor).ForEach<TBookView>(Callback, Options)`. Configure options
+before the call and keep them alive until it completes.
+
+The static `TQueryMapper` methods remain available for advanced cursor control:
+use `TQueryMapper.First<TBookView>(Rows)` when retaining a reader yourself, or
+`TQueryMapper.MapCurrent<TBookView>(Rows)` after `Rows.Next` returns True. There
+is no fluent `MapCurrent` because it requires an explicitly positioned cursor.
+The cursor table above describes both static and fluent mapping; only the
+fluent calls consume their receiving facade reference. See
 [facade compatibility](OBJECT_MAPPING.md#result-facade-and-compatibility).
 
 The complete unit is [MappingApiExamples.pas](../test/MappingApiExamples.pas).

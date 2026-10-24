@@ -31,6 +31,7 @@ uses
   Mapping.Streaming.Tests in 'Mapping.Streaming.Tests.pas',
   Mapping.Values.Tests in 'Mapping.Values.Tests.pas',
   FluentMapping.Tests in 'FluentMapping.Tests.pas',
+  FluentMapping.Operations.Tests in 'FluentMapping.Operations.Tests.pas',
   DocumentationExamples in 'DocumentationExamples.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
   QueryWrites.Tests in 'QueryWrites.Tests.pas',

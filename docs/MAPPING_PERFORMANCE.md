@@ -1,6 +1,7 @@
 # Object mapper performance
 
-Measured 2026-10-24 with Delphi 12 Community Edition (RAD Studio 23.0), native
+Measured 2026-10-24 at commit `279b0da`, before the fluent helper extension,
+with Delphi 12 Community Edition (RAD Studio 23.0), native
 Win32 and Win64 optimized Base builds, default RTL memory manager, AMD Ryzen 5
 7600X, Windows NT 10.0 build 26300 on x64. Executables run from PowerShell outside
 the debugger. No database, connection or driver participates in these timings.
@@ -111,7 +112,8 @@ discovery were added. Streaming still performs one allocation per mapped object;
 its benefit is bounded simultaneously live output, not zero allocations or an
 assumed speed advantage. Callback cost depends on the application.
 
-The primary API remains the static mapper. The existing record helper for fluent
-`ToList` / `FirstOrDefault` remains compatible; interfaces, query execution and
-provider contracts were not changed to add syntax. Borrowing and cursor ownership
+The fluent helper now exposes all terminal operations and delegates to the static
+mapper measured above. Its follow-up adds ownership-transfer wrappers only; the
+static mapping/conversion engine and benchmark measurements are unchanged.
+Interfaces, query execution and provider contracts were not changed to add syntax. Borrowing and cursor ownership
 are documented in [the mapping examples](EXAMPLES.md#object-mapping).

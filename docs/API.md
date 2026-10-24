@@ -7,7 +7,16 @@ The query describes the operation; the compiler generates parameterized SQL;
 returns a `TQueryResult` record wrapping that interface. It delegates the reader
 API, supports `AsRaw` and a one-way implicit conversion to `IQueryResult`.
 With `QueryBuilder4Delphi.Mapping` in scope, its record helper supplies
-`ToList<T>()` and `FirstOrDefault<T>()` by calling `TQueryMapper`.
+`ToList<T>()`, `First<T>()`, `FirstOrDefault<T>()`, `Single<T>()`,
+`SingleOrDefault<T>()` and `ForEach<T>(Callback)` by calling `TQueryMapper`.
+All accept optional `TQueryMappingOptions` (`ForEach` takes it after the callback).
+Each terminal method uses `TakeRaw`, clears the receiving facade, and releases
+its transferred reference in `finally` on success and exceptions. Independently
+retained interfaces or copied facades remain valid and share cursor position.
+Objects returned by single-row methods outlive the resultset and belong to the
+caller. Streaming objects are borrowed only until their callback returns or raises.
+`Single` variants never change SQL to limit rows. `MapCurrent` remains static
+because it requires a caller-positioned cursor.
 Rebuild dependent units after the return-type change; see
 [compatibility](OBJECT_MAPPING.md#result-facade-and-compatibility).
 The contracts

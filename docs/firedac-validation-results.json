@@ -6,22 +6,22 @@
     {
       "platform": "Win32",
       "peMachine": "0x14c",
-      "tests": 48,
-      "passed": 48,
+      "tests": 62,
+      "passed": 62,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "8b248ef2530177254412b75a27256b6fd24db969fa4a85a100a11419bc208478"
+      "executableSha256": "12af6869c20a0ee8651ecee5872004f16f7e9d122161eb4c133b608123499358"
     },
     {
       "platform": "Win64",
       "peMachine": "0x8664",
-      "tests": 48,
-      "passed": 48,
+      "tests": 62,
+      "passed": 62,
       "failed": 0,
       "errors": 0,
       "ignored": 0,
-      "executableSha256": "2110458744892ac601b487bbe03cca4dbac3507a9ffd4e760b34fcf3ebebbfe5"
+      "executableSha256": "b9035af8381f0d41c7575e314a0d89aade5f61b0ff98361d0fb5f7c86a562daa"
     }
   ],
   "integrationDatabase": "SQLite :memory:, statically linked FireDAC driver"

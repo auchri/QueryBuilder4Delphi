@@ -6,14 +6,19 @@ Classes need a public parameterless constructor and writable public/published
 properties with RTTI. No base class, interface, table attribute or key is needed.
 For classes compiled with restricted RTTI, enable property RTTI explicitly.
 
-The primary API is `TQueryMapper.ToList<T>(Query.Execute(Executor))`. For the
-complete mapper API, streaming, ownership and cursor semantics see
-[Object Mapping examples](EXAMPLES.md#object-mapping) and
-[performance measurements](MAPPING_PERFORMANCE.md). Existing fluent helpers
-remain available: `Execute(Executor).ToList<T>()` and
-`Execute(Executor).FirstOrDefault<T>()`. The methods below are
-record helper methods and require `QueryBuilder4Delphi.Mapping` in the calling
-unit's `uses` clause.
+Prefer `Query.Execute(Executor).ToList<T>()`, `.First<T>()`,
+`.FirstOrDefault<T>()`, `.Single<T>()`, `.SingleOrDefault<T>()` and
+`.ForEach<T>(Callback)` for terminal mapping. All accept optional
+`TQueryMappingOptions`; for `ForEach` pass options after the callback.
+These record helper methods require `QueryBuilder4Delphi.Mapping` in the calling
+unit's `uses` clause. They delegate to `TQueryMapper` without changing mapping,
+conversion or cursor semantics. `Single` variants inspect at most two rows and
+never add SQL LIMIT/TOP clauses.
+
+Use the static mapper for advanced cursor control. In particular,
+`TQueryMapper.MapCurrent<T>(Rows)` requires an explicitly positioned cursor and
+has no fluent terminal counterpart. See [examples and cursor semantics](EXAMPLES.md#object-mapping)
+and [performance measurements](MAPPING_PERFORMANCE.md).
 
 The following example is compiled in [MappingExamples.pas](../test/MappingExamples.pas)
 and exercised against SQLite through the execution API:
@@ -70,7 +75,7 @@ end.
 `QueryBuilder4Delphi.Query.Core` containing one `IQueryResult`. It delegates
 every reader operation and never advances the cursor on construction. Core
 does not depend on Mapping. Delphi interfaces cannot declare generic methods
-(E2535), so `TQueryResultMappingHelper` in Mapping supplies the generic methods
+(E2535), so `TQueryResultMappingHelper` in Mapping supplies the six generic terminal methods
 and calls the existing `TQueryMapper` directly. Only the helper must be in scope;
 executors still return `IQueryResult` and need no mapping implementation.
 
@@ -116,14 +121,14 @@ reader operations on it raise `EQueryException`, and mapping preserves the
 static mapper's `EArgumentNilException`. Command results without a resultset
 raise `EQueryMappingException` before constructing any object.
 
-Fluent `ToList` and `FirstOrDefault` consume the receiving facade, including a
+All six fluent terminal methods consume the receiving facade, including a
 named variable: `TakeRaw` transfers its interface reference to a local and clears
 the facade before calling the existing mapper. A `finally` releases the local
 on success or exception. This avoids waiting for Delphi's managed expression
 temporaries to finalize. With no other references, the underlying result is
 destroyed before the mapping call returns or propagates an exception.
-`FirstOrDefault` also releases an incompletely read cursor. The facade is empty
-after either call; use `TQueryMapper.FirstOrDefault<TBook>(Rows.AsRaw)` when a
+`First`/`FirstOrDefault` also release an incompletely read cursor. The facade is empty
+after any terminal call; use `TQueryMapper.FirstOrDefault<TBook>(Rows.AsRaw)` when a
 named facade must remain available for subsequent reads. The static mapper
 remains non-owning. `AsRaw` and implicit conversion retain rather than consume;
 their compiler-generated temporaries may live until the enclosing routine exits.
@@ -167,7 +172,7 @@ eligible properties raise a descriptive exception, including on empty results.
 At least one result column must match an eligible property. A schema with no
 matches raises `EQueryMappingException` naming the class and available columns,
 even if the result has no rows. Validation happens before advancing the cursor
-or constructing objects in both mapper methods.
+or constructing objects in every mapper operation.
 
 Effective mapping names must be unique across eligible properties, ignoring
 case. Two `[Column]` names, or an explicit name and another property's implicit
