@@ -401,6 +401,7 @@ Fallback := function: TMappingBook
   end;
 Options := TQueryMappingOptions.Create;
 try
+  Options.NullBehavior := nmbThrow;
   if Kind = 4 then
     Options.RegisterConverter<Integer, Integer>(
       function(Value: Integer): Integer

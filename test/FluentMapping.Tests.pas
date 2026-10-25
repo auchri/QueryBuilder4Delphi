@@ -284,31 +284,39 @@ procedure TFluentMappingTests.MappingErrorsReleaseResources(First,
   Invalid: Integer);
 var
   Value: TValue;
+  Options: TQueryMappingOptions;
 begin
-  if Invalid = 1 then
-    Value := 'not an integer'
-  else
-    Value := TValue.Empty;
-  if First = 1 then
-    TMockQueryExecutor.Data := TRows.Create(TValues.Create(Value, 'bad'))
-  else
-    TMockQueryExecutor.Data := TRows.Create(TValues.Create(1, 'good'),
-      TValues.Create(Value, 'bad'));
+  Options := TQueryMappingOptions.Create;
   try
-    if First = 1 then
-      TQuery.Create('Books').Execute(FExecutor)
-        .FirstOrDefault<TMappingBook>().Free
+    Options.NullBehavior := nmbThrow;
+    if Invalid = 1 then
+      Value := 'not an integer'
     else
-      TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>().Free;
-    Assert.Fail('Expected a mapping exception');
-  except
-    on E: EQueryMappingException do
-      Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+      Value := TValue.Empty;
+    if First = 1 then
+      TMockQueryExecutor.Data := TRows.Create(TValues.Create(Value, 'bad'))
+    else
+      TMockQueryExecutor.Data := TRows.Create(TValues.Create(1, 'good'),
+        TValues.Create(Value, 'bad'));
+    try
+      if First = 1 then
+        TQuery.Create('Books').Execute(FExecutor).FirstOrDefault<TMappingBook>
+          (Options).Free
+      else
+        TQuery.Create('Books').Execute(FExecutor).ToList<TMappingBook>
+          (Options).Free;
+      Assert.Fail('Expected a mapping exception');
+    except
+      on E: EQueryMappingException do
+        Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+    end;
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+    Assert.AreEqual(TMappingBook.Created - FCreated, TMappingBook.Destroyed -
+      FDestroyed);
+    Assert.IsTrue(TMappingBook.Created > FCreated);
+  finally
+    Options.Free;
   end;
-  Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
-  Assert.AreEqual(TMappingBook.Created - FCreated, TMappingBook.Destroyed -
-    FDestroyed);
-  Assert.IsTrue(TMappingBook.Created > FCreated);
 end;
 
 procedure TFluentMappingTests.SetterExceptionIsPreserved;
@@ -429,24 +437,31 @@ procedure TFluentMappingTests.SharedMappingFailure;
 var
   A, B: TQueryResult;
   Raw: IQueryResult;
+  Options: TQueryMappingOptions;
 begin
-  TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty, 'bad'),
-    TValues.Create(2, 'good'));
-  A := TQuery.Create('Books').Execute(FExecutor);
-  B := A;
-  Raw := A.AsRaw;
+  Options := TQueryMappingOptions.Create;
   try
-    A.FirstOrDefault<TMappingBook>().Free;
-    Assert.Fail('Expected a mapping exception');
-  except
-    on E: EQueryMappingException do
-      Assert.AreEqual(FResultBaseline + 1, TMockQueryResult.LiveCount);
+    Options.NullBehavior := nmbThrow;
+    TMockQueryExecutor.Data := TRows.Create(TValues.Create(TValue.Empty, 'bad'),
+      TValues.Create(2, 'good'));
+    A := TQuery.Create('Books').Execute(FExecutor);
+    B := A;
+    Raw := A.AsRaw;
+    try
+      A.FirstOrDefault<TMappingBook>(Options).Free;
+      Assert.Fail('Expected a mapping exception');
+    except
+      on E: EQueryMappingException do
+        Assert.AreEqual(FResultBaseline + 1, TMockQueryResult.LiveCount);
+    end;
+    Assert.IsTrue(B.Next);
+    Assert.AreEqual('good', Raw.GetValue('BookTitle').AsString);
+    B := Default (TQueryResult);
+    Raw := nil;
+    Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+  finally
+    Options.Free;
   end;
-  Assert.IsTrue(B.Next);
-  Assert.AreEqual('good', Raw.GetValue('BookTitle').AsString);
-  B := Default (TQueryResult);
-  Raw := nil;
-  Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
 end;
 
 procedure TFluentMappingTests.FirstWithOneRow;

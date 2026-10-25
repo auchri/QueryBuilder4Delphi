@@ -11,6 +11,8 @@ type
   EQueryMappingException = QueryBuilder4Delphi.Mapping.Metadata.
     EQueryMappingException;
 
+  TNullMappingBehavior = (nmbDefault, nmbThrow, nmbSkip);
+
   TQueryMappingOptions = class
   private type
     TNullableConverter = TFunc<TValue, Boolean, TQueryMappingOptions, TValue>;
@@ -20,9 +22,11 @@ type
       Convert: TFunc<TValue, TValue>;
     end;
   private
-    FSkipNullAssignment: Boolean;
+    FNullBehavior: TNullMappingBehavior;
     FNullables: TDictionary<PTypeInfo, TNullableConverter>;
     FConverters: TList<TConverter>;
+    function GetSkipNullAssignment: Boolean;
+    procedure SetSkipNullAssignment(Value: Boolean);
     class function ConvertMappedValue(const Value: TValue; Target: PTypeInfo;
       IsNull: Boolean; Options: TQueryMappingOptions): TValue; static;
     class function NullableConverter<T>: TNullableConverter; static;
@@ -33,8 +37,11 @@ type
     procedure RegisterConverter<TSource, TTarget>(const Converter
       : TFunc<TSource, TTarget>);
     // Configure before use; do not mutate/free during a mapping operation.
-    property SkipNullAssignment: Boolean read FSkipNullAssignment
-      write FSkipNullAssignment;
+    property NullBehavior: TNullMappingBehavior read FNullBehavior
+      write FNullBehavior;
+    // Compatibility alias: True selects nmbSkip; False selects nmbThrow.
+    property SkipNullAssignment: Boolean read GetSkipNullAssignment
+      write SetSkipNullAssignment;
   end;
 
   TQueryResultMappingHelper = record helper for TQueryResult
@@ -388,6 +395,16 @@ begin
     (Info = TypeInfo(Extended));
 end;
 
+function IsSupportedTarget(Target: PTypeInfo): Boolean;
+begin
+  Result := (IsIntegerType(Target) or IsFloatType(Target) or
+    (Target = TypeInfo(string)) or (Target = TypeInfo(Boolean)) or
+    (Target = TypeInfo(Currency)) or (Target = TypeInfo(TDateTime)) or
+    (Target = TypeInfo(TBcd)) or (Target = TypeInfo(TSQLTimeStamp)) or
+    (Target = TypeInfo(TSQLTimeStampOffset)) or (Target = TypeInfo(TGUID)) or
+    (Target = TypeInfo(TBytes)));
+end;
+
 function ConvertValue(const Value: TValue; Target: PTypeInfo): TValue;
 var
   Number: Int64;
@@ -401,12 +418,7 @@ var
 begin
   // Preserve native records and managed arrays through TValue's public API.
   // A concrete source type, never GetColumnType, determines conversion.
-  if (Value.TypeInfo = Target) and (IsIntegerType(Target) or IsFloatType(Target)
-    or (Target = TypeInfo(string)) or (Target = TypeInfo(Boolean)) or
-    (Target = TypeInfo(Currency)) or (Target = TypeInfo(TDateTime)) or
-    (Target = TypeInfo(TBcd)) or (Target = TypeInfo(TSQLTimeStamp)) or
-    (Target = TypeInfo(TSQLTimeStampOffset)) or (Target = TypeInfo(TGUID)) or
-    (Target = TypeInfo(TBytes))) then
+  if (Value.TypeInfo = Target) and IsSupportedTarget(Target) then
     Exit(Value);
 
   if IsIntegerType(Target) and IsIntegerType(Value.TypeInfo) then
@@ -563,8 +575,22 @@ end;
 constructor TQueryMappingOptions.Create;
 begin
   inherited;
+  FNullBehavior := nmbDefault;
   FNullables := TDictionary<PTypeInfo, TNullableConverter>.Create;
   FConverters := TList<TConverter>.Create;
+end;
+
+function TQueryMappingOptions.GetSkipNullAssignment: Boolean;
+begin
+  Result := FNullBehavior = nmbSkip;
+end;
+
+procedure TQueryMappingOptions.SetSkipNullAssignment(Value: Boolean);
+begin
+  if Value then
+    FNullBehavior := nmbSkip
+  else
+    FNullBehavior := nmbThrow;
 end;
 
 destructor TQueryMappingOptions.Destroy;
@@ -634,8 +660,17 @@ begin
   if BuiltInNullables.TryGetValue(Target, Nullable) then
     Exit(Nullable(Value, IsNull, Options));
   if IsNull then
+  begin
+    if ((Options = nil) or (Options.NullBehavior = nmbDefault)) and
+      IsSupportedTarget(Target) then
+    begin
+      // RTL initializes a typed default, including records and managed arrays.
+      TValue.Make(nil, Target, Result);
+      Exit;
+    end;
     raise EQueryMappingException.Create
-      ('SQL NULL requires a registered nullable target');
+      ('SQL NULL requires a nullable target or nmbDefault for a supported type');
+  end;
   Result := ConvertValue(Value, Target);
 end;
 
@@ -659,7 +694,9 @@ begin
       if Rows.IsNull(Binding.Index) then
       begin
         NullValue := True;
-        if (Options <> nil) and Options.SkipNullAssignment then
+        if (Options <> nil) and (Options.NullBehavior = nmbSkip) and
+          not Options.FNullables.ContainsKey(Binding.Metadata.Target) and
+          not BuiltInNullables.ContainsKey(Binding.Metadata.Target) then
           Continue;
         Value := TQueryMappingOptions.ConvertMappedValue(TValue.Empty,
           Binding.Metadata.Target, True, Options);

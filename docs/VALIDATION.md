@@ -1,4 +1,34 @@
-# Validation: October 24, 2026
+# Validation: October 25, 2026
+
+## SQL NULL mapping policy (issue #20)
+
+Both projects were built with IDE Project > Build in Delphi 12 Community Edition
+(RAD Studio 23.0), Base configuration, for Win32 and Win64. Execution used
+`tools/build.ps1 -Suite Core/FireDAC -Platform Win32/Win64 -TestsOnly`.
+Command-line compilation is unavailable in this edition.
+
+| Suite | Win32 passed | Win64 passed | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 916 | 916 | 0/0/0/0 |
+| FireDAC/SQLite and memory fields | 92 | 92 | 0/0/0/0 |
+
+The new policy fixture checks all supported ordinary target types through both
+ToList and FirstOrDefault, including overwriting constructor values, skipping
+setters, strict exceptions, omitted options, fresh options and explicit policies.
+It checks automatic and explicitly registered nullable integers/strings/Booleans
+against SQL NULL and non-NULL zero/empty/False under every policy, custom nullable
+records and inner converters, unsupported targets/conversions, the legacy alias,
+and fluent ToList/FirstOrDefault/First/Single/ForEach object/result cleanup.
+Existing strict NULL error/ownership tests now explicitly select nmbThrow; existing
+converter precedence, setter/provider failures, partial lists, streaming, fallback,
+concurrency and object-writing regressions remain passing.
+
+SQLite integration checks NULL strings/numbers and nullable values with all three
+policies, non-NULL empty/zero values and provider dataset cleanup. Final logs have
+no shutdown memory leak reports. Delphi formatting and `git diff --check` pass.
+The integration coverage uses SQLite and memory fields; it does not establish
+behavior for other database servers/drivers. Type defaults remain limited to the
+mapper's existing supported ordinary types.
 
 ## Shared attribute mapping (issue #19)
 

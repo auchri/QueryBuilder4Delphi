@@ -363,16 +363,56 @@ Configure options before mapping and keep them alive and unchanged until the
 call returns. They may be reused for later calls. Custom registrations and
 converters affect only operations receiving that instance.
 
-The mapper tests `IQueryResult.IsNull` before reading a value. NULL writes a
-supported nullable's Null record; NULL to a non-nullable or unregistered target
-raises `EQueryMappingException`. `TQueryNull` is still only a SQL input-parameter
-type hint, not a nullable DTO value or result sentinel. If the provider has
-already normalized an empty value to SQL NULL, the mapper cannot recover it.
+The mapper tests `IQueryResult.IsNull` before reading a value. A supported
+`TNullable<T>` always receives `TNullable<T>.Null` for SQL NULL, under every
+policy, overwriting constructor values. Non-NULL zero, False and empty strings
+remain present values (`HasValue = True`). This includes explicitly registered
+nullable specializations. `TQueryNull` remains an input-parameter type hint.
+If a provider normalizes empty values to SQL NULL, the mapper cannot recover them.
 
-Set `Options.SkipNullAssignment := True` to leave **all** matched NULL
-properties unchanged, including nullable properties initialized by a
-constructor. This is an explicit opt-in; its default is False. Omitted columns
-continue to preserve constructor values independently of this setting.
+For non-nullable properties, `TQueryMappingOptions.NullBehavior` selects:
+
+| Policy | SQL NULL assignment |
+| --- | --- |
+| `nmbDefault` (default, also with omitted/nil options) | Assign the actual Delphi type default, overwriting constructor values |
+| `nmbThrow` | Raise `EQueryMappingException`, preserving the previous strict behavior |
+| `nmbSkip` | Do not call the setter; preserve the existing property value |
+
+Defaults are limited to the ordinary types supported by the conversion table:
+numeric types and TDateTime become zero, Boolean becomes False, string becomes
+empty, TGUID/TBcd/timestamp records become their zero-initialized records, and
+TBytes becomes nil. The RTL constructs typed defaults through `TValue.Make`;
+arbitrary records/classes do not gain automatic default mapping. Custom
+converters do not enable default construction of otherwise unsupported types.
+`nmbSkip` can leave an unsupported non-nullable target untouched on SQL NULL.
+Missing columns always preserve constructor values. Conversion, setter and
+provider errors remain errors under every policy.
+
+**Migration:** SQL NULL previously raised by default. Select `nmbThrow` to keep
+that behavior. `nmbDefault` loses the distinction between SQL NULL and a stored
+type default; use `TNullable<T>` when that distinction matters.
+`SkipNullAssignment` remains source-compatible as an alias for the same policy:
+writing True selects `nmbSkip`; writing False selects `nmbThrow` (the old
+explicit False behavior). Reading it returns whether `NullBehavior = nmbSkip`.
+A newly created options instance uses `nmbDefault` and reads False. The last
+write through either property wins; there are no independent settings. Prefer
+`NullBehavior` in new code. The old ability to skip recognized nullable NULLs is
+intentionally removed to preserve SQL NULL semantics.
+
+```delphi
+Options := TQueryMappingOptions.Create;
+try
+  Options.NullBehavior := nmbThrow; // Or nmbSkip to retain constructor values.
+  Books := Query.Execute(Executor).ToList<TBook>(Options);
+  try
+    // Use Books; nullable properties preserve SQL NULL under either policy.
+  finally
+    Books.Free;
+  end;
+finally
+  Options.Free;
+end;
+```
 
 ### Custom nullable types and precedence
 

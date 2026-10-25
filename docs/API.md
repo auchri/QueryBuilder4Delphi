@@ -207,6 +207,19 @@ See [cursor semantics and examples](EXAMPLES.md#object-mapping),
 native values, automatic built-in `TNullable<T>` mapping, scoped options and custom
 converters. `RegisterNullable<T>` is an advanced extension point for application
 types; standard nullable properties need no options or registration.
+`TNullMappingBehavior = (nmbDefault, nmbThrow, nmbSkip)` and
+`TQueryMappingOptions.NullBehavior` control SQL NULL for non-nullable properties.
+Omitted options and new options use `nmbDefault`: assign the supported type's
+Delphi default, including overwriting constructor values. `nmbThrow` raises
+`EQueryMappingException`; `nmbSkip` avoids assignment. All policies preserve
+supported `TNullable<T>` NULL/present states. Ordinary converters never receive
+SQL NULL and unrelated conversion/provider/setter errors still propagate.
+Options are caller-owned and operation-scoped; configure before mapping and keep
+alive and unchanged until it returns. `SkipNullAssignment` is a compatibility
+alias: True selects skip, explicit False selects throw; its getter tests for skip.
+The last write to either property selects the policy. See
+[policy details and migration](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
+
 The existing Query.DataMapper helper
 only reads object properties when constructing write queries.
 
