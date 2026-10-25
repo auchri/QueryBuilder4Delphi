@@ -761,19 +761,27 @@ end;
 
 procedure TMappingTests.ExpectFailure(const Column: string; const Value: TValue;
 const SourceName, TargetName: string);
+var
+  Options: TQueryMappingOptions;
 begin
+  Options := TQueryMappingOptions.Create;
   try
-    TQueryMapper.FirstOrDefault<TScalarDTO>
-      (Rows([Column], TRows.Create(TValues.Create(Value)))).Free;
-    Assert.Fail('Expected mapping failure');
-  except
-    on E: EQueryMappingException do
-    begin
-      Assert.IsTrue(Pos('TScalarDTO.' + Column, E.Message) > 0, E.Message);
-      Assert.IsTrue(Pos('source ' + SourceName, E.Message) > 0, E.Message);
-      Assert.IsTrue(Pos('target ' + TargetName, E.Message) > 0, E.Message);
-      Assert.IsTrue(Pos('row 1', E.Message) > 0, E.Message);
+    Options.NullBehavior := nmbThrow;
+    try
+      TQueryMapper.FirstOrDefault<TScalarDTO>
+        (Rows([Column], TRows.Create(TValues.Create(Value))), Options).Free;
+      Assert.Fail('Expected mapping failure');
+    except
+      on E: EQueryMappingException do
+      begin
+        Assert.IsTrue(Pos('TScalarDTO.' + Column, E.Message) > 0, E.Message);
+        Assert.IsTrue(Pos('source ' + SourceName, E.Message) > 0, E.Message);
+        Assert.IsTrue(Pos('target ' + TargetName, E.Message) > 0, E.Message);
+        Assert.IsTrue(Pos('row 1', E.Message) > 0, E.Message);
+      end;
     end;
+  finally
+    Options.Free;
   end;
 end;
 
@@ -890,17 +898,24 @@ end;
 procedure TMappingTests.FirstFailureReleasesObject;
 var
   BeforeCreated, BeforeDestroyed: Integer;
+  Options: TQueryMappingOptions;
 begin
-  BeforeCreated := TMappingBook.Created;
-  BeforeDestroyed := TMappingBook.Destroyed;
-  Assert.WillRaise(
-    procedure
-    begin
-      TQueryMapper.FirstOrDefault<TMappingBook>(Rows(['BookTitle'],
-        TRows.Create(TValues.Create(TValue.Empty)))).Free;
-    end, EQueryMappingException);
-  Assert.AreEqual(BeforeCreated + 1, TMappingBook.Created);
-  Assert.AreEqual(BeforeDestroyed + 1, TMappingBook.Destroyed);
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.NullBehavior := nmbThrow;
+    BeforeCreated := TMappingBook.Created;
+    BeforeDestroyed := TMappingBook.Destroyed;
+    Assert.WillRaise(
+      procedure
+      begin
+        TQueryMapper.FirstOrDefault<TMappingBook>(Rows(['BookTitle'],
+          TRows.Create(TValues.Create(TValue.Empty))), Options).Free;
+      end, EQueryMappingException);
+    Assert.AreEqual(BeforeCreated + 1, TMappingBook.Created);
+    Assert.AreEqual(BeforeDestroyed + 1, TMappingBook.Destroyed);
+  finally
+    Options.Free;
+  end;
 end;
 
 procedure TMappingTests.ConcurrentMetadataAndSchemas;

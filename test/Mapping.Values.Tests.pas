@@ -301,13 +301,13 @@ var
 begin
   Options := TQueryMappingOptions.Create;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     Item := TQueryMapper.FirstOrDefault<TNullableBook>
       (Rows(['Rating', 'Title'], TRows.Create(TValues.Create(TValue.Empty,
       TValue.Empty))), Options);
     try
-      Assert.AreEqual(99, Item.Rating.Value);
-      Assert.AreEqual('constructor', Item.Title.Value);
+      Assert.IsFalse(Item.Rating.HasValue);
+      Assert.IsFalse(Item.Title.HasValue);
     finally
       Item.Free;
     end;
@@ -319,7 +319,7 @@ begin
     finally
       Book.Free;
     end;
-    Reject<string>(TValue.Empty);
+    Assert.AreEqual('', Map<string>(TValue.Empty));
     Assert.AreEqual(0, Map<Integer>(TValue.Empty, Options));
   finally
     Options.Free;
@@ -454,7 +454,7 @@ begin
   Assert.AreEqual<NativeInt>(4, Length(Mapped));
   Assert.AreEqual<Byte>(255, Mapped[1]);
   Assert.AreEqual<NativeInt>(0, Length(Map<TBytes>(TValue.From<TBytes>(nil))));
-  Reject<TBytes>(TValue.Empty);
+  Assert.AreEqual<NativeInt>(0, Length(Map<TBytes>(TValue.Empty)));
 end;
 
 procedure TMappingValueTests.NativeTimestampFractionsAndOffsets;
@@ -780,7 +780,7 @@ begin
     (TValue.From<TBcd>(StrToBcd('999999999999999999999',
     TFormatSettings.Invariant)));
   Reject < TNullable < Boolean >> (0);
-  Reject<Integer>(TValue.Empty);
+  Assert.AreEqual(0, Map<Integer>(TValue.Empty));
   Decimal := Map < TNullable < TBcd >> (TValue.From<Currency>(123.4567)).Value;
   Assert.AreEqual<Currency>(123.4567, Map < TNullable < Currency >>
     (TValue.From<TBcd>(Decimal)).Value);

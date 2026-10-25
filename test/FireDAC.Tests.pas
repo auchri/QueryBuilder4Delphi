@@ -101,6 +101,10 @@ type
     procedure AutoClosePreservesCachedRows;
     [Test]
     procedure NullableObjectMapping;
+    [TestCase('Default', '0')]
+    [TestCase('Throw', '1')]
+    [TestCase('Skip', '2')]
+    procedure NullMappingPolicies(Policy: Integer);
     [Test]
     procedure MappingNativeFieldValues;
     [Test]
@@ -225,6 +229,72 @@ type
     property Offset: TSQLTimeStampOffset read FOffset write FOffset;
   end;
 {$RTTI INHERIT}
+
+procedure TFireDACExecutionTests.NullMappingPolicies(Policy: Integer);
+var
+  Options: TQueryMappingOptions;
+  Book: TBook;
+  Rated: TRatedBook;
+  Books: TObjectList<TBook>;
+begin
+  FConnection.ExecSQL('CREATE TABLE PolicyBooks (Id integer, Title text)');
+  FConnection.ExecSQL('INSERT INTO PolicyBooks VALUES (NULL, NULL)');
+  FConnection.ExecSQL('INSERT INTO PolicyBooks VALUES (2, ''Beta'')');
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.NullBehavior := TNullMappingBehavior(Policy);
+    if Policy = Ord(nmbThrow) then
+      Assert.WillRaise(TTestLocalMethod(
+        procedure
+        begin
+          TQuery.Create('PolicyBooks').Select(['Id', 'Title AS BookTitle'])
+            .WhereNull('Id').Execute(FExecutor).First<TBook>(Options).Free;
+        end), EQueryMappingException)
+    else
+    begin
+      Books := TQuery.Create('PolicyBooks').Select(['Id', 'Title AS BookTitle'])
+        .WhereNull('Id').Execute(FExecutor).ToList<TBook>(Options);
+      try
+        Assert.AreEqual<NativeInt>(1, Books.Count);
+        Assert.AreEqual(0, Books[0].Id);
+        Assert.AreEqual('', Books[0].Title);
+      finally
+        Books.Free;
+      end;
+      Book := TQuery.Create('PolicyBooks').Select(['Id', 'Title AS BookTitle'])
+        .WhereNull('Id').Execute(FExecutor).FirstOrDefault<TBook>(Options);
+      try
+        Assert.AreEqual(0, Book.Id);
+        Assert.AreEqual('', Book.Title);
+      finally
+        Book.Free;
+      end;
+    end;
+    Rated := TQuery.Create('PolicyBooks').Select(['Title', 'Id AS Rating'])
+      .WhereNull('Id').Execute(FExecutor).Single<TRatedBook>(Options);
+    try
+      Assert.IsFalse(Rated.Title.HasValue);
+      Assert.IsFalse(Rated.Rating.HasValue);
+    finally
+      Rated.Free;
+    end;
+    Rated := TQuery.Create('PolicyBooks')
+      .SelectRaw(''''' AS Title, 0 AS Rating').Where('Id', 2).Execute(FExecutor)
+      .First<TRatedBook>(Options);
+    try
+      Assert.IsTrue(Rated.Title.HasValue);
+      Assert.AreEqual('', Rated.Title.Value);
+      Assert.IsTrue(Rated.Rating.HasValue);
+      Assert.AreEqual(0, Rated.Rating.Value);
+    finally
+      Rated.Free;
+    end;
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.IsTrue(FConnection.Connected);
+  finally
+    Options.Free;
+  end;
+end;
 
 procedure TFireDACExecutionTests.NullableObjectMapping;
 var
@@ -1238,11 +1308,12 @@ begin
     Books.Free;
   end;
   FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
-  Assert.WillRaise(
-    procedure
-    begin
-      LoadBooks(FExecutor).Free;
-    end, EQueryMappingException);
+  Books := LoadBooks(FExecutor);
+  try
+    Assert.AreEqual('', Books[0].Title);
+  finally
+    Books.Free;
+  end;
 end;
 
 procedure TFireDACExecutionTests.FluentMappingLifetimeAndErrors;
@@ -1250,6 +1321,7 @@ var
   A, B: TQueryResult;
   Raw: IQueryResult;
   Books: TObjectList<TBook>;
+  Options: TQueryMappingOptions;
 begin
   A := TQuery.Create('Books').Select(['Id', 'Title AS BookTitle']).OrderBy('Id')
     .Execute(FExecutor);
@@ -1283,25 +1355,31 @@ begin
         .ToList<TBook>().Free;
     end), EQueryMappingException);
   FConnection.ExecSQL('UPDATE Books SET Title = NULL WHERE Id = 1');
+  Options := TQueryMappingOptions.Create;
   try
-    TQuery.Create('Books').Select('Title AS BookTitle').OrderBy('Id')
-      .Execute(FExecutor).FirstOrDefault<TBook>().Free;
-    Assert.Fail('Expected NULL mapping failure');
-  except
-    on E: EQueryMappingException do
-      Assert.AreEqual(0, FConnection.DataSetCount);
+    Options.NullBehavior := nmbThrow;
+    try
+      TQuery.Create('Books').Select('Title AS BookTitle').OrderBy('Id')
+        .Execute(FExecutor).FirstOrDefault<TBook>(Options).Free;
+      Assert.Fail('Expected NULL mapping failure');
+    except
+      on E: EQueryMappingException do
+        Assert.AreEqual(0, FConnection.DataSetCount);
+    end;
+    try
+      TQuery.Create('Books').SelectRaw('Title AS Id').Where('Id', 2)
+        .Execute(FExecutor).ToList<TBook>().Free;
+      Assert.Fail('Expected type mapping failure');
+    except
+      on E: EQueryMappingException do
+        Assert.AreEqual(0, FConnection.DataSetCount);
+    end;
+    // Failed temporary mapping must release the provider-owned query.
+    Assert.AreEqual(0, FConnection.DataSetCount);
+    Assert.IsTrue(FConnection.Connected);
+  finally
+    Options.Free;
   end;
-  try
-    TQuery.Create('Books').SelectRaw('Title AS Id').Where('Id', 2)
-      .Execute(FExecutor).ToList<TBook>().Free;
-    Assert.Fail('Expected type mapping failure');
-  except
-    on E: EQueryMappingException do
-      Assert.AreEqual(0, FConnection.DataSetCount);
-  end;
-  // Failed temporary mapping must release the provider-owned query.
-  Assert.AreEqual(0, FConnection.DataSetCount);
-  Assert.IsTrue(FConnection.Connected);
 end;
 
 procedure TFireDACExecutionTests.ConsecutiveFluentQueries;

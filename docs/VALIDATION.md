@@ -1,4 +1,42 @@
-# Validation: October 24, 2026
+# Validation: October 25, 2026
+
+## SQL NULL mapping policy (issue #20)
+
+Both projects were built with IDE Project > Build in Delphi 12 Community Edition
+(RAD Studio 23.0), Base configuration, for Win32 and Win64. Execution used
+`tools/build.ps1 -Suite Core/FireDAC -Platform Win32/Win64 -TestsOnly`.
+Command-line compilation is unavailable in this edition.
+
+The policy API uses only `NullBehavior`, with no compatibility configuration.
+All previous skip tests now select `nmbSkip`, preserving constructor-value and
+nullable coverage. Four diagnostic cases replace the obsolete alias-only test:
+omitted/explicit default options with unsupported targets, and explicit strict
+policy with supported/unsupported non-nullable targets. They also verify mapping
+context and caller-owned result cleanup after errors.
+
+| Suite | Win32 passed | Win64 passed | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 919 | 919 | 0/0/0/0 |
+| FireDAC/SQLite and memory fields | 92 | 92 | 0/0/0/0 |
+
+The new policy fixture checks all supported ordinary target types through both
+ToList and FirstOrDefault, including overwriting constructor values, skipping
+setters, strict exceptions, omitted options, fresh options and explicit policies.
+It checks automatic and explicitly registered nullable integers/strings/Booleans
+against SQL NULL and non-NULL zero/empty/False under every policy, custom nullable
+records and inner converters, unsupported targets/conversions, distinct policy
+versus unsupported-default diagnostics, and fluent
+ToList/FirstOrDefault/First/Single/ForEach object/result cleanup.
+Existing strict NULL error/ownership tests now explicitly select nmbThrow; existing
+converter precedence, setter/provider failures, partial lists, streaming, fallback,
+concurrency and object-writing regressions remain passing.
+
+SQLite integration checks NULL strings/numbers and nullable values with all three
+policies, non-NULL empty/zero values and provider dataset cleanup. Final logs have
+no shutdown memory leak reports. Delphi formatting and `git diff --check` pass.
+The integration coverage uses SQLite and memory fields; it does not establish
+behavior for other database servers/drivers. Type defaults remain limited to the
+mapper's existing supported ordinary types.
 
 ## Shared attribute mapping (issue #19)
 
@@ -45,7 +83,7 @@ built-in nullable inner types without registration, SQL NULL versus zero/False/
 empty strings/empty byte arrays, signed/unsigned boundaries, managed lifetime,
 exact numeric precision and overflow rejection, BCD/GUID/timestamp records,
 custom nullable types, exact converter precedence, explicit built-in registration,
-duplicate/nil registration errors, scoped SkipNullAssignment, contextual converter
+duplicate/nil registration errors, scoped nmbSkip, contextual converter
 failures and object cleanup. A compatibility regression first failed with 42
 instead of 242 when an exact converter returned a complete nullable record;
 the final dispatcher preserves that converter ahead of default construction,
@@ -433,7 +471,7 @@ counts; returned objects surviving result destruction; borrowed objects freed
 between callbacks and on failure; immediate caller-scope resource release;
 schema, NULL, conversion, setter, custom-converter, provider Next and callback
 exceptions; consumed named facades; retained raw interfaces and copied facades;
-nullable values, SkipNullAssignment and custom mapping options. SQLite checks
+nullable values, nmbSkip and custom mapping options. SQLite checks
 DataSetCount immediately after terminal calls, including callback failures, and
 confirms that shared readers remain usable. Single variants detect multiple rows
 without SQL limits.

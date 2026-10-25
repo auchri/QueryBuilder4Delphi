@@ -48,6 +48,7 @@
         <DCCReference Include="Mapping.Streaming.Tests.pas"/>
         <DCCReference Include="Mapping.Fallback.Tests.pas"/>
         <DCCReference Include="Mapping.Values.Tests.pas"/>
+        <DCCReference Include="Mapping.NullPolicy.Tests.pas"/>
         <DCCReference Include="FluentMapping.Tests.pas"/>
         <DCCReference Include="FluentMapping.Operations.Tests.pas"/>
         <DCCReference Include="DocumentationExamples.pas"/>

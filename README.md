@@ -135,6 +135,14 @@ See [examples and ownership](docs/EXAMPLES.md#object-mapping),
 [mapping and compatibility](docs/OBJECT_MAPPING.md) and
 [benchmarks](docs/MAPPING_PERFORMANCE.md).
 
+SQL NULL maps to the actual Delphi type default for supported non-nullable
+properties, overwriting constructor values. Pass `TQueryMappingOptions` with
+`NullBehavior := nmbThrow` for strict errors or `nmbSkip` to preserve existing
+values. The default loses the distinction between NULL and zero/False/empty;
+use `TNullable<T>` to retain it. Nullable properties always receive `.Null` for
+SQL NULL under all three policies, and keep non-NULL defaults as present values.
+See [NULL policy and compatibility](docs/OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
+
 ## SQL dialects
 
 | Dialect | Compiler class | Default compiler parameters |

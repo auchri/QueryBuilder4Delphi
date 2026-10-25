@@ -31,6 +31,8 @@ type
   end;
 {$RTTI INHERIT}
 
+function LoadBookViewsStrict(const Executor: IQueryExecutor)
+  : TObjectList<TBookView>;
 function LoadBookViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 function LoadTitleViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 function LoadBookAuthors(const Executor: IQueryExecutor)
@@ -51,6 +53,22 @@ function FindSingleBookOrCreate(const Executor: IQueryExecutor; Id: Integer;
 implementation
 
 uses QueryBuilder4Delphi.Query, QueryBuilder4Delphi.Mapping;
+
+function LoadBookViewsStrict(const Executor: IQueryExecutor)
+  : TObjectList<TBookView>;
+var
+  Options: TQueryMappingOptions;
+begin
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.NullBehavior := nmbThrow;
+    Result := TQuery.Create('Books')
+      .Select(['Id', 'Title as BookTitle', 'Price']).OrderBy('Id')
+      .Execute(Executor).ToList<TBookView>(Options);
+  finally
+    Options.Free;
+  end;
+end;
 
 function LoadBookViews(const Executor: IQueryExecutor): TObjectList<TBookView>;
 begin

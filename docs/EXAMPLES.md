@@ -980,8 +980,27 @@ end;
 Map explicit aliases into a DTO; a JOIN does not load relationships. Here an
 unmatched LEFT JOIN produces `AuthorName.HasValue = False`. SQL NULL in `Price`
 also produces a null `TNullable<Currency>`, whereas zero is a present value.
-Built-in nullable types require no registration. Non-nullable NULL assignments
-and lossy conversions raise mapping exceptions. See
+Built-in nullable types require no registration. SQL NULL assigns the type default
+for supported non-nullable properties. Pass operation-scoped options for alternatives:
+
+```delphi
+Options := TQueryMappingOptions.Create;
+try
+  Options.NullBehavior := nmbThrow; // nmbSkip preserves constructor values instead.
+  Book := Query.Execute(Executor).FirstOrDefault<TBook>(Options);
+  try
+    // Use Book when assigned.
+  finally
+    Book.Free;
+  end;
+finally
+  Options.Free;
+end;
+```
+
+Nullable NULLs remain NULL under all three policies, including `nmbSkip`.
+Non-NULL zero/False/empty values remain present. Lossy conversions still raise
+mapping exceptions under every policy. See
 [conversion rules and scoped options](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
 
 ```delphi

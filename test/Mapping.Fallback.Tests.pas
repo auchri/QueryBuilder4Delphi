@@ -273,7 +273,7 @@ begin
   Book := nil;
   Options := TQueryMappingOptions.Create;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     Options.RegisterConverter<string, string>(
       function(S: string): string
       begin
@@ -401,6 +401,7 @@ Fallback := function: TMappingBook
   end;
 Options := TQueryMappingOptions.Create;
 try
+  Options.NullBehavior := nmbThrow;
   if Kind = 4 then
     Options.RegisterConverter<Integer, Integer>(
       function(Value: Integer): Integer

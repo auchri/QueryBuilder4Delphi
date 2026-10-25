@@ -31,6 +31,7 @@ uses
   Mapping.Streaming.Tests in 'Mapping.Streaming.Tests.pas',
   Mapping.Fallback.Tests in 'Mapping.Fallback.Tests.pas',
   Mapping.Values.Tests in 'Mapping.Values.Tests.pas',
+  Mapping.NullPolicy.Tests in 'Mapping.NullPolicy.Tests.pas',
   FluentMapping.Tests in 'FluentMapping.Tests.pas',
   FluentMapping.Operations.Tests in 'FluentMapping.Operations.Tests.pas',
   DocumentationExamples in 'DocumentationExamples.pas',

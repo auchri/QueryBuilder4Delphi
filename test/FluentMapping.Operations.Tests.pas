@@ -297,46 +297,56 @@ end;
 
 procedure TFluentMappingOperationsTests.TemporaryFailures(Method,
   Kind: Integer);
+var
+  Options: TQueryMappingOptions;
 begin
-  ConfigureRows(1);
-  case Kind of
-    0:
-      TMockQueryExecutor.Names := TArray<string>.Create('unmatched', 'extra');
-    1:
-      TMockQueryExecutor.Data :=
-        TRows.Create(TValues.Create('bad integer', 'title'));
-    2:
-      TMockQueryExecutor.Data :=
-        TRows.Create(TValues.Create(TValue.Empty, 'title'));
-    3:
-      (FExecutor as TFluentFaultExecutor).FailOnNext := 1;
-end;
-try
-  case Method of
-    0:
-      TQuery.Create('Books').Execute(FExecutor).First<TMappingBook>().Free;
-    1:
-      TQuery.Create('Books').Execute(FExecutor).Single<TMappingBook>().Free;
-    2:
-      TQuery.Create('Books').Execute(FExecutor)
-        .SingleOrDefault<TMappingBook>().Free;
-    3:
-      TQuery.Create('Books').Execute(FExecutor).ForEach<TMappingBook>(
-        procedure(Item: TMappingBook)
-        begin
-          Assert.Fail('No callback expected');
-        end);
+  Options := TQueryMappingOptions.Create;
+  try
+    Options.NullBehavior := nmbThrow;
+    ConfigureRows(1);
+    case Kind of
+      0:
+        TMockQueryExecutor.Names := TArray<string>.Create('unmatched', 'extra');
+      1:
+        TMockQueryExecutor.Data :=
+          TRows.Create(TValues.Create('bad integer', 'title'));
+      2:
+        TMockQueryExecutor.Data :=
+          TRows.Create(TValues.Create(TValue.Empty, 'title'));
+      3:
+        (FExecutor as TFluentFaultExecutor).FailOnNext := 1;
   end;
-  Assert.Fail('Expected failure');
-except
-  on E: EQueryMappingException do
-    Assert.IsTrue(Kind <> 3);
-  on E: EInvalidOp do
-    Assert.AreEqual(3, Kind);
+  try
+    case Method of
+      0:
+        TQuery.Create('Books').Execute(FExecutor).First<TMappingBook>
+          (Options).Free;
+      1:
+        TQuery.Create('Books').Execute(FExecutor).Single<TMappingBook>
+          (Options).Free;
+      2:
+        TQuery.Create('Books').Execute(FExecutor).SingleOrDefault<TMappingBook>
+          (Options).Free;
+      3:
+        TQuery.Create('Books').Execute(FExecutor).ForEach<TMappingBook>(
+          procedure(Item: TMappingBook)
+          begin
+            Assert.Fail('No callback expected');
+          end, Options);
+    end;
+    Assert.Fail('Expected failure');
+  except
+    on E: EQueryMappingException do
+      Assert.IsTrue(Kind <> 3);
+    on E: EInvalidOp do
+      Assert.AreEqual(3, Kind);
+  end;
+  Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
+  Assert.AreEqual(TMappingBook.Created - FCreated, TMappingBook.Destroyed -
+    FDestroyed);
+finally
+  Options.Free;
 end;
-Assert.AreEqual(FResultBaseline, TMockQueryResult.LiveCount);
-Assert.AreEqual(TMappingBook.Created - FCreated, TMappingBook.Destroyed -
-  FDestroyed);
 end;
 
 procedure TFluentMappingOperationsTests.LaterProviderFailure(Method: Integer);
@@ -614,7 +624,7 @@ begin
   Options := TQueryMappingOptions.Create;
   Seen := 0;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     case Method of
       0:
         Book := TQuery.Create('Books').Execute(FExecutor)
