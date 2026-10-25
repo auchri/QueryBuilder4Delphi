@@ -96,9 +96,28 @@ begin
     end).OrderBy('b.Title').OrderBy('b.Id').ForPage(Page, PageSize);
 end;
 
+procedure ShowBookQuery;
+var
+  Statement: ISqlResult;
+begin
+  Statement := TQuery.Create('Books').Select(['Id', 'Title'])
+    .Where('Id', 42).Compile;
+  Writeln(Statement.Sql);
+  Writeln(Statement.Bindings[0].AsInteger); // 42
+end;
+
+procedure ShowBookSearch;
+var
+  Statement: ISqlResult;
+begin
+  Statement := SearchBooks('Delphi', 'Cantu', True, 2, 10)
+    .Compile(TSqlDialect.MSSql);
+  Writeln(Statement.Sql);
+end;
+
 procedure TDocumentationTests.ReadmeSearchMatchesSource;
 var
-  Readme, Source, Example, Body: string;
+  Readme, Source, Example, Body, Name: string;
 begin
   Readme := TFile.ReadAllText
     (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
@@ -115,12 +134,24 @@ begin
   Assert.IsTrue(Body <> '');
   Assert.AreEqual(TRegEx.Replace(Body, '\s+', ''),
     TRegEx.Replace(Example, '\s+', ''));
+  for Name in TArray<string>.Create('ShowBookQuery', 'ShowBookSearch') do
+  begin
+    Example := TRegEx.Match(Readme, '(procedure ' + Name + ';.*?\r?\nend;)',
+      [roSingleLine]).Groups[1].Value;
+    Body := TRegEx.Match(Source, '(procedure ' + Name + ';.*?\r?\nend;)',
+      [roSingleLine]).Groups[1].Value;
+    Assert.IsTrue(Example <> '', Name);
+    Assert.IsTrue(Body <> '', Name);
+    Assert.AreEqual(TRegEx.Replace(Body, '\s+', ''),
+      TRegEx.Replace(Example, '\s+', ''), Name);
+  end;
+  ShowBookQuery;
+  ShowBookSearch;
 end;
 
 procedure TDocumentationTests.SearchFilters(Mask: Integer);
 var
   Title, Author: string;
-  C: ICompiler;
   S: ISqlResult;
   Index: Integer;
 begin
@@ -130,8 +161,8 @@ begin
     Title := 'Delphi';
   if (Mask and 2) <> 0 then
     Author := 'Cantu';
-  C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
-  S := C.Compile(SearchBooks(Title, Author, (Mask and 4) <> 0, 3, 7));
+  S := SearchBooks(Title, Author, (Mask and 4) <> 0, 3, 7)
+    .Compile(TSqlDialect.MSSql);
   Index := 0;
   if Title <> '' then
   begin
@@ -473,7 +504,12 @@ begin
     begin
       if I >= 7 then
         C.ParameterPrefix := '@p';
-      S := C.Compile(Queries[I]);
+      if I = 7 then
+        S := Queries[I].Compile
+      else if I = 8 then
+        S := Queries[I].Compile(TSqlDialect.MSSql)
+      else
+        S := C.Compile(Queries[I]);
       Item := TJSONObject.Create;
       Root.AddElement(Item);
       Item.AddPair('name', Names[I]);

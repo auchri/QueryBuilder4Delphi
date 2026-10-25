@@ -1336,9 +1336,10 @@ This bridge does not implement connection management, a database driver or an OR
 Selected MSSQL SQL blocks and ordered binding lists are also checked directly
 against compiler output by MssqlDocumentation (presentation whitespace only
 is ignored). This also covers both SQL/binding blocks in the README. Its
-SearchBooks showcase is compiled from DocumentationExamples.pas; a regression
-compares the README function with that source and checks all eight combinations
-of title, author and publication filters, including pagination binding order.
+SearchBooks showcase and both fluent compilation procedures are compiled from
+DocumentationExamples.pas; a regression compares the README routines with that
+source and checks all eight combinations of title, author and publication
+filters, including pagination binding order.
 
 The query functions and ShowCompilation are compiled in
 [test/DocumentationExamples.pas](../test/DocumentationExamples.pas). DUnitX

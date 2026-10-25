@@ -12,7 +12,7 @@ See the [changelog](CHANGELOG.md) for release details.
 
 Add `src` to the Delphi search path. The core needs only the Delphi RTL.
 Import `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query` to build
-queries; add a compiler unit when you need parameterized SQL and bindings.
+queries and compile parameterized SQL with ordered bindings.
 FireDAC is required only by the optional provider.
 
 ## Quick start: build SQL
@@ -21,21 +21,16 @@ FireDAC is required only by the optional provider.
 uses
   System.SysUtils,
   QueryBuilder4Delphi.Query.Core,
-  QueryBuilder4Delphi.Query,
-  QueryBuilder4Delphi.Compilers.Compiler,
-  QueryBuilder4Delphi.Compilers.Factory;
+  QueryBuilder4Delphi.Query;
 
 procedure ShowBookQuery;
 var
-  Query: IQuery;
-  Compiler: ICompiler;
   Statement: ISqlResult;
 begin
-  Query := TQuery.Create('Books')
+  Statement := TQuery.Create('Books')
     .Select(['Id', 'Title'])
-    .Where('Id', 42);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
-  Statement := Compiler.Compile(Query);
+    .Where('Id', 42)
+    .Compile;
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger); // 42
 end;
@@ -55,9 +50,11 @@ Bindings:
 ```
 <!-- /mssql:QuickStartBooks -->
 
-Execute `Statement.Sql` together with its bindings. `Query.ToDebugSql` and
-`Statement.ToString` produce a **SQL preview with values substituted**, intended
-for diagnostics. They are not the parameterized execution path.
+`Compile` returns `ISqlResult` with parameterized SQL and bindings; the default
+dialect is MSSql. Execute `Statement.Sql` together with its bindings through an
+appropriate provider. `IQuery.ToDebugSql(Dialect)` and `Statement.ToString`
+produce a **SQL preview with values substituted**, intended for diagnostics,
+not execution.
 
 ## Fluent search with optional filters
 
@@ -91,10 +88,17 @@ begin
 end;
 ```
 
-Compile with the same `Compiler` as above:
+Compile the search using the same imports:
 
 ```delphi
-Statement := Compiler.Compile(SearchBooks('Delphi', 'Cantu', True, 2, 10));
+procedure ShowBookSearch;
+var
+  Statement: ISqlResult;
+begin
+  Statement := SearchBooks('Delphi', 'Cantu', True, 2, 10)
+    .Compile(TSqlDialect.MSSql);
+  Writeln(Statement.Sql);
+end;
 ```
 
 All three filters are enabled here: title contains `Delphi`, author contains
