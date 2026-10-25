@@ -6,6 +6,7 @@ units, keeping Where/Having symmetric. Use --check to verify without writing.
 from pathlib import Path
 import argparse
 from generated_sections import replace_section, update_files
+from query_documentation import fluent_doc
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--check', action='store_true')
@@ -16,6 +17,7 @@ decl, impl = [], []
 def method(name, params, body, locals='', overload=False):
     if name == 'Except': name = '&Except'
     body = body.replace('Result := Except(', 'Result := &Except(')
+    decl.append(fluent_doc(name, params))
     decl.append(f'    function {name}({params}): IQuery;'+(' overload;' if overload else ''))
     # default arguments belong only in the interface
     import re

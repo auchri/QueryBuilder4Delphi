@@ -7,33 +7,154 @@ uses
 
 type
   // Stateless implementation shared by the public fluent write overloads.
+  /// <summary>
+  /// Low-level stateless implementation of fluent write configuration. Methods mutate and return Target
+  /// without executing SQL. Prefer IQuery write methods in application code.
+  /// </summary>
   TQueryWrites = class
   private
     class procedure SplitPairs(const Pairs: array of TPair<string, TValue>;
       out Columns: TArray<string>; out Values: TValues); static;
   public
+    /// <summary>Switches to a standalone aggregate query.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Aggregate">SQL aggregate function identifier, for example count or sum.</param>
+    /// <param name="Columns">
+    /// Column identifiers to aggregate, in order; special COUNT handling is provided by AsCount.
+    /// </param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Aggregate must be a SQL function identifier. Standalone aggregate compilation removes limit, order,
+    /// and group clauses from a clone and may wrap DISTINCT/multiple-column queries.
+    /// </remarks>
     class function AsAggregate(const Target: IQuery; const Aggregate: string;
       const Columns: array of string): IQuery; static;
+    /// <summary>Configures an INSERT of one row with positional column/value pairs.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Columns">
+    /// Column identifiers in value/projection order; each row must have a matching value for every column.
+    /// </param>
+    /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
+    /// otherwise EQueryException is raised.
+    /// </remarks>
     class function AsInsert(const Target: IQuery;
       const Columns: array of string; const Values: array of TValue): IQuery;
       overload; static;
+    /// <summary>Configures an INSERT of multiple rows sharing the same columns.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Columns">
+    /// Column identifiers in value/projection order; each row must have a matching value for every column.
+    /// </param>
+    /// <param name="Rows">Nonempty row-major values matching the column count in each row.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
+    /// otherwise EQueryException is raised.
+    /// </remarks>
     class function AsInsert(const Target: IQuery;
       const Columns: array of string; const Rows: TRows): IQuery;
       overload; static;
+    /// <summary>Configures INSERT ... SELECT from a cloned source query.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Columns">
+    /// Column identifiers in value/projection order; each row must have a matching value for every column.
+    /// </param>
+    /// <param name="Source">Non-nil query whose clauses are cloned.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Builds INSERT ... SELECT from a clone of the source query; the caller is responsible for matching
+    /// projected columns.
+    /// </remarks>
     class function AsInsert(const Target: IQuery;
       const Columns: array of string; const Source: IQuery): IQuery;
       overload; static;
+    /// <summary>Configures an INSERT from named column/value pairs.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Pairs">
+    /// Column/value pairs in assignment order; must provide at least one pair for writes.
+    /// </param>
+    /// <param name="ReturnId">
+    /// Requests dialect-specific identity SQL where available. Built-in execution rejects ReturnId batches;
+    /// compilation alone can produce them.
+    /// </param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
+    /// otherwise EQueryException is raised.
+    /// </remarks>
     class function AsInsert(const Target: IQuery;
       const Pairs: array of TPair<string, TValue>; ReturnId: Boolean): IQuery;
       overload; static;
+    /// <summary>Configures an UPDATE with positional column/value assignments.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Columns">
+    /// Column identifiers in value/projection order; each row must have a matching value for every column.
+    /// </param>
+    /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Column
+    /// and value counts must be nonzero and equal; every supplied row must match the columns, otherwise
+    /// EQueryException is raised.
+    /// </remarks>
     class function AsUpdate(const Target: IQuery;
       const Columns: array of string; const Values: array of TValue): IQuery;
       overload; static;
+    /// <summary>Configures an UPDATE from named column/value pairs.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Pairs">
+    /// Column/value pairs in assignment order; must provide at least one pair for writes.
+    /// </param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>
+    /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Column
+    /// and value counts must be nonzero and equal; every supplied row must match the columns, otherwise
+    /// EQueryException is raised.
+    /// </remarks>
     class function AsUpdate(const Target: IQuery;
       const Pairs: array of TPair<string, TValue>): IQuery; overload; static;
+    /// <summary>Switches to DELETE while retaining the source and WHERE clauses.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>Without WHERE predicates the statement can delete every row.</remarks>
     class function AsDelete(const Target: IQuery): IQuery; static;
+    /// <summary>Replaces update assignments with an arithmetic column increment.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Value">Integer amount to add or subtract; negative amounts reverse the operation.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>Retains WHERE predicates; without predicates the statement can affect every row.</remarks>
     class function AsIncrement(const Target: IQuery; const Column: string;
       Value: Integer): IQuery; static;
+    /// <summary>Replaces update assignments with an arithmetic column decrement.</summary>
+    /// <param name="Target">
+    /// Non-nil query to modify and return; retained only through normal interface references.
+    /// </param>
+    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Value">Integer amount to add or subtract; negative amounts reverse the operation.</param>
+    /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
+    /// <remarks>Retains WHERE predicates; without predicates the statement can affect every row.</remarks>
     class function AsDecrement(const Target: IQuery; const Column: string;
       Value: Integer): IQuery; static;
   end;
