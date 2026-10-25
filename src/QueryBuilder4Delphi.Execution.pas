@@ -6,6 +6,11 @@ uses
   QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// Provider base class that clones the query, chooses execution mode, compiles with its dialect and
+  /// parameter prefix, then delegates to the provider. ReturnId batches are rejected. It does not own
+  /// application connections or manage transaction boundaries.
+  /// </summary>
   TQueryExecutor = class abstract(TInterfacedObject, IQueryExecutor)
   private
     FDialect: TSqlDialect;
@@ -15,11 +20,36 @@ type
     function ExecuteCompiled(const Statement: ISqlResult;
       Mode: TQueryExecutionMode): IQueryResult; virtual; abstract;
   public
+    /// <summary>Initializes compilation syntax and named parameter convention.</summary>
+    /// <param name="Dialect">SQL syntax target, independent of the database provider.</param>
+    /// <param name="ParameterPrefix">
+    /// Nonempty prefix followed by zero-based parameter ordinals; must match the provider convention.
+    /// </param>
+    /// <exception cref="EQueryException">ParameterPrefix is empty.</exception>
     constructor Create(Dialect: TSqlDialect;
       const ParameterPrefix: string = ':p');
+    /// <summary>Executes the query through a provider and returns its result.</summary>
+    /// <param name="Query">Non-nil query to execute. The base executor compiles a clone of its state.</param>
+    /// <param name="Mode">Automatic, row-result, or command execution intent; defaults to emAuto.</param>
+    /// <returns>
+    /// A reference-counted result cursor; retain it until iteration is complete. The application still owns
+    /// the connection and transaction.
+    /// </returns>
+    /// <remarks>
+    /// The base executor chooses rows for SELECT/aggregate and commands for writes in emAuto. ReturnId
+    /// batches are rejected. Driver/runtime behavior depends on the provider; execution exceptions propagate.
+    /// </remarks>
+    /// <exception cref="EArgumentNilException">Query is nil.</exception>
     function Execute(const Query: IQuery; Mode: TQueryExecutionMode = emAuto)
       : IQueryResult;
+    /// <summary>
+    /// Named parameter prefix followed by a zero-based ordinal. Compilers default to @p; executor defaults to
+    /// :p. The selected provider must accept the convention.
+    /// </summary>
     property ParameterPrefix: string read FParameterPrefix;
+    /// <summary>
+    /// SQL syntax selected for compilation; independent of connection and database driver selection.
+    /// </summary>
     property Dialect: TSqlDialect read FDialect;
   end;
 

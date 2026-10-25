@@ -7,13 +7,41 @@ uses
   QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// FireDAC-specific typed SQL NULL using a TFieldType. Prefer TQueryNull for provider-neutral code.
+  /// ftUnknown is rejected by the constructor.
+  /// </summary>
   TFireDACNull = record
+    /// <summary>
+    /// FireDAC type hint for this NULL; construct with a known field type rather than ftUnknown.
+    /// </summary>
     DataType: TFieldType;
+    /// <summary>Creates a FireDAC-specific typed SQL NULL.</summary>
+    /// <param name="ADataType">FireDAC field type for the SQL NULL; ftUnknown is invalid.</param>
+    /// <exception cref="EQueryException">ADataType is ftUnknown.</exception>
     constructor Create(ADataType: TFieldType);
+    /// <summary>Boxes this record as a TValue while preserving its distinct type.</summary>
+    /// <param name="Value">Typed NULL record to box.</param>
+    /// <returns>A TValue containing the record, not a string conversion.</returns>
     class operator Implicit(const Value: TFireDACNull): TValue;
   end;
 
+  /// <summary>
+  /// Builds FireDAC input parameters from a compiled statement. Requires full named keys :p0, :p1, ... and
+  /// equal ordered/named counts; parameters are named p0, p1, ... and bound by name using ordered values.
+  /// </summary>
   TFireDACParameterBinder = record
+    /// <summary>Creates FireDAC parameters from ordered statement bindings.</summary>
+    /// <param name="Statement">
+    /// Non-nil compilation result with :p0, :p1, ... named keys matching the ordered binding count.
+    /// </param>
+    /// <returns>Caller-owned TFDParams; free after assigning or using it.</returns>
+    /// <remarks>
+    /// Supports strings/chars, signed and unsigned integers, Boolean, floating point, Currency, TDateTime,
+    /// TBcd, SQL timestamps/offsets, GUID, TBytes, scalar Variants and typed NULLs. Untyped NULL defaults to
+    /// ftWideString. Unsupported types and mismatched names/counts raise EQueryException; nil Statement
+    /// raises EArgumentNilException. Driver precision and supported types vary.
+    /// </remarks>
     class function Bind(const Statement: ISqlResult): TFDParams; static;
   end;
 

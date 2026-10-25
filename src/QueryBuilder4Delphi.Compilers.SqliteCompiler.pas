@@ -6,6 +6,11 @@ uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// SQLite SQL syntax compiler. Inherited Create returns a reference-counted ICompiler for this dialect.
+  /// Compilation does not select a provider, connect, or execute SQL; server and driver capabilities still
+  /// apply.
+  /// </summary>
   TSqliteCompiler = class(TCompiler)
   protected
     constructor CreateInstance; override;
@@ -14,7 +19,11 @@ type
     function DateCondition(Context: TCompileContext; Clause: TClause)
       : string; override;
   public
+    /// <summary>Produces the dialect Boolean true literal.</summary>
+    /// <returns>SQL text representing true.</returns>
     function CompileTrue: string; override;
+    /// <summary>Produces the dialect Boolean false literal.</summary>
+    /// <returns>SQL text representing false.</returns>
     function CompileFalse: string; override;
   end;
 

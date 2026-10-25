@@ -6,6 +6,11 @@ uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// Oracle SQL syntax compiler. Inherited Create returns a reference-counted ICompiler for this dialect.
+  /// Compilation does not select a provider, connect, or execute SQL; server and driver capabilities still
+  /// apply.
+  /// </summary>
   TOracleCompiler = class(TCompiler)
   protected
     constructor CreateInstance; override;
@@ -19,6 +24,9 @@ type
     function DateCondition(Context: TCompileContext; Clause: TClause)
       : string; override;
   public
+    /// <summary>Produces the dialect random-order SQL expression.</summary>
+    /// <param name="Seed">Ignored by this compiler.</param>
+    /// <returns>DBMS_RANDOM.VALUE SQL.</returns>
     function CompileRandom(const Seed: TValue): string; override;
   end;
 

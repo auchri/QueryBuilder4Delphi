@@ -6,6 +6,11 @@ uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// PostgreSQL SQL syntax compiler. Inherited Create returns a reference-counted ICompiler for this dialect.
+  /// Compilation does not select a provider, connect, or execute SQL; server and driver capabilities still
+  /// apply.
+  /// </summary>
   TPostgresCompiler = class(TCompiler)
   protected
     constructor CreateInstance; override;

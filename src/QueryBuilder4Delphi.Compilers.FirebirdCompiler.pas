@@ -6,6 +6,11 @@ uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// Firebird SQL syntax compiler. Inherited Create returns a reference-counted ICompiler for this dialect.
+  /// Compilation does not select a provider, connect, or execute SQL; server and driver capabilities still
+  /// apply.
+  /// </summary>
   TFirebirdCompiler = class(TCompiler)
   protected
     constructor CreateInstance; override;
@@ -18,9 +23,23 @@ type
       : string; override;
     function DatePart(const Column, Part: string): string; override;
   public
+    /// <summary>Produces the dialect Boolean true literal.</summary>
+    /// <returns>SQL text representing true.</returns>
     function CompileTrue: string; override;
+    /// <summary>Produces the dialect Boolean false literal.</summary>
+    /// <returns>SQL text representing false.</returns>
     function CompileFalse: string; override;
+    /// <summary>Produces the dialect random-order SQL expression.</summary>
+    /// <param name="Seed">Ignored by this compiler.</param>
+    /// <returns>RAND() SQL.</returns>
     function CompileRandom(const Seed: TValue): string; override;
+    /// <summary>Quotes one identifier component and escapes its closing quote characters.</summary>
+    /// <param name="Value">Identifier text to quote.</param>
+    /// <returns>Quoted identifier text, or an unchanged asterisk.</returns>
+    /// <remarks>
+    /// Firebird uppercases the entire quoted identifier, including explicitly supplied quote characters;
+    /// mixed-case identifier preservation is not provided.
+    /// </remarks>
     function WrapValue(const Value: string): string; override;
   end;
 

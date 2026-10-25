@@ -6,6 +6,11 @@ uses System.SysUtils, System.Rtti, QueryBuilder4Delphi.Query.Core,
   QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// MySQL SQL syntax compiler. Inherited Create returns a reference-counted ICompiler for this dialect.
+  /// Compilation does not select a provider, connect, or execute SQL; server and driver capabilities still
+  /// apply.
+  /// </summary>
   TMySqlCompiler = class(TCompiler)
   protected
     constructor CreateInstance; override;
@@ -14,6 +19,9 @@ type
     function CompileJoinedUpdate(Context: TCompileContext; Query: IQuery;
       FromClause, UpdateClause: TClause): string; override;
   public
+    /// <summary>Produces the dialect random-order SQL expression.</summary>
+    /// <param name="Seed">Integer seed for RAND; TValue.Empty omits the argument.</param>
+    /// <returns>RAND() or RAND(Seed) SQL.</returns>
     function CompileRandom(const Seed: TValue): string; override;
   end;
 

@@ -5,8 +5,20 @@ interface
 uses QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Compilers.Compiler;
 
 type
+  /// <summary>
+  /// Creates dialect-specific SQL compilers independently of execution providers and connections.
+  /// </summary>
   TQueryCompilerFactory = class
   public
+    /// <summary>Creates a compiler for the requested SQL dialect.</summary>
+    /// <param name="Dialect">
+    /// SQL syntax target, independent of the database provider. Defaults to Microsoft SQL Server.
+    /// </param>
+    /// <returns>A new reference-counted dialect compiler with its default settings.</returns>
+    /// <remarks>
+    /// The factory selects SQL syntax only; it does not select or create a provider or connection.
+    /// </remarks>
+    /// <exception cref="EQueryException">Dialect is not a supported enumeration value.</exception>
     class function CreateCompiler(Dialect: TSqlDialect = TSqlDialect.MSSql)
       : ICompiler; static;
   end;

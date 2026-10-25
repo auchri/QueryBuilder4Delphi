@@ -7,8 +7,32 @@ uses
   QueryBuilder4Delphi.Mapping;
 
 type
+  /// <summary>
+  /// Extracts readable RTTI properties for object-based writes and predicates, honoring mapping attributes
+  /// and converting nullable values to SQL parameters. The input object and mapping options remain
+  /// caller-owned.
+  /// </summary>
   TQueryDataMapper = class
   public
+    /// <summary>Extracts column/value pairs from readable object properties.</summary>
+    /// <param name="Data">
+    /// Non-nil caller-owned object whose readable RTTI properties provide column/value pairs.
+    /// </param>
+    /// <param name="OnKey">
+    /// Optional callback receiving each key column and converted value after validating the entire object. A
+    /// typed SQL NULL key is rejected when this callback is assigned.
+    /// </param>
+    /// <param name="Options">
+    /// Borrowed converter configuration; nil uses built-in nullable types. NullBehavior does not govern
+    /// writes.
+    /// </param>
+    /// <returns>
+    /// Managed array of column/value pairs; source and referenced objects remain caller-owned.
+    /// </returns>
+    /// <remarks>
+    /// Honors Column, Key and Ignore attributes; fields are not inspected. Validates metadata and values
+    /// before OnKey runs. Keys are included in the returned pairs.
+    /// </remarks>
     class function GetPairs(Data: TObject;
       const OnKey: TProc<string, TValue> = nil;
       Options: TQueryMappingOptions = nil)

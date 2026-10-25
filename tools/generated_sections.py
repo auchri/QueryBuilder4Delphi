@@ -21,7 +21,20 @@ def replace_section(source: str, name: str, generated: str, indent: str = '') ->
     if len(starts) != 1 or len(stops) != 1 or starts[0] >= stops[0]:
         raise ValueError(f'Missing, duplicated, or reversed generated section: {name}')
     start, stop = starts[0], stops[0]
-    return ''.join(lines[:start + 1]) + generated.rstrip('\r\n') + '\n' + ''.join(lines[stop:])
+    existing = ''.join(lines[start + 1:stop])
+    replacement = generated.rstrip('\r\n') + '\n'
+    # Documentation changes must not reformat the synchronized Pascal code.
+    if pascal_tokens(existing) == pascal_tokens(replacement):
+        replacement = existing
+    else:
+        docs = re.compile(r'(?:^[ \t]*///[^\n]*\n)+', re.MULTILINE)
+        old_docs, new_docs = list(docs.finditer(existing)), list(docs.finditer(replacement))
+        if (len(old_docs) == len(new_docs)
+                and pascal_tokens(docs.sub('', existing)) == pascal_tokens(docs.sub('', replacement))):
+            replacement = existing
+            for old, new in reversed(list(zip(old_docs, new_docs))):
+                replacement = replacement[:old.start()] + new.group() + replacement[old.end():]
+    return ''.join(lines[:start + 1]) + replacement + ''.join(lines[stop:])
 
 
 def update_files(outputs: dict, check: bool = False) -> None:
