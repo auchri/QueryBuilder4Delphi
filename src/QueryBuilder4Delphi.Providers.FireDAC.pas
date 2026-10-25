@@ -8,6 +8,11 @@ uses
 
 type
   // The connection belongs to the caller and must outlive all results.
+  /// <summary>
+  /// Optional executor borrowing an already connected TFDConnection. Application code owns the connection and
+  /// transactions and must keep the connection alive through every result. Each result owns its TFDQuery;
+  /// only the first result set is exposed. SQL dialect and FireDAC driver selection are separate.
+  /// </summary>
   TFireDACQueryExecutor = class(TQueryExecutor)
   private
     FConnection: TFDConnection;
@@ -15,6 +20,19 @@ type
     function ExecuteCompiled(const Statement: ISqlResult;
       Mode: TQueryExecutionMode): IQueryResult; override;
   public
+    /// <summary>Creates an executor borrowing an application-owned FireDAC connection.</summary>
+    /// <param name="Connection">
+    /// Non-nil application-owned connection, already connected before execution; must outlive executor and
+    /// every result.
+    /// </param>
+    /// <param name="Dialect">
+    /// SQL syntax target, independent of the database provider. Defaults to Microsoft SQL Server.
+    /// </param>
+    /// <remarks>
+    /// Does not auto-connect or begin/commit/rollback a transaction. Drivers can apply their own configured
+    /// transaction behavior.
+    /// </remarks>
+    /// <exception cref="EArgumentNilException">Connection is nil.</exception>
     constructor Create(Connection: TFDConnection;
       Dialect: TSqlDialect = TSqlDialect.MSSql);
   end;

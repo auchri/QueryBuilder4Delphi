@@ -5,6 +5,18 @@ interface
 // Parameter scanning only: True outside quoted text/identifiers and comments.
 // Offsets are zero based. Incomplete quoted text/comments are masked to the end;
 // SQL syntax validation belongs to the database.
+/// <summary>Marks SQL character positions outside quoted text, identifiers, and comments.</summary>
+/// <param name="Sql">SQL text to scan without changing or executing it.</param>
+/// <param name="BackslashEscapes">
+/// Enable backslash escapes within single-quoted text for MySQL-style scanning.
+/// </param>
+/// <returns>
+/// One Boolean per SQL character, indexed from zero; True marks parameter-scannable SQL code.
+/// </returns>
+/// <remarks>
+/// Masks incomplete quoted text or comments through the end. Handles common quotes, brackets, backticks,
+/// dollar quotes and comments for parameter scanning; it is not a SQL syntax validator.
+/// </remarks>
 function SqlCodeMask(const Sql: string; BackslashEscapes: Boolean = False)
   : TArray<Boolean>;
 

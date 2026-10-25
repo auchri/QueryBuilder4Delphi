@@ -5,8 +5,24 @@ interface
 uses System.Rtti, Data.DB, QueryBuilder4Delphi.Query.Core;
 
 type
+  /// <summary>
+  /// Converts FireDAC field values and metadata to library types. Driver field types determine
+  /// representations; binary values are copied to TBytes, and SQL NULL becomes TValue.Empty.
+  /// </summary>
   TFireDACFieldReader = record
+    /// <summary>Copies a current field value into a supported TValue representation.</summary>
+    /// <param name="F">Non-nil borrowed field; its dataset must be positioned on a row.</param>
+    /// <returns>Native scalar/record value or copied TBytes; SQL NULL is TValue.Empty.</returns>
+    /// <remarks>
+    /// Unsupported fields and Currency-backed BCD fields exceeding supported precision raise EQueryException.
+    /// ftFMTBcd avoids Currency storage limitations. Drivers determine the original field type and precision.
+    /// </remarks>
+    /// <exception cref="EArgumentNilException">F is nil.</exception>
     class function ReadValue(F: TField): TValue; static;
+    /// <summary>Classifies a field using its FireDAC-reported data type.</summary>
+    /// <param name="Field">Non-nil borrowed field whose driver-reported type is inspected.</param>
+    /// <returns>Provider-neutral category, or qtUnknown for an unclassified field type.</returns>
+    /// <exception cref="EArgumentNilException">Field is nil.</exception>
     class function ValueType(Field: TField): TQueryValueType; static;
   end;
 
