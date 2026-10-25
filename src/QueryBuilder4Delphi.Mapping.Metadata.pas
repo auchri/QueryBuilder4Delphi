@@ -7,17 +7,44 @@ uses
   QueryBuilder4Delphi.Query.Core;
 
 type
+  /// <summary>
+  /// Mapping exception for invalid property metadata, unsupported conversions, NULL policy violations, and
+  /// row cardinality errors. Provider, constructor, callback, and property setter exceptions may propagate
+  /// with their original classes.
+  /// </summary>
   EQueryMappingException = class(EQueryException);
 
+  /// <summary>
+  /// Low-level mapping metadata shared by read and write mapping. Its RTTI references are borrowed from a
+  /// context that must remain alive while metadata is used.
+  /// </summary>
   TQueryPropertyMapping = record
+    /// <summary>Borrowed RTTI property; the originating TRttiContext must remain alive.</summary>
     Prop: TRttiProperty;
+    /// <summary>RTTI handle of the mapped property type.</summary>
     Target: PTypeInfo;
+    /// <summary>Database column name resolved from the property name or its Column/Key attribute.</summary>
     Column: string;
+    /// <summary>
+    /// True when the property carries KeyAttribute and participates in object UPDATE predicates.
+    /// </summary>
     IsKey: Boolean;
   end;
 
   // The caller keeps Context alive for the lifetime of the returned RTTI.
   // Validate the entire eligible set before reading values or invoking callbacks.
+/// <summary>Validates and returns eligible property-to-column metadata.</summary>
+/// <param name="AClass">Class with RTTI properties to inspect; field mappings are not supported.</param>
+/// <param name="Context">Borrowed RTTI context; keep it alive while using the returned metadata.</param>
+/// <param name="ForReading">
+/// True selects writable public/published properties for row mapping; False selects readable RTTI properties
+/// for object writes, including explicit nonpublic RTTI.
+/// </param>
+/// <returns>Managed metadata array containing borrowed RTTI; keep Context alive while using it.</returns>
+/// <remarks>
+/// Ignore wins. Multiple column attributes, blank names, or duplicate column names ignoring case raise
+/// EQueryMappingException before any property values are read.
+/// </remarks>
 function QueryPropertyMappings(AClass: TClass; const Context: TRttiContext;
   ForReading: Boolean): TArray<TQueryPropertyMapping>;
 
