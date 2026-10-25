@@ -910,7 +910,7 @@ type
     /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Reads
     /// eligible RTTI properties and honors Column/Key/Ignore attributes. Built-in nullable values become a
     /// contained value or typed SQL NULL; custom nullable types requiring options must be extracted with
-    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. NULL keys
+    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. TQueryNull keys
     /// raise EQueryMappingException before key callbacks modify the query; no key attribute means no
     /// automatic key predicate.
     /// </remarks>

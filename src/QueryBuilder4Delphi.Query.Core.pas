@@ -463,7 +463,8 @@ type
 
   /// <summary>
   /// Column mapping attribute also marking an object UPDATE key. Its value adds a WHERE equality and is still
-  /// included in assignments. A SQL NULL key is rejected before key callbacks modify the query.
+  /// included in assignments. A typed SQL NULL key (TQueryNull, including an empty nullable) is rejected
+  /// before key callbacks modify the query. This is not a general NULL check for arbitrary Variant keys.
   /// </summary>
   KeyAttribute = class(ColumnAttribute);
   /// <summary>
@@ -1447,7 +1448,7 @@ type
     /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Reads
     /// eligible RTTI properties and honors Column/Key/Ignore attributes. Built-in nullable values become a
     /// contained value or typed SQL NULL; custom nullable types requiring options must be extracted with
-    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. NULL keys
+    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. TQueryNull keys
     /// raise EQueryMappingException before key callbacks modify the query; no key attribute means no
     /// automatic key predicate.
     /// </remarks>

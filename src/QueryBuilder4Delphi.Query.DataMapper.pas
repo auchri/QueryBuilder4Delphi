@@ -31,7 +31,7 @@ type
     /// </returns>
     /// <remarks>
     /// Honors Column/Key/Ignore; fields are not inspected. Validates eligible metadata and all values before
-    /// invoking OnKey callbacks. Keys remain in the returned pairs, and NULL UPDATE keys are rejected when
+    /// invoking OnKey callbacks. Keys remain in the returned pairs, and TQueryNull keys are rejected when
     /// OnKey is assigned.
     /// </remarks>
     class function GetPairs(Data: TObject;
