@@ -54,6 +54,7 @@
         <DCCReference Include="DocumentationExamples.pas"/>
         <DCCReference Include="CompilerClasses.Tests.pas"/>
         <DCCReference Include="QueryWrites.Tests.pas"/>
+        <DCCReference Include="NullableWriting.Tests.pas"/>
         <DCCReference Include="QueryModel.Tests.pas"/>
         <DCCReference Include="Oracle.Scenarios.pas"/>
         <DCCReference Include="QueryBuilder.Tests.pas"/>

@@ -127,7 +127,8 @@ precise FireDAC-specific types beyond these broad hints; import its .Parameters
 unit and Data.DB only in provider-specific application code.
 
 Binding retains Unicode, signed/unsigned integers (large UInt64 as exact BCD),
-Boolean, floats, Currency, TDateTime, GUID, TBcd, TBytes and scalar Variant.
+Boolean, floats, Currency, TDateTime, TSQLTimeStamp, TSQLTimeStampOffset,
+GUID, TBcd, TBytes and scalar Variant.
 Unsupported values fail before allocating a query. FireDAC validates that
 ISqlResult.NamedBindings contains exactly :p0 ... :pN for the ordered Bindings,
 then binds Values[I] to p<I> using pbByName. A compiler with another convention
@@ -347,3 +348,20 @@ through `ICompiler`.
 [Examples](EXAMPLES.md) show usage. [Contributor notes](PORTING.md) retain
 technical history and reference-test provenance; [validation](VALIDATION.md)
 records what was compiled and executed.
+
+### Nullable object parameters
+
+`AsInsert(TObject)`, `AsUpdate(TObject)`, `Where(TObject)` and `Having(TObject)`
+automatically unwrap every built-in `TNullable<T>` using the same registrations
+as result mapping. Present values preserve their exact inner `TValue.TypeInfo`;
+absent values use `TQueryNull` and the corresponding `TQueryValueType` hint.
+NULL predicates compile as `IS NULL` (negated: `IS NOT NULL`) without bindings.
+NULL keys in object UPDATE raise `EQueryMappingException` before mutation.
+
+`TQueryMappingOptions.ToParameter(Value, Options = nil): TValue` exposes this
+conversion for parameter integrations. Ordinary nonnullable values pass through.
+`TQueryDataMapper.GetPairs(Data, OnKey = nil, Options = nil)` adds optional scoped
+nullable registrations and custom outbound converters; existing calls remain
+source-compatible. Getters/conversions finish before callbacks. Pair-based UPDATE
+does not infer key metadata; supply WHERE or an `OnKey` callback explicitly.
+See [nullable writes and roundtrip](OBJECT_MAPPING.md#writing-nullable-properties).

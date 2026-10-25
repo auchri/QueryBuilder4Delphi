@@ -101,6 +101,10 @@ type
     procedure AutoClosePreservesCachedRows;
     [Test]
     procedure NullableObjectMapping;
+    [Test]
+    procedure NullableWritingRoundTrip;
+    [Test]
+    procedure NullableNativeBindings;
     [TestCase('Default', '0')]
     [TestCase('Throw', '1')]
     [TestCase('Skip', '2')]
@@ -293,6 +297,123 @@ begin
     Assert.IsTrue(FConnection.Connected);
   finally
     Options.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.NullableNativeBindings;
+var
+  C: ICompiler;
+  P: TFDParams;
+  Stamp: TSQLTimeStamp;
+  Offset: TSQLTimeStampOffset;
+  Decimal: TBcd;
+  Guid: TGUID;
+begin
+  C := TSqliteCompiler.Create;
+  C.ParameterPrefix := ':p';
+  Stamp := DateTimeToSQLTimeStamp(EncodeDate(2026, 10, 25));
+  Stamp.Fractions := 123456789;
+  Offset := DateTimeToSQLTimeStampOffset(EncodeDate(2026, 10, 25), 5, 45);
+  Offset.Fractions := 987654321;
+  Decimal := StrToBcd('12345678901234567890.12345678',
+    TFormatSettings.Invariant);
+  Guid := StringToGUID('{937BFC29-C522-491C-8359-2D5DA373AB91}');
+  P := TFireDACParameterBinder.Bind
+    (C.Compile(TQuery.Create('Native').AsInsert(['Decimal', 'Stamp', 'Offset',
+    'Guid', 'Binary', 'Boolean', 'Text'],
+    [TQueryMappingOptions.ToParameter(TValue.From < TNullable < TBcd >>
+    (TNullable<TBcd>.Create(Decimal))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable < TSQLTimeStamp >>
+    (TNullable<TSQLTimeStamp>.Create(Stamp))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable <
+    TSQLTimeStampOffset >> (TNullable<TSQLTimeStampOffset>.Create(Offset))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable < TGUID >>
+    (TNullable<TGUID>.Create(Guid))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable < TBytes >>
+    (TNullable<TBytes>.Create(nil))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable < Boolean >>
+    (TNullable<Boolean>.Create(False))),
+    TQueryMappingOptions.ToParameter(TValue.From < TNullable < string >>
+    (TNullable<string>.Create('')))])));
+  try
+    Assert.AreEqual(0, BcdCompare(Decimal, P[0].AsFMTBCD));
+    Assert.IsTrue(P[0].DataType = ftFMTBcd);
+    Assert.IsTrue(P[1].DataType = ftTimeStamp);
+    Assert.AreEqual<Integer>(123456789, P[1].AsSQLTimeStamp.Fractions);
+    Assert.IsTrue(P[2].DataType = ftTimeStampOffset);
+    Assert.AreEqual<Integer>(987654321, P[2].AsSQLTimeStampOffset.Fractions);
+    Assert.AreEqual<Integer>(5, P[2].AsSQLTimeStampOffset.TimeZoneHour);
+    Assert.IsTrue(IsEqualGUID(Guid, P[3].AsGUID));
+    Assert.IsFalse(P[4].IsNull);
+    Assert.IsFalse(P[5].AsBoolean);
+    Assert.IsFalse(P[6].IsNull);
+    Assert.AreEqual('p6', P[6].Name);
+  finally
+    P.Free;
+  end;
+end;
+
+procedure TFireDACExecutionTests.NullableWritingRoundTrip;
+var
+  Book: TRatedBook;
+begin
+  FConnection.ExecSQL
+    ('create table NullableBooks (Id integer primary key, Rating integer, Title text, Payload blob)');
+  Book := TRatedBook.Create;
+  try
+    Book.Id := 11;
+    Book.Rating := TNullable<Integer>.Create(0);
+    Book.Title := TNullable<string>.Create('');
+    TQuery.Create('NullableBooks').AsInsert(Book).Execute(FExecutor)
+      .GetRowsAffected;
+  finally
+    Book.Free;
+  end;
+  Book := TQuery.Create('NullableBooks').Where('Id', 11).Execute(FExecutor)
+    .Single<TRatedBook>();
+  try
+    Assert.IsTrue(Book.Rating.HasValue);
+    Assert.AreEqual(0, Book.Rating.Value);
+    Assert.IsTrue(Book.Title.HasValue);
+    Assert.AreEqual('', Book.Title.Value);
+    Assert.IsFalse(Book.Payload.HasValue);
+  finally
+    Book.Free;
+  end;
+  InsertReadUpdateBook(FExecutor);
+  Book := TQuery.Create('NullableBooks').Where('Id', 10).Execute(FExecutor)
+    .Single<TRatedBook>();
+  try
+    Assert.IsFalse(Book.Rating.HasValue);
+    Assert.IsTrue(Book.Title.HasValue);
+    Assert.AreEqual('', Book.Title.Value);
+    Assert.IsTrue(Book.Payload.HasValue);
+    Assert.AreEqual<Byte>(255, Book.Payload.Value[1]);
+    Book.Rating := TNullable<Integer>.Create(42);
+    Book.Payload := TNullable<TBytes>.Create(nil);
+    TQuery.Create('NullableBooks').AsUpdate(Book).Execute(FExecutor)
+      .GetRowsAffected;
+  finally
+    Book.Free;
+  end;
+  Book := TQuery.Create('NullableBooks').Where('Id', 10).Execute(FExecutor)
+    .Single<TRatedBook>();
+  try
+    Assert.AreEqual(42, Book.Rating.Value);
+    Assert.IsTrue(Book.Payload.HasValue);
+    Assert.AreEqual<NativeInt>(0, Length(Book.Payload.Value));
+    Book.Title := TNullable<string>.Null;
+    TQuery.Create('NullableBooks').AsUpdate(Book).Execute(FExecutor)
+      .GetRowsAffected;
+  finally
+    Book.Free;
+  end;
+  Book := TQuery.Create('NullableBooks').Where('Id', 10).Execute(FExecutor)
+    .Single<TRatedBook>();
+  try
+    Assert.IsFalse(Book.Title.HasValue);
+  finally
+    Book.Free;
   end;
 end;
 
@@ -1081,7 +1202,8 @@ begin
   for K := qtString to qtBinary do
   begin
     P := TFireDACParameterBinder.Bind
-      (C.Compile(TQuery.Create('Books').Where('Price', TQueryNull.Create(K))));
+      (C.Compile(TQuery.Create('Books').AsInsert(['Price'],
+      [TQueryNull.Create(K)])));
     try
       Assert.IsTrue(P[0].DataType = Expected[K]);
       Assert.IsTrue(P[0].IsNull);

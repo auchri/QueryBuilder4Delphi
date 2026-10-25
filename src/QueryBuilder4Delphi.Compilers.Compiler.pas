@@ -794,7 +794,8 @@ begin
     ckBasic:
       begin
         V := C.Value;
-        if (V.IsEmpty and (V.TypeInfo <> TypeInfo(TBytes))) or
+        if V.IsType<TQueryNull>(False) or
+          (V.IsEmpty and (V.TypeInfo <> TypeInfo(TBytes))) or
           ((V.Kind = tkVariant) and VarIsNull(V.AsVariant)) then
         begin
           Result := Wrap(C.Name) + ' IS ';

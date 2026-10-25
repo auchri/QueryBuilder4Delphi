@@ -1356,3 +1356,31 @@ connection-management framework.
 
 See [validation](VALIDATION.md) for actual run results, [API details](API.md) for
 contracts, and [LICENSE](../LICENSE) for retained copyright and permission terms.
+
+## One nullable DTO for INSERT, SELECT and UPDATE
+
+Use `TRatedBook` from [NullableMappingExamples.pas](../test/NullableMappingExamples.pas),
+with `[Key('Id')]` and nullable Title, Rating and Payload properties:
+
+```delphi
+Book := TRatedBook.Create;
+try
+  Book.Id := 10; // [Key('Id')]
+  Book.Title := TNullable<string>.Create('');
+  Book.Rating := TNullable<Integer>.Create(0);
+  TQuery.Create('NullableBooks').AsInsert(Book).Execute(Executor).GetRowsAffected;
+finally
+  Book.Free;
+end;
+Book := TQuery.Create('NullableBooks').Where('Id', 10)
+  .Execute(Executor).Single<TRatedBook>();
+try
+  Book.Rating := TNullable<Integer>.Null;
+  TQuery.Create('NullableBooks').AsUpdate(Book).Execute(Executor).GetRowsAffected;
+finally
+  Book.Free;
+end;
+```
+
+This example is exercised by the FireDAC/SQLite suite. NULL object predicates use
+`IS NULL`; NULL object UPDATE keys raise before query mutation.

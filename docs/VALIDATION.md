@@ -492,3 +492,35 @@ follow-up does not change that engine or claim new performance measurements.
 Both generator checks pass (including 69 paired Oracle scenarios), all eight
 Python generator tests pass, local Markdown file links resolve, and
 `git diff --check` passes. Formatter.exe was applied to Pascal files.
+
+## Nullable object writing (issue #23, 2026-10-25)
+
+Built from main `1006353` (including merged issue #20) with Delphi 12 Community
+Edition, using Project > Build in the IDE and `tools/build.ps1 -TestsOnly` to
+run each executable. The Community Edition command-line compiler refuses builds.
+
+| Suite | Win32 | Win64 |
+| --- | ---: | ---: |
+| Core | 925 passed | 925 passed |
+| FireDAC / SQLite | 94 passed | 94 passed |
+
+All four runs report zero failed, errored, ignored and leaked cases. PE machine
+headers verify the architectures; executable, report and changed source hashes
+are recorded in [nullable-writing-validation.json](nullable-writing-validation.json).
+
+The new Core fixture checks every built-in nullable specialization for exact
+inner TValue identity and typed NULL hints through INSERT, UPDATE, WHERE and
+HAVING; zero, False, empty strings and empty bytes; key predicate order and
+rejection of NULL composite-key members before query mutation; inherited,
+column-mapped and ignored properties; retained strings/bytes after DTO destruction;
+scoped custom registrations/converter ordering, getter/converter/callback errors;
+and NULL predicates and binding order for all six SQL dialects. Existing mapping,
+NULL policy, metadata and write regressions also pass.
+
+SQLite integration exercises the same DTO through INSERT, SELECT, UPDATE and
+SELECT again, including 0, empty text, empty/populated binary and NULL states.
+FireDAC parameter tests check exact BCD, GUID, timestamp fractions, timezone offset,
+Boolean and empty-value bindings. Native timestamp binding was added through
+FireDAC's existing typed accessors. No live SQL Server/Oracle roundtrip is claimed;
+SQLite cannot establish server decimal/timestamp precision or timezone behavior.
+Read-side NullBehavior and the shared attribute resolver remain unchanged.
