@@ -20,70 +20,46 @@ type
   /// </summary>
   TSqlResult = class(TInterfacedObject, ISqlResult)
   public
-    /// <summary>
-    /// Reads RawSql. SQL with positional ? placeholders before named substitution; used with Bindings for
-    /// diagnostic previews.
-    /// </summary>
+    /// <summary>Returns RawSql for this instance.</summary>
     /// <returns>
     /// SQL with positional ? placeholders before named substitution; used with Bindings for diagnostic
     /// previews.
     /// </returns>
     function GetRawSql: string;
-    /// <summary>
-    /// Updates RawSql. SQL with positional ? placeholders before named substitution; used with Bindings for
-    /// diagnostic previews.
-    /// </summary>
+    /// <summary>Replaces RawSql for this instance.</summary>
     /// <param name="Value">
     /// SQL with positional ? placeholders before named substitution; used with Bindings for diagnostic
     /// previews.
     /// </param>
     procedure SetRawSql(const Value: string);
-    /// <summary>
-    /// Reads Sql. Parameterized SQL text with named placeholders. Execute with the associated bindings, never
-    /// with substituted debug values.
-    /// </summary>
+    /// <summary>Returns Sql for this instance.</summary>
     /// <returns>
     /// Parameterized SQL text with named placeholders. Execute with the associated bindings, never with
     /// substituted debug values.
     /// </returns>
     function GetSql: string;
-    /// <summary>
-    /// Updates Sql. Parameterized SQL text with named placeholders. Execute with the associated bindings,
-    /// never with substituted debug values.
-    /// </summary>
+    /// <summary>Replaces Sql for this instance.</summary>
     /// <param name="Value">
     /// Parameterized SQL text with named placeholders. Execute with the associated bindings, never with
     /// substituted debug values.
     /// </param>
     procedure SetSql(const Value: string);
-    /// <summary>
-    /// Reads Bindings. Borrowed ordered binding list owned by this result; entries correspond to RawSql
-    /// placeholders. Do not free the list.
-    /// </summary>
+    /// <summary>Returns Bindings for this instance.</summary>
     /// <returns>
     /// Borrowed ordered binding list owned by this result; entries correspond to RawSql placeholders. Do not
     /// free the list.
     /// </returns>
     function GetBindings: TList<TValue>;
-    /// <summary>
-    /// Reads NamedBindings. Borrowed dictionary owned by the result, keyed by full named parameter tokens
-    /// including the prefix. Keep it consistent with Bindings.
-    /// </summary>
+    /// <summary>Returns NamedBindings for this instance.</summary>
     /// <returns>
     /// Borrowed dictionary owned by the result, keyed by full named parameter tokens including the prefix.
     /// Keep it consistent with Bindings.
     /// </returns>
     function GetNamedBindings: TDictionary<string, TValue>;
-    /// <summary>
-    /// Reads Query. Retained query interface associated with compilation; the result keeps the query alive.
-    /// </summary>
-    /// <returns>
-    /// Retained query interface associated with compilation; the result keeps the query alive.
-    /// </returns>
+    /// <summary>Returns Query for this instance.</summary>
+    /// <returns>The retained source query, or nil for batch compilation.</returns>
     function GetQuery: IQuery;
-    /// <summary>
-    /// Updates Query. Retained query interface associated with compilation; the result keeps the query alive.
-    /// </summary>
+    /// <summary>Replaces Query for this instance.</summary>
     /// <param name="Value">
     /// Retained query interface associated with compilation; the result keeps the query alive.
     /// </param>
@@ -104,9 +80,7 @@ type
     /// Keep it consistent with Bindings.
     /// </summary>
     NamedBindings: TDictionary<string, TValue>;
-    /// <summary>
-    /// Retained query interface associated with compilation; the result keeps the query alive.
-    /// </summary>
+    /// <summary>Retained source query for single-query compilation; nil for batch compilation.</summary>
     Query: IQuery; // retained by the result
     /// <summary>Creates empty binding collections owned by this result.</summary>
     constructor Create;
@@ -193,16 +167,12 @@ type
     /// </exception>
     function Compile(const Queries: array of IQuery): ISqlResult; overload;
     /// <summary>Quotes a qualified identifier and its optional AS alias for this dialect.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier text to quote.</param>
     /// <returns>Quoted identifier SQL, preserving asterisk components.</returns>
     /// <remarks>Splits qualified names on dots; this is not an arbitrary SQL expression parser.</remarks>
     function Wrap(const Value: string): string;
     /// <summary>Quotes one identifier component and escapes its closing quote characters.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier text to quote.</param>
     /// <returns>Quoted identifier text, or an unchanged asterisk.</returns>
     /// <remarks>
     /// Firebird uppercases the entire quoted identifier, including explicitly supplied quote characters;
@@ -210,9 +180,7 @@ type
     /// </remarks>
     function WrapValue(const Value: string): string;
     /// <summary>Replaces raw SQL identifier markers with dialect quote characters.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL containing {identifier} or [identifier] markers.</param>
     /// <returns>
     /// SQL with { } and [ ] markers translated; backslash-escaped markers become literal characters.
     /// </returns>
@@ -221,9 +189,7 @@ type
     /// </remarks>
     function WrapIdentifiers(const Value: string): string;
     /// <summary>Splits an identifier at its final case-insensitive AS separator.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier expression with an optional explicit AS alias.</param>
     /// <param name="Expression">
     /// Receives the identifier expression before its final case-insensitive AS separator.
     /// </param>
@@ -254,16 +220,12 @@ type
     /// </remarks>
     function CompileRandom(const Seed: TValue): string;
     /// <summary>Wraps an existing SQL expression with LOWER.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL expression, already quoted or parameterized as needed.</param>
     /// <returns>LOWER(Value) SQL text.</returns>
     /// <remarks>Value is already SQL; no identifier quoting or parameterization is performed.</remarks>
     function CompileLower(const Value: string): string;
     /// <summary>Wraps an existing SQL expression with UPPER.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL expression, already quoted or parameterized as needed.</param>
     /// <returns>UPPER(Value) SQL text.</returns>
     /// <remarks>Value is already SQL; no identifier quoting or parameterization is performed.</remarks>
     function CompileUpper(const Value: string): string;
@@ -353,10 +315,7 @@ type
     function WrapList(const Values: array of string): string;
     function JoinTarget(Clause: TClause): string;
   public
-    /// <summary>
-    /// Reads EngineCode. Engine identifier used to select dialect-scoped clauses (sqlsrv, mysql, postgres,
-    /// sqlite, oracle, firebird; generic for the base compiler).
-    /// </summary>
+    /// <summary>Returns EngineCode for this instance.</summary>
     /// <returns>
     /// Engine identifier used to select dialect-scoped clauses (sqlsrv, mysql, postgres, sqlite, oracle,
     /// firebird; generic for the base compiler).
@@ -364,48 +323,30 @@ type
     function GetEngineCode: string;
     function GetParameterPrefix: string;
     procedure SetParameterPrefix(const Value: string);
-    /// <summary>
-    /// Reads SupportsFilterClause. Whether filtered aggregates use SQL FILTER instead of a CASE expression
-    /// fallback.
-    /// </summary>
+    /// <summary>Returns SupportsFilterClause for this instance.</summary>
     /// <returns>Whether filtered aggregates use SQL FILTER instead of a CASE expression fallback.</returns>
     function GetSupportsFilterClause: Boolean;
-    /// <summary>
-    /// Updates SupportsFilterClause. Whether filtered aggregates use SQL FILTER instead of a CASE expression
-    /// fallback.
-    /// </summary>
+    /// <summary>Replaces SupportsFilterClause for this instance.</summary>
     /// <param name="Value">
     /// Whether filtered aggregates use SQL FILTER instead of a CASE expression fallback.
     /// </param>
     procedure SetSupportsFilterClause(const Value: Boolean);
-    /// <summary>
-    /// Reads OmitSelectInsideExists. Whether EXISTS compilation replaces the cloned subquery select list with
-    /// the literal 1.
-    /// </summary>
+    /// <summary>Returns OmitSelectInsideExists for this instance.</summary>
     /// <returns>
     /// Whether EXISTS compilation replaces the cloned subquery select list with the literal 1.
     /// </returns>
     function GetOmitSelectInsideExists: Boolean;
-    /// <summary>
-    /// Updates OmitSelectInsideExists. Whether EXISTS compilation replaces the cloned subquery select list
-    /// with the literal 1.
-    /// </summary>
+    /// <summary>Replaces OmitSelectInsideExists for this instance.</summary>
     /// <param name="Value">
     /// Whether EXISTS compilation replaces the cloned subquery select list with the literal 1.
     /// </param>
     procedure SetOmitSelectInsideExists(const Value: Boolean);
-    /// <summary>
-    /// Reads UseLegacyPagination. Enables legacy pagination in SQL Server and Oracle compilers; other
-    /// compilers may ignore this setting.
-    /// </summary>
+    /// <summary>Returns UseLegacyPagination for this instance.</summary>
     /// <returns>
     /// Enables legacy pagination in SQL Server and Oracle compilers; other compilers may ignore this setting.
     /// </returns>
     function GetUseLegacyPagination: Boolean;
-    /// <summary>
-    /// Updates UseLegacyPagination. Enables legacy pagination in SQL Server and Oracle compilers; other
-    /// compilers may ignore this setting.
-    /// </summary>
+    /// <summary>Replaces UseLegacyPagination for this instance.</summary>
     /// <param name="Value">
     /// Enables legacy pagination in SQL Server and Oracle compilers; other compilers may ignore this setting.
     /// </param>
@@ -456,16 +397,12 @@ type
     function Compile(const Queries: array of IQuery): ISqlResult;
       overload; virtual;
     /// <summary>Quotes a qualified identifier and its optional AS alias for this dialect.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier text to quote.</param>
     /// <returns>Quoted identifier SQL, preserving asterisk components.</returns>
     /// <remarks>Splits qualified names on dots; this is not an arbitrary SQL expression parser.</remarks>
     function Wrap(const Value: string): string; virtual;
     /// <summary>Quotes one identifier component and escapes its closing quote characters.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier text to quote.</param>
     /// <returns>Quoted identifier text, or an unchanged asterisk.</returns>
     /// <remarks>
     /// Firebird uppercases the entire quoted identifier, including explicitly supplied quote characters;
@@ -473,9 +410,7 @@ type
     /// </remarks>
     function WrapValue(const Value: string): string; virtual;
     /// <summary>Replaces raw SQL identifier markers with dialect quote characters.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL containing {identifier} or [identifier] markers.</param>
     /// <returns>
     /// SQL with { } and [ ] markers translated; backslash-escaped markers become literal characters.
     /// </returns>
@@ -484,9 +419,7 @@ type
     /// </remarks>
     function WrapIdentifiers(const Value: string): string; virtual;
     /// <summary>Splits an identifier at its final case-insensitive AS separator.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier expression with an optional explicit AS alias.</param>
     /// <param name="Expression">
     /// Receives the identifier expression before its final case-insensitive AS separator.
     /// </param>
@@ -509,24 +442,17 @@ type
     /// <returns>SQL text representing false.</returns>
     function CompileFalse: string; virtual;
     /// <summary>Produces the dialect random-order SQL expression.</summary>
-    /// <param name="Seed">Optional random seed; some dialects ignore it.</param>
-    /// <returns>Random function SQL; seed support varies by compiler.</returns>
-    /// <remarks>
-    /// MySQL uses a supplied seed, SQL Server ignores it for NEWID(), and base/Oracle/Firebird
-    /// implementations ignore it.
-    /// </remarks>
+    /// <param name="Seed">Ignored by the base compiler.</param>
+    /// <returns>RANDOM() SQL.</returns>
+    /// <remarks>Dialect subclasses can override the expression and seed support.</remarks>
     function CompileRandom(const Seed: TValue): string; virtual;
     /// <summary>Wraps an existing SQL expression with LOWER.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL expression, already quoted or parameterized as needed.</param>
     /// <returns>LOWER(Value) SQL text.</returns>
     /// <remarks>Value is already SQL; no identifier quoting or parameterization is performed.</remarks>
     function CompileLower(const Value: string): string;
     /// <summary>Wraps an existing SQL expression with UPPER.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Trusted SQL expression, already quoted or parameterized as needed.</param>
     /// <returns>UPPER(Value) SQL text.</returns>
     /// <remarks>Value is already SQL; no identifier quoting or parameterization is performed.</remarks>
     function CompileUpper(const Value: string): string;

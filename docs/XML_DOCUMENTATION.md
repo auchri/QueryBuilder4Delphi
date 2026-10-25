@@ -91,7 +91,8 @@ git diff --check
 
 The coverage checker reports every unit, parses each documentation block as XML,
 checks the supported tag set, compares parameter names/order with each method
-signature, requires return documentation, and checks all enum values. It scans
+signature, requires return documentation, checks all enum values, and rejects
+duplicate exception cref entries. It scans
 the declaration forms used in this repository; it is not a general Delphi
 parser or proof of semantic correctness. Manual comparison against implementation
 and tests remains necessary.
@@ -124,8 +125,8 @@ was used with `-TestsOnly` after the IDE builds.
 | Core | 940 | 940 | 0 / 0 / 0 / 0 |
 | FireDAC / SQLite and memory fields | 94 | 94 | 0 / 0 / 0 / 0 |
 
-Both generator consistency checks pass (69 paired oracle scenarios); all eight
-existing generator regression tests pass. The documentation coverage/XML audit
+Both generator consistency checks pass (69 paired oracle scenarios); all 15
+generator regression tests pass, including seven focused documentation tests. The documentation coverage/XML audit
 and `git diff --check` pass. Tests and project files remain unchanged.
 
 Delphi Help Insight was actually inspected on the generic
@@ -139,3 +140,56 @@ became unavailable. Member-specific enum rendering and exhaustive overload
 rendering have not been confirmed. Type-level summaries include all enum values
 as a fallback. SQLite and memory-field integration tests do not establish runtime
 behavior for other database servers or FireDAC drivers.
+
+## PR #29 clarity review
+
+The follow-up review compared generated and handwritten comments with their
+implementations across the entire coverage checklist. Templates are now grouped
+by behavior rather than sharing a general parameter dictionary. In particular:
+
+- Select, GroupBy, OrderBy and OrderByDesc explain the concrete
+  `Books.{Id, Title}` expansion. Only Select mentions select aliases.
+  ExpandExpression documents the first marker, final brace, comma splitting,
+  trimming and lack of identifier validation.
+- Aggregate arguments are stored as supplied. Standalone aggregates expand
+  shorthand only through the DISTINCT rewrite; their clone removes LIMIT,
+  ORDER BY and GROUP BY but retains OFFSET. Aggregate filters use WHERE only.
+- Predicate overloads distinguish values, groups, scalar subqueries and value
+  lists, including equality shortcuts and empty IN/NOT IN lists.
+- Raw overloads distinguish supplied bindings from an empty binding list.
+  Raw set operations require the caller's operation keyword. The literal
+  question-mark escape remains in executable SQL; debug formatting removes it.
+- JOIN, CTE, write, result-access and compiler arguments describe their own
+  overloads. Converter registration names the specific duplicate registration.
+  SelectAggregate accepts trusted function text without validating it.
+- Repeated callback/cloning statements and getter summaries were shortened,
+  while ownership, cursor progression, NULL policies and failure conditions
+  remain documented. A single exception tag combines all conditions for each
+  exception class. Core/query/mapping/compiler comments contain about 4,000
+  fewer whitespace-separated words than the initial documentation revision.
+
+Generation preserves declaration layout when only XML comments change, as well
+as preserving implementation layout. Focused regressions cover shorthand scope,
+argument relevance, overload distinctions, empty collections, optional filters,
+raw placeholders/keywords, exception consolidation, XML escaping, and repeated
+generation without layout changes. The final audit reports zero errors and all
+20 production units still have identical non-XML tokens and implementation text
+compared with main.
+
+Core Win32 and Win64 were rebuilt successfully in the Delphi 12 IDE during this
+review, with zero compiler errors/warnings/hints; 940 tests passed on each.
+Subsequent edits only polished comments; the token/implementation comparison
+was repeated after those edits. FireDAC's existing Win32 and Win64 executables
+were rerun, with 94 tests passing on each and no failures, errors, ignored tests
+or leaks. These are the executables built during the initial PR validation,
+not fresh FireDAC builds for this follow-up.
+
+Additional Help Insight checks for an enum value, Where, Select and Compile
+could not be completed: the IDE window disappeared while navigating to the
+examples (`foreground window did not report a process id`), and recovery
+reported `launched app did not expose a targetable window`. A subsequent
+[documented IDE AutoBuild](https://docwiki.embarcadero.com/RADStudio/Athens/en/IDE_Command_Line_Switches_and_Options)
+attempt produced neither a fresh FireDAC executable nor an error report.
+No new rendering verification is claimed. The earlier generic mapping-method
+inspection remains the only successful Help Insight check; enum-member,
+overload, shorthand and Compile rendering remain unconfirmed.

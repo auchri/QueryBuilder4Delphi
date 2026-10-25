@@ -16,23 +16,22 @@ type
   public
     /// <summary>Extracts column/value pairs from readable object properties.</summary>
     /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
+    /// Non-nil caller-owned object whose readable RTTI properties provide column/value pairs.
     /// </param>
     /// <param name="OnKey">
     /// Optional callback receiving each key column and converted value after validating the entire object. A
     /// typed SQL NULL key is rejected when this callback is assigned.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed converter configuration; nil uses built-in nullable types. NullBehavior does not govern
+    /// writes.
     /// </param>
     /// <returns>
-    /// A managed array of converted values; the source object and referenced objects remain caller-owned.
+    /// Managed array of column/value pairs; source and referenced objects remain caller-owned.
     /// </returns>
     /// <remarks>
-    /// Honors Column/Key/Ignore; fields are not inspected. Validates eligible metadata and all values before
-    /// invoking OnKey callbacks. Keys remain in the returned pairs, and TQueryNull keys are rejected when
-    /// OnKey is assigned.
+    /// Honors Column, Key and Ignore attributes; fields are not inspected. Validates metadata and values
+    /// before OnKey runs. Keys are included in the returned pairs.
     /// </remarks>
     class function GetPairs(Data: TObject;
       const OnKey: TProc<string, TValue> = nil;

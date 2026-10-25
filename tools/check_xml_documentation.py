@@ -109,6 +109,9 @@ def audit():
             except ET.ParseError as exc:
                 errors.append(label + ': ' + str(exc))
                 continue
+            crefs = [tag.get('cref') for tag in root.findall('exception')]
+            if len(crefs) != len(set(crefs)):
+                errors.append(label + ': duplicate exception cref')
             if root.find('summary') is None:
                 errors.append(label + ': missing summary')
             for tag in root.iter():

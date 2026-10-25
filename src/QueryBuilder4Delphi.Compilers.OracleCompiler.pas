@@ -25,12 +25,8 @@ type
       : string; override;
   public
     /// <summary>Produces the dialect random-order SQL expression.</summary>
-    /// <param name="Seed">Optional random seed; some dialects ignore it.</param>
-    /// <returns>Random function SQL; seed support varies by compiler.</returns>
-    /// <remarks>
-    /// MySQL uses a supplied seed, SQL Server ignores it for NEWID(), and base/Oracle/Firebird
-    /// implementations ignore it.
-    /// </remarks>
+    /// <param name="Seed">Ignored by this compiler.</param>
+    /// <returns>DBMS_RANDOM.VALUE SQL.</returns>
     function CompileRandom(const Seed: TValue): string; override;
   end;
 

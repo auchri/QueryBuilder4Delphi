@@ -21,9 +21,7 @@ type
     /// <exception cref="EQueryException">ADataType is ftUnknown.</exception>
     constructor Create(ADataType: TFieldType);
     /// <summary>Boxes this record as a TValue while preserving its distinct type.</summary>
-    /// <param name="Value">
-    /// Source record to copy; referenced resources retain their existing ownership.
-    /// </param>
+    /// <param name="Value">Typed NULL record to box.</param>
     /// <returns>A TValue containing the record, not a string conversion.</returns>
     class operator Implicit(const Value: TFireDACNull): TValue;
   end;

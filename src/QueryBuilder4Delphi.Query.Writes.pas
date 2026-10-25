@@ -22,12 +22,13 @@ type
     /// </param>
     /// <param name="Aggregate">SQL aggregate function identifier, for example count or sum.</param>
     /// <param name="Columns">
-    /// Column identifiers to aggregate, in order; special COUNT handling is provided by AsCount.
+    /// Column names stored as supplied, in order; AsCount handles an empty column array specially.
     /// </param>
     /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
     /// <remarks>
-    /// Aggregate must be a SQL function identifier. Standalone aggregate compilation removes limit, order,
-    /// and group clauses from a clone and may wrap DISTINCT/multiple-column queries.
+    /// Validates the function identifier. Compilation removes LIMIT, ORDER BY and GROUP BY from a clone,
+    /// retains OFFSET, and may wrap DISTINCT or multiple-column queries. Only the DISTINCT rewrite expands
+    /// column shorthand through Select.
     /// </remarks>
     class function AsAggregate(const Target: IQuery; const Aggregate: string;
       const Columns: array of string): IQuery; static;
@@ -35,9 +36,7 @@ type
     /// <param name="Target">
     /// Non-nil query to modify and return; retained only through normal interface references.
     /// </param>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in assignment order; must match Values in length.</param>
     /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
     /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
     /// <remarks>
@@ -51,9 +50,7 @@ type
     /// <param name="Target">
     /// Non-nil query to modify and return; retained only through normal interface references.
     /// </param>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in row order; each row must have this many values.</param>
     /// <param name="Rows">Nonempty row-major values matching the column count in each row.</param>
     /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
     /// <remarks>
@@ -67,9 +64,7 @@ type
     /// <param name="Target">
     /// Non-nil query to modify and return; retained only through normal interface references.
     /// </param>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in row order; each row must have this many values.</param>
     /// <param name="Source">Non-nil query whose clauses are cloned.</param>
     /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
     /// <remarks>
@@ -102,9 +97,7 @@ type
     /// <param name="Target">
     /// Non-nil query to modify and return; retained only through normal interface references.
     /// </param>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in assignment order; must match Values in length.</param>
     /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
     /// <returns>Target, modified in place for further configuration; no SQL is executed.</returns>
     /// <remarks>

@@ -106,7 +106,7 @@ type
     function ToDebugSql(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     /// <summary>Replaces this query clause list with clones of Source clauses.</summary>
     /// <param name="Source">Non-nil query whose clauses are cloned.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Other query state and variables are unchanged. Copying from this same instance is a no-op.
     /// </remarks>
@@ -168,7 +168,7 @@ type
     /// <param name="Engine">
     /// Engine scope to clear; empty uses EngineScope, and an empty effective scope clears all scopes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Empty Engine uses the current EngineScope. If the effective scope is empty, removes every scope;
     /// otherwise removes shared and matching scoped nodes.
@@ -186,23 +186,23 @@ type
     /// <param name="Engine">
     /// Engine code assigned to new clauses; empty adds clauses shared by all dialects.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Use the dialect EngineCode; empty scope adds shared clauses.</remarks>
     function SetEngineScope(const Engine: string): IQuery;
     /// <summary>Connects the next condition with OR.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// The flag resets after the next condition is created; pair/object predicate overloads apply it to every
     /// pair.
     /// </remarks>
     function &Or: IQuery;
     /// <summary>Connects the next condition with AND by clearing the pending OR flag.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Explicit OrWhere/OrHaving methods still request OR.</remarks>
     function &And: IQuery;
     /// <summary>Sets whether the next condition is negated.</summary>
     /// <param name="Flag">True to negate the next condition; False clears pending negation.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// The flag resets after condition creation; pair/object predicate overloads apply it to every pair. Raw
     /// predicates ignore this flag; include NOT in their SQL text.
@@ -210,13 +210,13 @@ type
     function &Not(Flag: Boolean = True): IQuery;
     /// <summary>Assigns the alias used when this query is embedded.</summary>
     /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function &As(const Alias: string): IQuery;
     /// <summary>Replaces the query comment stored in this model.</summary>
     /// <param name="Text">
     /// Comment text to store unchanged; built-in compilers currently do not emit it in SQL.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// The stored comment is copied by Clone and returned by GetComment. Built-in compilers currently do not
     /// emit it in SQL.
@@ -232,7 +232,7 @@ type
     /// <param name="Callback">
     /// Callback receiving this current query and required to return the same instance.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Always invokes the callback immediately, even when compilation later targets another engine. The
     /// callback must return this same query. The previous scope is restored even on failure; mutations
@@ -247,7 +247,7 @@ type
     /// <param name="WhenFalse">
     /// Optional callback invoked immediately on this query when Condition is False; must return this query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Only the selected assigned callback runs, immediately on this query; an unassigned branch is a no-op.
     /// The callback must return the supplied instance, otherwise EQueryException is raised. Changes are made
@@ -260,7 +260,7 @@ type
     /// <param name="Callback">
     /// Callback receiving this current query and required to return the same instance.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// An unassigned callback is a no-op. The callback must return the supplied query; changes persist on
     /// this instance.
@@ -272,7 +272,7 @@ type
     /// <param name="Value">
     /// Value stored for deferred lookup; referenced objects remain application-owned.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Duplicate names raise the underlying dictionary duplicate-key exception; this method does not replace
     /// existing variables.
@@ -287,18 +287,15 @@ type
     /// </remarks>
     function FindVariable(const Name: string): TValue;
     /// <summary>Replaces the FROM source in this engine scope with a table identifier.</summary>
-    /// <param name="Table">
-    /// Table identifier, optionally qualified or followed by an explicit AS alias.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function &From(const Table: string): IQuery; overload;
     /// <summary>Replaces the FROM source in this engine scope with a cloned subquery.</summary>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>The supplied query is cloned; later source changes do not affect this clause.</remarks>
+    /// <param name="Alias">Alias for the embedded query.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function &From(Query: IQuery; const Alias: string = ''): IQuery; overload;
     /// <summary>
     /// Builds a subquery immediately through Callback and uses it as the FROM source in this engine scope.
@@ -306,11 +303,8 @@ type
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query.
-    /// </remarks>
+    /// <param name="Alias">Alias for the embedded query.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function &From(const Callback: TQueryCallback; const Alias: string = '')
@@ -319,172 +313,157 @@ type
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>The supplied query is cloned; later source changes do not affect this clause.</remarks>
+    /// <param name="Alias">Alias for the embedded query.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function Select(Query: IQuery; const Alias: string): IQuery; overload;
     /// <summary>Appends a scalar subquery select expression and switches to SELECT.</summary>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query.
-    /// </remarks>
+    /// <param name="Alias">Alias for the embedded query.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function Select(const Callback: TQueryCallback; const Alias: string)
       : IQuery; overload;
     /// <summary>Appends an aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Aggregate">SQL aggregate function identifier, for example count or sum.</param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
+    /// <param name="Aggregate">
+    /// Trusted SQL function name, emitted as supplied apart from uppercasing; not validated or parameterized.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Uses SQL FILTER where supported, otherwise a CASE expression. Aggregate names must be valid SQL
-    /// function identifiers. An assigned Filter runs immediately on a new scoped query and must return that
-    /// same query.
-    /// </remarks>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
+    /// </param>
+    /// <param name="Filter">
+    /// Optional callback configuring a new scoped query whose WHERE predicates filter the aggregate; runs
+    /// immediately and must return that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Uses FILTER where supported, otherwise CASE; SQL support depends on the database.</remarks>
     function SelectAggregate(const Aggregate, Column: string;
       const Filter: TQueryCallback = nil): IQuery; overload;
     /// <summary>Appends an aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Aggregate">SQL aggregate function identifier, for example count or sum.</param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional query whose predicates are cloned for aggregate filtering; nil means no filter.
+    /// <param name="Aggregate">
+    /// Trusted SQL function name, emitted as supplied apart from uppercasing; not validated or parameterized.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Uses SQL FILTER where supported, otherwise a CASE expression. Aggregate names must be valid SQL
-    /// function identifiers.
-    /// </remarks>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
+    /// </param>
+    /// <param name="Filter">
+    /// Optional query whose WHERE predicates are cloned to filter the aggregate; nil means no filter.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Uses FILTER where supported, otherwise CASE; SQL support depends on the database.</remarks>
     function SelectAggregate(const Aggregate, Column: string; Filter: IQuery)
       : IQuery; overload;
     /// <summary>Appends a common table expression (CTE).</summary>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
+    /// <param name="Alias">Nonblank CTE name; surrounding whitespace is trimmed.</param>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// The supplied query is cloned; later source changes do not affect this clause. Uses Alias when
-    /// supplied, otherwise the nested QueryAlias; a blank CTE alias raises EQueryException. The stored query
-    /// alias is cleared.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Uses the supplied Alias. The stored query alias is cleared.</remarks>
+    /// <exception cref="EQueryException">The CTE name is blank.</exception>
     function &With(const Alias: string; Query: IQuery): IQuery; overload;
     /// <summary>Appends a common table expression (CTE).</summary>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The supplied query is cloned; later source changes do not affect this clause. Uses Alias when
-    /// supplied, otherwise the nested QueryAlias; a blank CTE alias raises EQueryException. The stored query
-    /// alias is cleared.
+    /// Uses the nested query QueryAlias, which must be nonblank. The stored query alias is cleared.
     /// </remarks>
+    /// <exception cref="EQueryException">The CTE name is blank.</exception>
     function &With(Query: IQuery): IQuery; overload;
     /// <summary>Appends a common table expression (CTE).</summary>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
+    /// <param name="Alias">Nonblank CTE name; surrounding whitespace is trimmed.</param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query. Uses
-    /// Alias when supplied, otherwise the nested QueryAlias; a blank CTE alias raises EQueryException. The
-    /// stored query alias is cleared.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Uses the supplied Alias. The stored query alias is cleared.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
+    /// <exception cref="EQueryException">
+    /// The CTE name is blank. Callback returns another query or nil.
+    /// </exception>
     function &With(const Alias: string; const Callback: TQueryCallback)
       : IQuery; overload;
     /// <summary>Appends a common table expression (CTE).</summary>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query. Uses
-    /// Alias when supplied, otherwise the nested QueryAlias; a blank CTE alias raises EQueryException. The
-    /// stored query alias is cleared.
+    /// Uses the nested query QueryAlias, which must be nonblank. The stored query alias is cleared.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
+    /// <exception cref="EQueryException">
+    /// The CTE name is blank. Callback returns another query or nil.
+    /// </exception>
     function &With(const Callback: TQueryCallback): IQuery; overload;
     /// <summary>Appends a common table expression (CTE).</summary>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
+    /// <param name="Alias">Nonblank CTE name; surrounding whitespace is trimmed.</param>
     /// <param name="Columns">
     /// Column identifiers in value/projection order; each row must have a matching value for every column.
     /// </param>
     /// <param name="Rows">Nonempty row-major values matching the column count in each row.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Defines a value-table CTE with nonempty columns and rows of matching width.</remarks>
     function &With(const Alias: string; const Columns: array of string;
       const Rows: TRows): IQuery; overload;
     /// <summary>Appends a CTE defined by trusted SQL.</summary>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
+    /// <param name="Alias">Nonblank CTE name; surrounding whitespace is trimmed.</param>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted CTE body; ? placeholders outside quotes and comments consume bindings. Identifier markers
+    /// request dialect quoting.
     /// </param>
     /// <param name="Bindings">
     /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Only trusted SQL belongs in Sql; use Bindings for data. No-binding overloads supply an empty binding
-    /// list.
+    /// Never interpolate untrusted data. Bindings supply placeholder values in order. A literal \? escape
+    /// remains in executable SQL.
     /// </remarks>
     function WithRaw(const Alias, Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
     /// <summary>Appends a CTE defined by trusted SQL.</summary>
-    /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
+    /// <param name="Alias">Nonblank CTE name; surrounding whitespace is trimmed.</param>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted CTE body; ? placeholders outside quotes and comments consume bindings. Identifier markers
+    /// request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Only trusted SQL belongs in Sql; use Bindings for data. No-binding overloads supply an empty binding
-    /// list.
+    /// Never interpolate untrusted data. This overload supplies no bindings. A literal \? escape remains in
+    /// executable SQL.
     /// </remarks>
     function WithRaw(const Alias, Sql: string): IQuery; overload;
-    /// <summary>Appends a JOIN with column comparisons or callback-defined ON predicates.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a JOIN comparing two columns.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="First">Left column identifier, quoted by the compiler.</param>
     /// <param name="Second">
     /// Right column identifier, quoted by the compiler rather than bound as a value.
     /// </param>
     /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
     /// <param name="JoinType">Join SQL keyword sequence, such as inner join or left join.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function Join(const Table, First, Second: string; const Op: string = '=';
       const JoinType: string = 'inner join'): IQuery; overload;
-    /// <summary>Appends a JOIN with column comparisons or callback-defined ON predicates.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a JOIN with callback-defined ON predicates.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
     /// <param name="JoinType">Join SQL keyword sequence, such as inner join or left join.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query.
     /// Callback predicates become a parenthesized ON group; configure column comparisons with On/OrOn.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function Join(const Table: string; const Callback: TQueryCallback;
       const JoinType: string = 'inner join'): IQuery; overload;
-    /// <summary>Appends a JOIN with column comparisons or callback-defined ON predicates.</summary>
+    /// <summary>Appends a JOIN to a cloned subquery with callback-defined ON predicates.</summary>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
@@ -492,119 +471,101 @@ type
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
     /// <param name="JoinType">Join SQL keyword sequence, such as inner join or left join.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The supplied query is cloned; later source changes do not affect this clause. Invokes Callback
-    /// immediately on a new query in this engine scope; it must return that same query. Callback predicates
-    /// become a parenthesized ON group; configure column comparisons with On/OrOn.
+    /// Callback predicates become a parenthesized ON group; configure column comparisons with On/OrOn.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function Join(Query: IQuery; const Callback: TQueryCallback;
       const JoinType: string = 'inner join'): IQuery; overload;
-    /// <summary>Appends a LEFT JOIN retaining unmatched rows from the left source.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a LEFT JOIN comparing two columns.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="First">Left column identifier, quoted by the compiler.</param>
     /// <param name="Second">
     /// Right column identifier, quoted by the compiler rather than bound as a value.
     /// </param>
     /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Unmatched left source rows are retained.</remarks>
     function LeftJoin(const Table, First, Second: string;
       const Op: string = '='): IQuery; overload;
-    /// <summary>Appends a LEFT JOIN retaining unmatched rows from the left source.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a LEFT JOIN with callback-defined ON predicates.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Invokes Callback immediately on a new query in this engine scope; it must return that same query.
     /// Callback predicates become a parenthesized ON group; configure column comparisons with On/OrOn.
+    /// Unmatched left source rows are retained.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function LeftJoin(const Table: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends a LEFT JOIN retaining unmatched rows from the left source.</summary>
+    /// <summary>Appends a LEFT JOIN to a cloned subquery with callback-defined ON predicates.</summary>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The supplied query is cloned; later source changes do not affect this clause. Invokes Callback
-    /// immediately on a new query in this engine scope; it must return that same query. Callback predicates
-    /// become a parenthesized ON group; configure column comparisons with On/OrOn.
+    /// Callback predicates become a parenthesized ON group; configure column comparisons with On/OrOn.
+    /// Unmatched left source rows are retained.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function LeftJoin(Query: IQuery; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends a RIGHT JOIN retaining unmatched rows from the right source.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a RIGHT JOIN comparing two columns.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="First">Left column identifier, quoted by the compiler.</param>
     /// <param name="Second">
     /// Right column identifier, quoted by the compiler rather than bound as a value.
     /// </param>
     /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Database support depends on the selected dialect/server.</remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Database support depends on the selected dialect/server. Unmatched right source rows are retained.
+    /// </remarks>
     function RightJoin(const Table, First, Second: string;
       const Op: string = '='): IQuery; overload;
-    /// <summary>Appends a RIGHT JOIN retaining unmatched rows from the right source.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
+    /// <summary>Appends a RIGHT JOIN with callback-defined ON predicates.</summary>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Database support depends on the selected dialect/server. Invokes Callback immediately on a new query
-    /// in this engine scope; it must return that same query. Callback predicates become a parenthesized ON
-    /// group; configure column comparisons with On/OrOn.
+    /// Database support depends on the selected dialect/server. Callback predicates become a parenthesized ON
+    /// group; configure column comparisons with On/OrOn. Unmatched right source rows are retained.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function RightJoin(const Table: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends a RIGHT JOIN retaining unmatched rows from the right source.</summary>
+    /// <summary>Appends a RIGHT JOIN to a cloned subquery with callback-defined ON predicates.</summary>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
     /// <param name="Callback">
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Database support depends on the selected dialect/server. The supplied query is cloned; later source
-    /// changes do not affect this clause. Invokes Callback immediately on a new query in this engine scope;
-    /// it must return that same query. Callback predicates become a parenthesized ON group; configure column
-    /// comparisons with On/OrOn.
+    /// Database support depends on the selected dialect/server. Callback predicates become a parenthesized ON
+    /// group; configure column comparisons with On/OrOn. Unmatched right source rows are retained.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function RightJoin(Query: IQuery; const Callback: TQueryCallback)
       : IQuery; overload;
     /// <summary>Appends a CROSS JOIN without ON predicates.</summary>
-    /// <param name="Table">
-    /// Table identifier with optional qualified name and explicit AS alias; empty means no initial source in
-    /// constructors.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Table">Table name, optionally qualified and with an explicit AS alias.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function CrossJoin(const Table: string): IQuery;
     /// <summary>Adds an AND-connected column comparison to a join query.</summary>
     /// <param name="First">Left column identifier, quoted by the compiler.</param>
@@ -612,7 +573,7 @@ type
     /// Right column identifier, quoted by the compiler rather than bound as a value.
     /// </param>
     /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Equivalent to WhereColumns on the query supplied to a JOIN callback.</remarks>
     function On(const First, Second: string; const Op: string = '='): IQuery;
     /// <summary>Adds an OR-connected column comparison to a join query.</summary>
@@ -621,14 +582,14 @@ type
     /// Right column identifier, quoted by the compiler rather than bound as a value.
     /// </param>
     /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Equivalent to OrWhereColumns on the query supplied to a JOIN callback.</remarks>
     function OrOn(const First, Second: string; const Op: string = '='): IQuery;
     /// <summary>Replaces the join source with a table identifier.</summary>
     /// <param name="Table">
     /// Table identifier, optionally qualified or followed by an explicit AS alias.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Alias of From; use inside a join-model callback.</remarks>
     function JoinWith(const Table: string): IQuery; overload;
     /// <summary>Replaces the join source with a cloned subquery.</summary>
@@ -636,11 +597,8 @@ type
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
     /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Alias of From; use inside a join-model callback. The supplied query is cloned; later source changes do
-    /// not affect this clause.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Alias of From; use inside a join-model callback.</remarks>
     function JoinWith(Query: IQuery; const Alias: string = ''): IQuery;
       overload;
     /// <summary>Builds a subquery immediately through Callback and uses it as the join source.</summary>
@@ -648,11 +606,8 @@ type
     /// Called immediately with a new query in the current engine scope; must return that same query.
     /// </param>
     /// <param name="Alias">Alias for the embedded query or CTE; CTE aliases must be nonblank.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Alias of From; use inside a join-model callback. Invokes Callback immediately on a new query in this
-    /// engine scope; it must return that same query.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Alias of From; use inside a join-model callback.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns another query or nil.</exception>
     function JoinWith(const Callback: TQueryCallback; const Alias: string = '')
@@ -665,7 +620,7 @@ type
     /// <param name="Bindings">
     /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Only trusted SQL belongs in Sql; use Bindings for data. No-binding overloads supply an empty binding
     /// list.
@@ -674,57 +629,48 @@ type
       const Bindings: array of TValue): IQuery;
     /// <summary>Sets the join keyword text after converting it to uppercase.</summary>
     /// <param name="Value">Join keyword text; converted to uppercase without validating SQL grammar.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Used on join models; the database must support the supplied join syntax.</remarks>
     function AsType(const Value: string): IQuery;
     /// <summary>Sets this join model to INNER JOIN.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function AsInner: IQuery;
     /// <summary>Sets this join model to OUTER JOIN.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// The emitted OUTER JOIN keyword sequence must be accepted by the target database; no FULL keyword is
     /// added.
     /// </remarks>
     function AsOuter: IQuery;
     /// <summary>Sets this join model to LEFT JOIN.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function AsLeft: IQuery;
     /// <summary>Sets this join model to RIGHT JOIN.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function AsRight: IQuery;
     /// <summary>Sets this join model to CROSS JOIN.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function AsCross: IQuery;
     /// <summary>Replaces the maximum row count in the current engine scope.</summary>
     /// <param name="Value">Maximum rows to return; nonpositive values do not impose a positive limit.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// The compiler translates positive limits into dialect-specific SQL. Zero and negative values are
-    /// treated as no positive limit.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
     function Limit(Value: Integer): IQuery;
     /// <summary>Replaces the number of rows to skip in the current engine scope.</summary>
     /// <param name="Value">Rows to skip; negative values are read as zero.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Negative values are read as zero. SQL pagination support and ordering requirements depend on dialect.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
     function Offset(Value: Int64): IQuery;
     /// <summary>Sets the maximum row count using Limit.</summary>
     /// <param name="Value">Maximum rows to return; nonpositive values do not impose a positive limit.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Zero and negative values are treated as no positive limit.</remarks>
+    /// <returns>This query instance, modified in place.</returns>
     function Take(Value: Integer): IQuery;
     /// <summary>Sets the skipped row count using Offset.</summary>
     /// <param name="Value">Rows to skip; negative values are read as zero.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Negative values are read as zero.</remarks>
+    /// <returns>This query instance, modified in place.</returns>
     function Skip(Value: Int64): IQuery;
     /// <summary>Configures pagination from a one-based page number and page size.</summary>
     /// <param name="Page">One-based page number; not validated.</param>
     /// <param name="PerPage">Maximum rows per page; defaults to 15 and is not validated.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Sets Offset to (Page - 1) * PerPage and Limit to PerPage. Inputs are not validated; nonpositive
     /// limits/offsets follow the usual clamping rules. Use explicit ordering for stable pages.
@@ -755,15 +701,15 @@ type
     /// <returns>True only when GetOffset is greater than zero.</returns>
     function HasOffset(const Engine: string = ''): Boolean;
     /// <summary>Enables DISTINCT for SELECT or aggregate compilation.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function Distinct: IQuery;
     /// <summary>Appends dialect-specific random ordering.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Seed use and repeatability depend on the compiler; several dialects ignore seeds.</remarks>
     function OrderByRandom: IQuery; overload;
     /// <summary>Appends dialect-specific random ordering.</summary>
     /// <param name="Seed">Optional random seed; some dialects ignore it.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Seed use and repeatability depend on the compiler; several dialects ignore seeds.</remarks>
     function OrderByRandom(Seed: Integer): IQuery; overload;
     /// <summary>Appends a cloned SELECT using a set operation.</summary>
@@ -774,7 +720,7 @@ type
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Operation must be union, except, or intersect. Both queries must have Method select. Database support
     /// for operations and ALL varies.
@@ -784,21 +730,20 @@ type
     /// <summary>Switches to a standalone aggregate query.</summary>
     /// <param name="Aggregate">SQL aggregate function identifier, for example count or sum.</param>
     /// <param name="Columns">
-    /// Column identifiers to aggregate, in order; special COUNT handling is provided by AsCount.
+    /// Column names stored as supplied, in order; AsCount handles an empty column array specially.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Aggregate must be a SQL function identifier. Standalone aggregate compilation removes limit, order,
-    /// and group clauses from a clone and may wrap DISTINCT/multiple-column queries.
+    /// Validates the function identifier. Compilation removes LIMIT, ORDER BY and GROUP BY from a clone,
+    /// retains OFFSET, and may wrap DISTINCT or multiple-column queries. Only the DISTINCT rewrite expands
+    /// column shorthand through Select.
     /// </remarks>
     function AsAggregate(const Aggregate: string;
       const Columns: array of string): IQuery;
     /// <summary>Configures an INSERT of one row with positional column/value pairs.</summary>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in assignment order; must match Values in length.</param>
     /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
     /// otherwise EQueryException is raised.
@@ -806,11 +751,9 @@ type
     function AsInsert(const Columns: array of string;
       const Values: array of TValue): IQuery; overload;
     /// <summary>Configures an INSERT of multiple rows sharing the same columns.</summary>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in row order; each row must have this many values.</param>
     /// <param name="Rows">Nonempty row-major values matching the column count in each row.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
     /// otherwise EQueryException is raised.
@@ -818,13 +761,11 @@ type
     function AsInsert(const Columns: array of string; const Rows: TRows)
       : IQuery; overload;
     /// <summary>Configures INSERT ... SELECT from a cloned source query.</summary>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in projection order; caller must match the SELECT output.</param>
     /// <param name="Query">
     /// Non-nil query to clone; subsequent changes to the source do not change this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Builds INSERT ... SELECT from a clone of the source query; the caller is responsible for matching
     /// projected columns.
@@ -839,22 +780,17 @@ type
     /// Requests dialect-specific identity SQL where available. Built-in execution rejects ReturnId batches;
     /// compilation alone can produce them.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>
-    /// Column and value counts must be nonzero and equal; every supplied row must match the columns,
-    /// otherwise EQueryException is raised.
-    /// </remarks>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>At least one pair is required, otherwise EQueryException is raised.</remarks>
     function AsInsert(const Values: array of TPair<string, TValue>;
       ReturnId: Boolean = False): IQuery; overload;
     /// <summary>Configures an INSERT from readable object properties and mapping attributes.</summary>
-    /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
-    /// </param>
+    /// <param name="Data">Non-nil caller-owned object; readable RTTI properties supply the values.</param>
     /// <param name="ReturnId">
     /// Requests dialect-specific identity SQL where available. Built-in execution rejects ReturnId batches;
     /// compilation alone can produce them.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Reads eligible RTTI properties and honors Column/Key/Ignore attributes. Built-in nullable values
     /// become a contained value or typed SQL NULL; custom nullable types requiring options must be extracted
@@ -864,24 +800,22 @@ type
       : IQuery; overload;
     /// <summary>Configures an INSERT from dictionary column/value pairs.</summary>
     /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
+    /// Non-nil caller-owned dictionary; pairs are copied in dictionary enumeration order.
     /// </param>
     /// <param name="ReturnId">
     /// Requests dialect-specific identity SQL where available. Built-in execution rejects ReturnId batches;
     /// compilation alone can produce them.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Copies dictionary pairs in dictionary enumeration order; no stable assignment order is promised.
     /// </remarks>
     function AsInsert(Data: TDictionary<string, TValue>;
       ReturnId: Boolean = False): IQuery; overload;
     /// <summary>Configures an UPDATE with positional column/value assignments.</summary>
-    /// <param name="Columns">
-    /// Column identifiers in value/projection order; each row must have a matching value for every column.
-    /// </param>
+    /// <param name="Columns">Target columns in assignment order; must match Values in length.</param>
     /// <param name="Values">Values copied in column order; duplicate values are preserved.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Column
     /// and value counts must be nonzero and equal; every supplied row must match the columns, otherwise
@@ -893,67 +827,62 @@ type
     /// <param name="Values">
     /// Named column/value pairs copied in the supplied order; duplicate values are preserved.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Column
-    /// and value counts must be nonzero and equal; every supplied row must match the columns, otherwise
-    /// EQueryException is raised.
+    /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. At
+    /// least one pair is required, otherwise EQueryException is raised.
     /// </remarks>
     function AsUpdate(const Values: array of TPair<string, TValue>)
       : IQuery; overload;
     /// <summary>Configures an UPDATE from readable object properties and mapping attributes.</summary>
-    /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Data">Non-nil caller-owned object; readable RTTI properties supply the values.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Reads
     /// eligible RTTI properties and honors Column/Key/Ignore attributes. Built-in nullable values become a
     /// contained value or typed SQL NULL; custom nullable types requiring options must be extracted with
-    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. TQueryNull keys
-    /// raise EQueryMappingException before key callbacks modify the query; no key attribute means no
+    /// TQueryDataMapper.GetPairs first. Key values add WHERE predicates and remain in assignments. TQueryNull
+    /// keys raise EQueryMappingException before key callbacks modify the query; no key attribute means no
     /// automatic key predicate.
     /// </remarks>
     function AsUpdate(Data: TObject): IQuery; overload;
     /// <summary>Configures an UPDATE from dictionary column/value pairs.</summary>
     /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
+    /// Non-nil caller-owned dictionary; pairs are copied in dictionary enumeration order.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Existing WHERE conditions are retained. Without predicates the statement can affect every row. Copies
     /// dictionary pairs in dictionary enumeration order; no stable assignment order is promised.
     /// </remarks>
     function AsUpdate(Data: TDictionary<string, TValue>): IQuery; overload;
     /// <summary>Switches to DELETE while retaining the source and WHERE clauses.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Without WHERE predicates the statement can delete every row.</remarks>
     function AsDelete: IQuery;
     /// <summary>Replaces update assignments with an arithmetic column increment.</summary>
     /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
     /// <param name="Value">Integer amount to add or subtract; negative amounts reverse the operation.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Retains WHERE predicates; without predicates the statement can affect every row.</remarks>
     function AsIncrement(const Column: string; Value: Integer = 1): IQuery;
     /// <summary>Replaces update assignments with an arithmetic column decrement.</summary>
     /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
     /// <param name="Value">Integer amount to add or subtract; negative amounts reverse the operation.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Retains WHERE predicates; without predicates the statement can affect every row.</remarks>
     function AsDecrement(const Column: string; Value: Integer = 1): IQuery;
     /// <summary>Appends equality WHERE predicates from named values.</summary>
     /// <param name="Values">
     /// Column/value pairs in enumeration order; each becomes an equality predicate.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Pending OR and NOT flags apply to each pair. Empty input adds no conditions.</remarks>
     function Where(const Values: array of TPair<string, TValue>)
       : IQuery; overload;
     /// <summary>Appends equality WHERE predicates from named values.</summary>
-    /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Data">Non-nil caller-owned object; readable RTTI properties supply the values.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Pending OR and NOT flags apply to each pair. Empty input adds no conditions. Reads eligible RTTI
     /// properties and honors Column/Key/Ignore attributes. Built-in nullable values become a contained value
@@ -963,9 +892,9 @@ type
     function Where(Data: TObject): IQuery; overload;
     /// <summary>Appends equality WHERE predicates from named values.</summary>
     /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
+    /// Non-nil caller-owned dictionary; pairs are copied in dictionary enumeration order.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Pending OR and NOT flags apply to each pair. Empty input adds no conditions. Copies dictionary pairs
     /// in dictionary enumeration order; no stable assignment order is promised.
@@ -975,15 +904,13 @@ type
     /// <param name="Values">
     /// Column/value pairs in enumeration order; each becomes an equality predicate.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Pending OR and NOT flags apply to each pair. Empty input adds no conditions.</remarks>
     function Having(const Values: array of TPair<string, TValue>)
       : IQuery; overload;
     /// <summary>Appends equality HAVING predicates from named values.</summary>
-    /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Data">Non-nil caller-owned object; readable RTTI properties supply the values.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Pending OR and NOT flags apply to each pair. Empty input adds no conditions. Reads eligible RTTI
     /// properties and honors Column/Key/Ignore attributes. Built-in nullable values become a contained value
@@ -993,2537 +920,2687 @@ type
     function Having(Data: TObject): IQuery; overload;
     /// <summary>Appends equality HAVING predicates from named values.</summary>
     /// <param name="Data">
-    /// Non-nil caller-owned source object or dictionary; values are copied without taking ownership.
+    /// Non-nil caller-owned dictionary; pairs are copied in dictionary enumeration order.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
     /// Pending OR and NOT flags apply to each pair. Empty input adds no conditions. Copies dictionary pairs
     /// in dictionary enumeration order; no stable assignment order is promised.
     /// </remarks>
     function Having(Data: TDictionary<string, TValue>): IQuery; overload;
     // BEGIN GENERATED: fluent declarations
-    /// <summary>Appends a column/value comparison to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or
+    /// negation. Boolean values use dialect literals.
     /// </remarks>
     function Where(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Uses equality (=). Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other
+    /// operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function Where(const Column: string; const Value: TValue): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with AND.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to WHERE.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     function Where(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with AND.</summary>
+    /// <summary>Appends a parenthesized predicate group to WHERE.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Where(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function Where(const Column, Op: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Where(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNull(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect true literal to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect true literal to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereTrue(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect false literal to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect false literal to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereFalse(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IN test against a value list to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>An empty list compiles to false for IN.</remarks>
     function WhereIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with AND.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function WhereExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with AND.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE, joined with AND.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with leading and trailing % wildcards to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with AND.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereDatePart(const Part, Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with AND.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or
+    /// negation. Boolean values use dialect literals.
     /// </remarks>
     function WhereNot(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Uses equality (=). Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other
+    /// operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function WhereNot(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with AND and negated.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to WHERE and negates it.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     function WhereNot(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with AND and negated.</summary>
+    /// <summary>Appends a parenthesized predicate group to WHERE and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereNot(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to WHERE, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNot(const Column, Op: string; Query: IQuery): IQuery;
       overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to WHERE, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereNot(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotNull(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IN test against a value list to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>An empty list compiles to true for NOT IN.</remarks>
     function WhereNotIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereNotIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with AND and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE and negates it.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function WhereNotExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with AND and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function WhereNotExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a trailing % wildcard to WHERE, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a leading % wildcard to WHERE, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
     /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE, joined with AND and negated.
+    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE and negates it.
     /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereNotDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereNotTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with AND and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereNotDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with AND and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereNotDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to WHERE, joined with AND.</summary>
+    /// <summary>Appends a trusted SQL predicate to WHERE.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. Pending Not does not negate raw predicates; include any required NOT in Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL. Pending Not does not negate raw predicates; include any required NOT in
+    /// Sql.
     /// </remarks>
     function WhereRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to WHERE, joined with AND.</summary>
+    /// <summary>Appends a trusted SQL predicate to WHERE.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings. Pending Not does not negate raw
-    /// predicates; include any required NOT in Sql.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL. Pending Not does not negate raw predicates; include any required NOT in Sql.
     /// </remarks>
     function WhereRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a comparison between two column identifiers to WHERE, joined with AND.</summary>
-    /// <param name="First">Left column identifier, quoted by the compiler.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Second">
-    /// Right column identifier, quoted by the compiler rather than bound as a value.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison between two columns to WHERE.</summary>
+    /// <param name="First">Left column name.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Second">Right column name, quoted as an identifier rather than bound as a value.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereColumns(const First, Op, Second: string): IQuery;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to WHERE, joined with AND.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function WhereSub(Query: IQuery; const Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to WHERE, joined with AND.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function WhereSub(Query: IQuery; const Value: TValue): IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Joins this predicate with OR. Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL
+    /// for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrWhere(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Joins this predicate with OR. Uses equality (=). Direct SQL NULL values compile to IS NULL for
+    /// equality, or IS NOT NULL for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrWhere(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with OR.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to WHERE.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     function OrWhere(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with OR.</summary>
+    /// <summary>Appends a parenthesized predicate group to WHERE.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhere(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhere(const Column, Op: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhere(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNull(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect true literal to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect true literal to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereTrue(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect false literal to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect false literal to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereFalse(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>An empty list compiles to false for IN.</remarks>
+    /// <summary>Appends an IN test against a value list to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. An empty list compiles to false for IN.</remarks>
     function OrWhereIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an EXISTS test against a query with a FROM clause to WHERE, joined with OR.</summary>
+    /// <summary>Appends an EXISTS test to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function OrWhereExists(Query: IQuery): IQuery; overload;
-    /// <summary>Appends an EXISTS test against a query with a FROM clause to WHERE, joined with OR.</summary>
+    /// <summary>Appends an EXISTS test to WHERE.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE, joined with OR.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with leading and trailing % wildcards to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with OR.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with OR.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Joins this predicate with OR. Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL
+    /// for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrWhereNot(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Joins this predicate with OR. Uses equality (=). Direct SQL NULL values compile to IS NULL for
+    /// equality, or IS NOT NULL for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrWhereNot(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with OR and negated.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to WHERE and negates it.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     function OrWhereNot(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to WHERE, joined with OR and negated.</summary>
+    /// <summary>Appends a parenthesized predicate group to WHERE and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereNot(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to WHERE, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNot(const Column, Op: string; Query: IQuery)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to WHERE, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereNot(const Column, Op: string;
       const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends an IS NULL test to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotNull(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>An empty list compiles to true for NOT IN.</remarks>
+    /// <summary>Appends an IN test against a value list to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. An empty list compiles to true for NOT IN.</remarks>
     function OrWhereNotIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotIn(const Column: string; Query: IQuery): IQuery;
       overload;
-    /// <summary>Appends an IN test against a subquery to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereNotIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with OR and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE and negates it.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function OrWhereNotExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to WHERE, joined with OR and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to WHERE and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrWhereNotExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a trailing % wildcard to WHERE, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a leading % wildcard to WHERE, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
     /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE, joined with OR and negated.
+    /// Appends a LIKE comparison with leading and trailing % wildcards to WHERE and negates it.
     /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the date portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereNotDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to WHERE, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the time portion of a column to WHERE and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereNotTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with OR and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereNotDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to WHERE, joined with OR and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to WHERE and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereNotDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to WHERE, joined with OR.</summary>
+    /// <summary>Appends a trusted SQL predicate to WHERE.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. Pending Not does not negate raw predicates; include any required NOT in Sql.
+    /// Joins this predicate with OR. Never interpolate untrusted input into Sql. A literal question mark can
+    /// be marked as \?; the escape remains in executable SQL. Pending Not does not negate raw predicates;
+    /// include any required NOT in Sql.
     /// </remarks>
     function OrWhereRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to WHERE, joined with OR.</summary>
+    /// <summary>Appends a trusted SQL predicate to WHERE.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings. Pending Not does not negate raw
-    /// predicates; include any required NOT in Sql.
+    /// Joins this predicate with OR. Supplies no bindings; unescaped value placeholders require the overload
+    /// with Bindings. Never interpolate untrusted input into Sql. A literal question mark can be marked as
+    /// \?; the escape remains in executable SQL. Pending Not does not negate raw predicates; include any
+    /// required NOT in Sql.
     /// </remarks>
     function OrWhereRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a comparison between two column identifiers to WHERE, joined with OR.</summary>
-    /// <param name="First">Left column identifier, quoted by the compiler.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Second">
-    /// Right column identifier, quoted by the compiler rather than bound as a value.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison between two columns to WHERE.</summary>
+    /// <param name="First">Left column name.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Second">Right column name, quoted as an identifier rather than bound as a value.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereColumns(const First, Op, Second: string): IQuery;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to WHERE, joined with OR.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrWhereSub(Query: IQuery; const Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to WHERE, joined with OR.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to WHERE.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrWhereSub(Query: IQuery; const Value: TValue): IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or
+    /// negation. Boolean values use dialect literals.
     /// </remarks>
     function Having(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Uses equality (=). Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other
+    /// operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function Having(const Column: string; const Value: TValue): IQuery;
       overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with AND.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to HAVING.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     function Having(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with AND.</summary>
+    /// <summary>Appends a parenthesized predicate group to HAVING.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Having(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function Having(const Column, Op: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Having(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNull(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect true literal to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect true literal to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingTrue(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect false literal to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect false literal to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingFalse(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IN test against a value list to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>An empty list compiles to false for IN.</remarks>
     function HavingIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with AND.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function HavingExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with AND.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING, joined with AND.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with leading and trailing % wildcards to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with AND.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with AND.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingDatePart(const Part, Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with AND.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or
+    /// negation. Boolean values use dialect literals.
     /// </remarks>
     function HavingNot(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Uses equality (=). Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other
+    /// operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function HavingNot(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with AND and negated.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to HAVING and negates it.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     function HavingNot(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with AND and negated.</summary>
+    /// <summary>Appends a parenthesized predicate group to HAVING and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingNot(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to HAVING, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNot(const Column, Op: string; Query: IQuery)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to HAVING, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingNot(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotNull(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IN test against a value list to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>An empty list compiles to true for NOT IN.</remarks>
     function HavingNotIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingNotIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with AND and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING and negates it.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function HavingNotExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with AND and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function HavingNotExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a trailing % wildcard to HAVING, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a leading % wildcard to HAVING, joined with AND and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
     /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING, joined with AND and
-    /// negated.
+    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING and negates it.
     /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingNotDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with AND and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingNotTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with AND and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingNotDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with AND and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingNotDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to HAVING, joined with AND.</summary>
+    /// <summary>Appends a trusted SQL predicate to HAVING.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. Pending Not does not negate raw predicates; include any required NOT in Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL. Pending Not does not negate raw predicates; include any required NOT in
+    /// Sql.
     /// </remarks>
     function HavingRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to HAVING, joined with AND.</summary>
+    /// <summary>Appends a trusted SQL predicate to HAVING.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings. Pending Not does not negate raw
-    /// predicates; include any required NOT in Sql.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL. Pending Not does not negate raw predicates; include any required NOT in Sql.
     /// </remarks>
     function HavingRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a comparison between two column identifiers to HAVING, joined with AND.</summary>
-    /// <param name="First">Left column identifier, quoted by the compiler.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Second">
-    /// Right column identifier, quoted by the compiler rather than bound as a value.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison between two columns to HAVING.</summary>
+    /// <param name="First">Left column name.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Second">Right column name, quoted as an identifier rather than bound as a value.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingColumns(const First, Op, Second: string): IQuery;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to HAVING, joined with AND.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     function HavingSub(Query: IQuery; const Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to HAVING, joined with AND.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>Uses equality (=).</remarks>
     function HavingSub(Query: IQuery; const Value: TValue): IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Joins this predicate with OR. Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL
+    /// for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrHaving(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Joins this predicate with OR. Uses equality (=). Direct SQL NULL values compile to IS NULL for
+    /// equality, or IS NOT NULL for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrHaving(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with OR.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to HAVING.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     function OrHaving(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with OR.</summary>
+    /// <summary>Appends a parenthesized predicate group to HAVING.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHaving(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a column comparison with a scalar subquery to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHaving(const Column, Op: string; Query: IQuery): IQuery;
       overload;
-    /// <summary>Appends a column comparison with a scalar subquery to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHaving(const Column, Op: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>Appends an IS NULL test to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNull(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect true literal to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect true literal to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingTrue(const Column: string): IQuery;
-    /// <summary>Appends a comparison with the dialect false literal to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a test for the dialect false literal to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingFalse(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>An empty list compiles to false for IN.</remarks>
+    /// <summary>Appends an IN test against a value list to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. An empty list compiles to false for IN.</remarks>
     function OrHavingIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingIn(const Column: string; Query: IQuery): IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with OR.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function OrHavingExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with OR.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingExists(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends a LIKE pattern comparison to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING, joined with OR.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with leading and trailing % wildcards to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with OR.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with OR.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with OR.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingDatePart(const Part, Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators or negation.
-    /// Boolean values use dialect literals.
+    /// Joins this predicate with OR. Direct SQL NULL values compile to IS NULL for equality, or IS NOT NULL
+    /// for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrHavingNot(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a column/value comparison to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a column/value comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses equality (=). SQL NULL values compile to IS NULL for equality, or IS NOT NULL for other operators
-    /// or negation. Boolean values use dialect literals.
+    /// Joins this predicate with OR. Uses equality (=). Direct SQL NULL values compile to IS NULL for
+    /// equality, or IS NOT NULL for other operators or negation. Boolean values use dialect literals.
     /// </remarks>
     function OrHavingNot(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with OR and negated.</summary>
-    /// <param name="Group">Non-nil query whose predicates are cloned into a parenthesized group.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a parenthesized predicate group to HAVING and negates it.</summary>
+    /// <param name="Group">Non-nil query whose predicates are cloned into the group.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     function OrHavingNot(Group: IQuery): IQuery; overload;
-    /// <summary>Appends a parenthesized predicate group to HAVING, joined with OR and negated.</summary>
+    /// <summary>Appends a parenthesized predicate group to HAVING and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Uses WHERE predicates when present, otherwise HAVING predicates; empty groups are omitted. Joins this
+    /// predicate with OR.
+    /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingNot(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to HAVING, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNot(const Column, Op: string; Query: IQuery)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a column comparison with a scalar subquery to HAVING, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
+    /// <summary>Appends a column comparison with a scalar subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingNot(const Column, Op: string;
       const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Appends an IS NULL test to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an IS NULL test to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotNull(const Column: string): IQuery;
-    /// <summary>Appends an inclusive BETWEEN test to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Lower">Inclusive lower bound, bound as a parameter.</param>
-    /// <param name="Higher">Inclusive upper bound, bound as a parameter.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends an inclusive BETWEEN test to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Lower">Inclusive lower bound.</param>
+    /// <param name="Higher">Inclusive upper bound.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotBetween(const Column: string;
       const Lower, Higher: TValue): IQuery;
-    /// <summary>Appends an IN test against a value list to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Values">
-    /// Values to copy and deduplicate by supported, type-sensitive equality; not retained as an array
-    /// reference.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>An empty list compiles to true for NOT IN.</remarks>
+    /// <summary>Appends an IN test against a value list to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Values">Values copied and deduplicated using supported, type-sensitive equality.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. An empty list compiles to true for NOT IN.</remarks>
     function OrHavingNotIn(const Column: string; const Values: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotIn(const Column: string; Query: IQuery)
       : IQuery; overload;
-    /// <summary>Appends an IN test against a subquery to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends an IN test against a subquery to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingNotIn(const Column: string; const Callback: TQueryCallback)
       : IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with OR and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING and negates it.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
     function OrHavingNotExists(Query: IQuery): IQuery; overload;
-    /// <summary>
-    /// Appends an EXISTS test against a query with a FROM clause to HAVING, joined with OR and negated.
-    /// </summary>
+    /// <summary>Appends an EXISTS test to HAVING and negates it.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <exception cref="EQueryException">The subquery is nil or has no FROM clause.</exception>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
+    /// <exception cref="EQueryException">
+    /// The subquery is nil or has no FROM clause. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function OrHavingNotExists(const Callback: TQueryCallback): IQuery;
       overload;
-    /// <summary>Appends a LIKE pattern comparison to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE pattern comparison to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotLike(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a trailing % wildcard to HAVING, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a trailing % wildcard to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotStarts(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>
-    /// Appends a LIKE comparison with a leading % wildcard to HAVING, joined with OR and negated.
-    /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <summary>Appends a LIKE comparison with a leading % wildcard to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotEnds(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
     /// <summary>
-    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING, joined with OR and negated.
+    /// Appends a LIKE comparison with leading and trailing % wildcards to HAVING and negates it.
     /// </summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
     /// <param name="Value">
-    /// Non-null string or variable resolving to a string. SQL wildcard characters retain their pattern
-    /// meaning.
+    /// Non-null string, or variable resolving to a string. Wildcards retain their pattern meaning.
     /// </param>
     /// <param name="EscapeCharacter">
-    /// Optional SQL LIKE escape text. Wildcards in Value are not escaped automatically.
+    /// Optional SQL LIKE escape text; Value is not escaped automatically.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotContains(const Column: string; const Value: TValue;
       const EscapeCharacter: string = ''): IQuery;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotDate(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the date portion to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the date portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingNotDate(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotTime(const Column, Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of the time portion to HAVING, joined with OR and negated.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <summary>Appends a comparison of the time portion of a column to HAVING and negates it.</summary>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingNotTime(const Column: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with OR and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingNotDatePart(const Part, Column, Op: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a comparison of a date part to HAVING, joined with OR and negated.</summary>
+    /// <summary>Appends a comparison of a date part of a column to HAVING and negates it.</summary>
     /// <param name="Part">
-    /// Date part accepted by the selected compiler; supported parts vary by dialect.
+    /// Date part name containing ASCII letters or underscores; supported names depend on the compiler.
     /// </param>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Column">Column name, optionally qualified by a table.</param>
+    /// <param name="Value">
+    /// Comparison value, bound as supplied; no date/time conversion is performed by this method.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingNotDatePart(const Part, Column: string;
       const Value: TValue): IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to HAVING, joined with OR.</summary>
+    /// <summary>Appends a trusted SQL predicate to HAVING.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. Pending Not does not negate raw predicates; include any required NOT in Sql.
+    /// Joins this predicate with OR. Never interpolate untrusted input into Sql. A literal question mark can
+    /// be marked as \?; the escape remains in executable SQL. Pending Not does not negate raw predicates;
+    /// include any required NOT in Sql.
     /// </remarks>
     function OrHavingRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL predicate to HAVING, joined with OR.</summary>
+    /// <summary>Appends a trusted SQL predicate to HAVING.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings. Pending Not does not negate raw
-    /// predicates; include any required NOT in Sql.
+    /// Joins this predicate with OR. Supplies no bindings; unescaped value placeholders require the overload
+    /// with Bindings. Never interpolate untrusted input into Sql. A literal question mark can be marked as
+    /// \?; the escape remains in executable SQL. Pending Not does not negate raw predicates; include any
+    /// required NOT in Sql.
     /// </remarks>
     function OrHavingRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a comparison between two column identifiers to HAVING, joined with OR.</summary>
-    /// <param name="First">Left column identifier, quoted by the compiler.</param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Second">
-    /// Right column identifier, quoted by the compiler rather than bound as a value.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends a comparison between two columns to HAVING.</summary>
+    /// <param name="First">Left column name.</param>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Second">Right column name, quoted as an identifier rather than bound as a value.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingColumns(const First, Op, Second: string): IQuery;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to HAVING, joined with OR.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Op">Comparison operator accepted by the compiler whitelist.</param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Op">Comparison operator accepted by the selected compiler.</param>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR.</remarks>
     function OrHavingSub(Query: IQuery; const Op: string; const Value: TValue)
       : IQuery; overload;
-    /// <summary>
-    /// Appends a scalar subquery on the left of a value comparison to HAVING, joined with OR.
-    /// </summary>
+    /// <summary>Appends a scalar subquery on the left of a value comparison to HAVING.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="Value">Comparison value; ordinary values become SQL parameters.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>Uses equality (=).</remarks>
+    /// <param name="Value">Comparison value, normally bound as a SQL parameter.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>Joins this predicate with OR. Uses equality (=).</remarks>
     function OrHavingSub(Query: IQuery; const Value: TValue): IQuery; overload;
-    /// <summary>Appends selected column identifiers and switches the query to SELECT.</summary>
-    /// <param name="Columns">
-    /// Column identifiers, in output order. The table.{a,b} shorthand is expanded.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends selected columns and switches to SELECT.</summary>
+    /// <param name="Columns">Columns to select, in output order; an explicit AS alias is accepted.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function Select(const Columns: array of string): IQuery; overload;
-    /// <summary>Appends selected column identifiers and switches the query to SELECT.</summary>
-    /// <param name="Column">
-    /// Column identifier or table.{a,b} shorthand; SELECT also accepts an explicit AS alias.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends selected columns and switches to SELECT.</summary>
+    /// <param name="Column">Column to select, in output order; an explicit AS alias is accepted.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function Select(const Column: string): IQuery; overload;
-    /// <summary>Appends grouping column identifiers.</summary>
-    /// <param name="Columns">
-    /// Column identifiers, in output order. The table.{a,b} shorthand is expanded.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends grouping columns.</summary>
+    /// <param name="Columns">Columns used to group rows.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function GroupBy(const Columns: array of string): IQuery; overload;
-    /// <summary>Appends grouping column identifiers.</summary>
-    /// <param name="Column">
-    /// Column identifier or table.{a,b} shorthand; SELECT also accepts an explicit AS alias.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends grouping columns.</summary>
+    /// <param name="Column">Column used to group rows.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function GroupBy(const Column: string): IQuery; overload;
-    /// <summary>Appends ascending sort column identifiers.</summary>
-    /// <param name="Columns">
-    /// Column identifiers, in output order. The table.{a,b} shorthand is expanded.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends ascending sort columns.</summary>
+    /// <param name="Columns">Sort columns, in priority order.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function OrderBy(const Columns: array of string): IQuery; overload;
-    /// <summary>Appends ascending sort column identifiers.</summary>
-    /// <param name="Column">
-    /// Column identifier or table.{a,b} shorthand; SELECT also accepts an explicit AS alias.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends ascending sort columns.</summary>
+    /// <param name="Column">Sort column, in priority order.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function OrderBy(const Column: string): IQuery; overload;
-    /// <summary>Appends descending sort column identifiers.</summary>
-    /// <param name="Columns">
-    /// Column identifiers, in output order. The table.{a,b} shorthand is expanded.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends descending sort columns.</summary>
+    /// <param name="Columns">Sort columns, in priority order.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function OrderByDesc(const Columns: array of string): IQuery; overload;
-    /// <summary>Appends descending sort column identifiers.</summary>
-    /// <param name="Column">
-    /// Column identifier or table.{a,b} shorthand; SELECT also accepts an explicit AS alias.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Appends descending sort columns.</summary>
+    /// <param name="Column">Sort column, in priority order.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// QueryBuilder4Delphi expands 'Books.{Id, Title}' into 'Books.Id' and 'Books.Title'. This is library
+    /// shorthand, not SQL syntax.
+    /// </remarks>
     function OrderByDesc(const Column: string): IQuery; overload;
     /// <summary>Appends a trusted SQL select expression and switches to SELECT.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
     function SelectRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
     /// <summary>Appends a trusted SQL select expression and switches to SELECT.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
     function SelectRaw(const Sql: string): IQuery; overload;
     /// <summary>Replaces the FROM clause in the current engine scope with trusted SQL.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
     function FromRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
     /// <summary>Replaces the FROM clause in the current engine scope with trusted SQL.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
     function FromRaw(const Sql: string): IQuery; overload;
     /// <summary>Appends a trusted SQL ordering expression.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
     function OrderByRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
     /// <summary>Appends a trusted SQL ordering expression.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
     function OrderByRaw(const Sql: string): IQuery; overload;
     /// <summary>Appends a trusted SQL grouping expression.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
     function GroupByRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
     /// <summary>Appends a trusted SQL grouping expression.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
     function GroupByRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Supply the complete fragment, for example UNION SELECT ...; the method adds no operation keyword.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function CombineRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supply the complete fragment, for example UNION SELECT ...; the method adds no operation keyword.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function CombineRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Supply the complete fragment, for example UNION SELECT ...; the method adds no operation keyword.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function UnionRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supply the complete fragment, for example UNION SELECT ...; the method adds no operation keyword.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function UnionRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Supply the complete fragment, for example EXCEPT SELECT ...; the method adds no operation keyword.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function ExceptRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supply the complete fragment, for example EXCEPT SELECT ...; the method adds no operation keyword.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function ExceptRaw(const Sql: string): IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
     /// <param name="Bindings">
-    /// Values for unquoted ? placeholders in order. Arrays expand into parameter lists, except TBytes.
+    /// Placeholder values in order. Arrays expand into parameter lists, except TBytes.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql.
+    /// Supply the complete fragment, for example INTERSECT SELECT ...; the method adds no operation keyword.
+    /// Never interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape
+    /// remains in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function IntersectRaw(const Sql: string; const Bindings: array of TValue)
       : IQuery; overload;
-    /// <summary>Appends a trusted SQL set-operation fragment, including its operation keyword.</summary>
+    /// <summary>Appends a complete SQL set-operation fragment, including its keyword.</summary>
     /// <param name="Sql">
-    /// Trusted SQL fragment. Use ? for values and {identifier} or [identifier] for dialect quoting. Escape a
-    /// literal ? as \?.
+    /// Trusted SQL fragment. ? marks a value placeholder outside quoted text and comments; {identifier} and
+    /// [identifier] request dialect quoting.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// SQL syntax is supplied by the caller; identifier markers only perform quoting. Never interpolate
-    /// untrusted input into Sql. This overload supplies no bindings.
+    /// Supply the complete fragment, for example INTERSECT SELECT ...; the method adds no operation keyword.
+    /// Supplies no bindings; unescaped value placeholders require the overload with Bindings. Never
+    /// interpolate untrusted input into Sql. A literal question mark can be marked as \?; the escape remains
+    /// in executable SQL.
     /// </remarks>
+    /// <exception cref="EQueryException">This query is not a SELECT query.</exception>
     function IntersectRaw(const Sql: string): IQuery; overload;
-    /// <summary>Switches the query to a standalone COUNT aggregate.</summary>
+    /// <summary>Switches to a standalone COUNT aggregate.</summary>
     /// <param name="Columns">
-    /// Column identifiers, in output order. The table.{a,b} shorthand is expanded.
+    /// Counted column names, stored as supplied; an empty array selects COUNT(*).
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>No columns, or an empty column array, selects COUNT(*).</remarks>
-    function AsCount(const Columns: array of string): IQuery; overload;
-    /// <summary>Switches the query to a standalone COUNT aggregate.</summary>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    /// <remarks>No columns, or an empty column array, selects COUNT(*).</remarks>
-    function AsCount(): IQuery; overload;
-    /// <summary>Switches the query to a standalone SUM aggregate.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    function AsSum(const Column: string): IQuery;
-    /// <summary>Switches the query to a standalone AVG aggregate.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    function AsAvg(const Column: string): IQuery;
-    /// <summary>Switches the query to a standalone AVG aggregate.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    function AsAverage(const Column: string): IQuery;
-    /// <summary>Switches the query to a standalone MIN aggregate.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    function AsMin(const Column: string): IQuery;
-    /// <summary>Switches the query to a standalone MAX aggregate.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
-    function AsMax(const Column: string): IQuery;
-    /// <summary>Appends a SUM aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses FILTER where supported, otherwise a CASE expression; SQL support varies by dialect.
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
     /// </remarks>
+    function AsCount(const Columns: array of string): IQuery; overload;
+    /// <summary>Switches to a standalone COUNT(*).</summary>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsCount(): IQuery; overload;
+    /// <summary>Switches to a standalone SUM aggregate.</summary>
+    /// <param name="Column">Aggregated column name, stored as supplied.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsSum(const Column: string): IQuery;
+    /// <summary>Switches to a standalone AVG aggregate.</summary>
+    /// <param name="Column">Aggregated column name, stored as supplied.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsAvg(const Column: string): IQuery;
+    /// <summary>Switches to a standalone AVG aggregate.</summary>
+    /// <param name="Column">Aggregated column name, stored as supplied.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsAverage(const Column: string): IQuery;
+    /// <summary>Switches to a standalone MIN aggregate.</summary>
+    /// <param name="Column">Aggregated column name, stored as supplied.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsMin(const Column: string): IQuery;
+    /// <summary>Switches to a standalone MAX aggregate.</summary>
+    /// <param name="Column">Aggregated column name, stored as supplied.</param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// Compilation removes LIMIT, ORDER BY and GROUP BY from a clone, retaining OFFSET. Only the DISTINCT
+    /// rewrite expands column shorthand through Select.
+    /// </remarks>
+    function AsMax(const Column: string): IQuery;
+    /// <summary>Appends a SUM select expression and switches to SELECT.</summary>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
+    /// </param>
+    /// <param name="Filter">
+    /// Optional callback configuring a new query whose WHERE predicates filter this aggregate; must return
+    /// that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
+    /// <remarks>
+    /// The filter runs immediately when assigned. Compilation uses FILTER where supported, otherwise CASE;
+    /// support depends on the database.
+    /// </remarks>
+    /// <exception cref="EQueryException">Filter returns a different query or nil.</exception>
     function SelectSum(const Column: string;
       const Filter: TQueryCallback = nil): IQuery;
-    /// <summary>Appends a COUNT aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
+    /// <summary>Appends a COUNT select expression and switches to SELECT.</summary>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Filter">
+    /// Optional callback configuring a new query whose WHERE predicates filter this aggregate; must return
+    /// that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses FILTER where supported, otherwise a CASE expression; SQL support varies by dialect.
+    /// The filter runs immediately when assigned. Compilation uses FILTER where supported, otherwise CASE;
+    /// support depends on the database.
     /// </remarks>
+    /// <exception cref="EQueryException">Filter returns a different query or nil.</exception>
     function SelectCount(const Column: string;
       const Filter: TQueryCallback = nil): IQuery;
-    /// <summary>Appends a AVG aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
+    /// <summary>Appends a AVG select expression and switches to SELECT.</summary>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Filter">
+    /// Optional callback configuring a new query whose WHERE predicates filter this aggregate; must return
+    /// that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses FILTER where supported, otherwise a CASE expression; SQL support varies by dialect.
+    /// The filter runs immediately when assigned. Compilation uses FILTER where supported, otherwise CASE;
+    /// support depends on the database.
     /// </remarks>
+    /// <exception cref="EQueryException">Filter returns a different query or nil.</exception>
     function SelectAvg(const Column: string;
       const Filter: TQueryCallback = nil): IQuery;
-    /// <summary>Appends a MIN aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
+    /// <summary>Appends a MIN select expression and switches to SELECT.</summary>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Filter">
+    /// Optional callback configuring a new query whose WHERE predicates filter this aggregate; must return
+    /// that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses FILTER where supported, otherwise a CASE expression; SQL support varies by dialect.
+    /// The filter runs immediately when assigned. Compilation uses FILTER where supported, otherwise CASE;
+    /// support depends on the database.
     /// </remarks>
+    /// <exception cref="EQueryException">Filter returns a different query or nil.</exception>
     function SelectMin(const Column: string;
       const Filter: TQueryCallback = nil): IQuery;
-    /// <summary>Appends a MAX aggregate select expression with an optional predicate filter.</summary>
-    /// <param name="Column">Column identifier, optionally qualified by a table name.</param>
-    /// <param name="Filter">
-    /// Optional callback configuring aggregate predicates; must return its supplied query.
+    /// <summary>Appends a MAX select expression and switches to SELECT.</summary>
+    /// <param name="Column">
+    /// Aggregated column name; accepts an explicit AS alias. Column shorthand is not expanded.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="Filter">
+    /// Optional callback configuring a new query whose WHERE predicates filter this aggregate; must return
+    /// that query.
+    /// </param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Uses FILTER where supported, otherwise a CASE expression; SQL support varies by dialect.
+    /// The filter runs immediately when assigned. Compilation uses FILTER where supported, otherwise CASE;
+    /// support depends on the database.
     /// </remarks>
+    /// <exception cref="EQueryException">Filter returns a different query or nil.</exception>
     function SelectMax(const Column: string;
       const Filter: TQueryCallback = nil): IQuery;
     /// <summary>Appends a cloned SELECT using UNION.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function Union(Query: IQuery; All: Boolean = False): IQuery; overload;
     /// <summary>Appends a cloned SELECT using UNION.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Union(const Callback: TQueryCallback; All: Boolean = False)
       : IQuery; overload;
     /// <summary>Appends a cloned SELECT using UNION ALL.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function UnionAll(Query: IQuery): IQuery; overload;
     /// <summary>Appends a cloned SELECT using UNION ALL.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function UnionAll(const Callback: TQueryCallback): IQuery; overload;
     /// <summary>Appends a cloned SELECT using EXCEPT.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function &Except(Query: IQuery; All: Boolean = False): IQuery; overload;
     /// <summary>Appends a cloned SELECT using EXCEPT.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function &Except(const Callback: TQueryCallback; All: Boolean = False)
       : IQuery; overload;
     /// <summary>Appends a cloned SELECT using EXCEPT ALL.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function ExceptAll(Query: IQuery): IQuery; overload;
     /// <summary>Appends a cloned SELECT using EXCEPT ALL.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ExceptAll(const Callback: TQueryCallback): IQuery; overload;
     /// <summary>Appends a cloned SELECT using INTERSECT.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function Intersect(Query: IQuery; All: Boolean = False): IQuery; overload;
     /// <summary>Appends a cloned SELECT using INTERSECT.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <param name="All">
-    /// True to retain duplicates using the ALL form; database support depends on dialect.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <param name="All">True to request the ALL form; False requests the distinct form.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function Intersect(const Callback: TQueryCallback; All: Boolean = False)
       : IQuery; overload;
     /// <summary>Appends a cloned SELECT using INTERSECT ALL.</summary>
     /// <param name="Query">
-    /// Non-nil query to clone; subsequent changes to the source do not change this clause.
+    /// Non-nil query to clone; later changes to the source do not affect this clause.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
     /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
     function IntersectAll(Query: IQuery): IQuery; overload;
     /// <summary>Appends a cloned SELECT using INTERSECT ALL.</summary>
     /// <param name="Callback">
-    /// Called immediately with a new query in the current engine scope; must return that same query.
+    /// Called immediately with a new query in the current engine scope; must return that query.
     /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// Both queries must be SELECT queries. ALL and operation availability depend on the target database.
+    /// Both queries must be SELECT queries. Operation and ALL support depend on the database.
     /// </remarks>
-    /// <exception cref="EQueryException">Either query is not a SELECT query.</exception>
+    /// <exception cref="EQueryException">
+    /// Either query is not a SELECT query. Callback returns a different query or nil.
+    /// </exception>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
-    /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function IntersectAll(const Callback: TQueryCallback): IQuery; overload;
-    /// <summary>Invokes the callback immediately on this query, scoping added clauses to SqlServer.</summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to SqlServer.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForSqlServer(const Callback: TQueryCallback): IQuery;
-    /// <summary>
-    /// Invokes the callback immediately on this query, scoping added clauses to PostgreSql.
-    /// </summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to PostgreSql.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForPostgreSql(const Callback: TQueryCallback): IQuery;
-    /// <summary>Invokes the callback immediately on this query, scoping added clauses to MySql.</summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to MySql.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForMySql(const Callback: TQueryCallback): IQuery;
-    /// <summary>Invokes the callback immediately on this query, scoping added clauses to Sqlite.</summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to Sqlite.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForSqlite(const Callback: TQueryCallback): IQuery;
-    /// <summary>Invokes the callback immediately on this query, scoping added clauses to Oracle.</summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to Oracle.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForOracle(const Callback: TQueryCallback): IQuery;
-    /// <summary>Invokes the callback immediately on this query, scoping added clauses to Firebird.</summary>
-    /// <param name="Callback">
-    /// Required callback receiving this query; must return the same instance. The previous engine scope is
-    /// restored even on failure.
-    /// </param>
-    /// <returns>This query instance for further fluent configuration; no SQL is executed.</returns>
+    /// <summary>Invokes the callback on this query with clauses scoped to Firebird.</summary>
+    /// <param name="Callback">Required callback receiving this query; must return the same instance.</param>
+    /// <returns>This query instance, modified in place.</returns>
     /// <remarks>
-    /// The callback always runs; only compilation filters clauses by engine. Shared query state such as
-    /// Method is not engine-scoped.
+    /// Always runs immediately; compilation selects the engine-specific clauses. The previous scope is
+    /// restored even on failure. Shared state such as Method is not engine-scoped.
     /// </remarks>
     /// <exception cref="EQueryException">Callback returns a different query or nil.</exception>
     function ForFirebird(const Callback: TQueryCallback): IQuery;

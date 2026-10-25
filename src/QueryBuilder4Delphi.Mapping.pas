@@ -69,19 +69,18 @@ type
     destructor Destroy; override;
     /// <summary>Registers read/write support for a custom TNullable&lt;T&gt; specialization.</summary>
     /// <remarks>
-    /// Built-in nullable types need no registration. Register custom specializations before use; duplicate
-    /// registrations in this options object raise EQueryMappingException. Custom inner types also need
-    /// converters to/from supported SQL value types.
+    /// Built-in nullable types need no registration. Custom inner types also need converters to and from
+    /// supported SQL types.
     /// </remarks>
     /// <exception cref="EQueryMappingException">
-    /// This specialization or source/target pair is already registered in these options.
+    /// This nullable specialization is already registered in these options.
     /// </exception>
     procedure RegisterNullable<T>;
     /// <summary>Converts a registered nullable into its contained value or a typed SQL NULL.</summary>
     /// <param name="Value">RTTI value to inspect for a registered nullable specialization.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed converter configuration; nil uses built-in nullable types. NullBehavior does not govern
+    /// outbound bindings.
     /// </param>
     /// <returns>
     /// A binding TValue. Non-nullable inputs are returned unchanged; null nullables become TQueryNull with an
@@ -100,13 +99,13 @@ type
     /// use.
     /// </param>
     /// <remarks>
-    /// Duplicate source/target pairs raise EQueryMappingException. SQL NULL follows nullable construction or
-    /// NullBehavior, not the callback. Outbound conversion applies to custom nullable inner values with a
-    /// supported SQL target; ToParameter leaves ordinary non-nullable values unchanged.
+    /// SQL NULL follows nullable construction or NullBehavior, not the callback. Outbound conversion applies
+    /// to custom nullable inner values with a supported SQL target; ToParameter leaves ordinary non-nullable
+    /// values unchanged.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Converter is not assigned.</exception>
     /// <exception cref="EQueryMappingException">
-    /// This specialization or source/target pair is already registered in these options.
+    /// This source/target pair is already registered in these options.
     /// </exception>
     procedure RegisterConverter<TSource, TTarget>(const Converter
       : TFunc<TSource, TTarget>);
@@ -127,46 +126,43 @@ type
   TQueryResultMappingHelper = record helper for TQueryResult
     /// <summary>Maps all remaining rows into an owning object list.</summary>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// Caller-owned TObjectList&lt;T&gt; that owns all mapped objects; an empty valid result returns an empty
     /// list.
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Consumes all remaining rows unless
-    /// an exception interrupts iteration. Consumes this facade reference and releases its local result
-    /// reference even on failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Consumes all remaining rows unless an exception interrupts
+    /// iteration. Consumes this facade reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     function ToList<T: class, constructor>(Options: TQueryMappingOptions = nil)
       : TObjectList<T>;
     /// <summary>Maps the next row if one exists.</summary>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A caller-owned mapped object, or nil for an empty valid result.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Consumes this facade reference and releases its local result reference even on
-    /// failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Consumes
+    /// this facade reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     function FirstOrDefault<T: class, constructor>
       (Options: TQueryMappingOptions = nil): T;
     /// <summary>Maps the next row, requiring at least one remaining row.</summary>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A newly created object owned by the caller.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Consumes this facade reference and releases its local result reference even on
-    /// failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Consumes
+    /// this facade reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     /// <exception cref="EQueryMappingException">
     /// No remaining row, invalid mapping metadata/schema, or an unsupported conversion or NULL assignment.
@@ -175,16 +171,15 @@ type
       (Options: TQueryMappingOptions = nil): T;
     /// <summary>Maps exactly one remaining row, rejecting zero or multiple rows.</summary>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A newly created object owned by the caller.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Consumes this facade reference and releases its local result reference even
-    /// on failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Consumes this facade
+    /// reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     /// <exception cref="EQueryMappingException">
     /// No remaining row, multiple rows for Single, or invalid mapping/schema.
@@ -193,16 +188,15 @@ type
       (Options: TQueryMappingOptions = nil): T;
     /// <summary>Maps at most one remaining row, rejecting multiple rows.</summary>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A caller-owned mapped object, or nil for an empty valid result.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Consumes this facade reference and releases its local result reference even
-    /// on failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Consumes this facade
+    /// reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     function SingleOrDefault<T: class, constructor>
       (Options: TQueryMappingOptions = nil): T;
@@ -212,14 +206,13 @@ type
     /// free or retain that object.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Consumes all remaining rows unless
-    /// an exception interrupts iteration. Consumes this facade reference and releases its local result
-    /// reference even on failure; other retained copies survive.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Consumes all remaining rows unless an exception interrupts
+    /// iteration. Consumes this facade reference, releasing it even on failure; retained copies survive.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     procedure ForEach<T: class, constructor>(const Callback: TProc<T>;
@@ -230,20 +223,19 @@ type
     /// retains application-defined ownership.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// A caller-owned database-mapped object, or the exact fallback reference with its existing ownership
     /// (possibly nil).
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Consumes this facade reference and releases its local result reference even on
-    /// failure; other retained copies survive. Fallback runs after releasing that local result reference;
-    /// other references can still keep the provider cursor alive. A nil Fallback is rejected before
-    /// schema/cursor access even if a row exists. Schema and cardinality errors never invoke Fallback.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Consumes
+    /// this facade reference, releasing it even on failure; retained copies survive. Fallback runs after
+    /// releasing this local result reference. A nil Fallback is rejected before schema/cursor access even if
+    /// a row exists. Schema and cardinality errors never invoke Fallback.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Fallback is not assigned.</exception>
     function FirstOrElse<T: class, constructor>(const Fallback: TFunc<T>;
@@ -254,21 +246,20 @@ type
     /// retains application-defined ownership.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// A caller-owned database-mapped object, or the exact fallback reference with its existing ownership
     /// (possibly nil).
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Consumes this facade reference and releases its local result reference even
-    /// on failure; other retained copies survive. Fallback runs after releasing that local result reference;
-    /// other references can still keep the provider cursor alive. A nil Fallback is rejected before
-    /// schema/cursor access even if a row exists. Schema and cardinality errors never invoke Fallback.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Consumes this facade
+    /// reference, releasing it even on failure; retained copies survive. Fallback runs after releasing this
+    /// local result reference. A nil Fallback is rejected before schema/cursor access even if a row exists.
+    /// Schema and cardinality errors never invoke Fallback.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Fallback is not assigned.</exception>
     function SingleOrElse<T: class, constructor>(const Fallback: TFunc<T>;
@@ -309,57 +300,48 @@ type
     // OrElse fallback references retain their application's existing ownership.
     // Static methods never consume the caller's IQueryResult reference.
     /// <summary>Maps all remaining rows into an owning object list.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// Caller-owned TObjectList&lt;T&gt; that owns all mapped objects; an empty valid result returns an empty
     /// list.
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Consumes all remaining rows unless
-    /// an exception interrupts iteration. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Consumes all remaining rows unless an exception interrupts
+    /// iteration. Rows remains retained by the caller.
     /// </remarks>
     class function ToList<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): TObjectList<T>; static;
     /// <summary>Maps the next row if one exists.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A caller-owned mapped object, or nil for an empty valid result.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Rows
+    /// remains retained by the caller.
     /// </remarks>
     class function FirstOrDefault<T: class, constructor>
       (const Rows: IQueryResult; Options: TQueryMappingOptions = nil)
       : T; static;
     /// <summary>Maps the next row, requiring at least one remaining row.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A newly created object owned by the caller.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Rows
+    /// remains retained by the caller.
     /// </remarks>
     /// <exception cref="EQueryMappingException">
     /// No remaining row, invalid mapping metadata/schema, or an unsupported conversion or NULL assignment.
@@ -367,20 +349,17 @@ type
     class function First<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): T; static;
     /// <summary>Maps exactly one remaining row, rejecting zero or multiple rows.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A newly created object owned by the caller.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Rows remains
+    /// retained by the caller.
     /// </remarks>
     /// <exception cref="EQueryMappingException">
     /// No remaining row, multiple rows for Single, or invalid mapping/schema.
@@ -388,60 +367,50 @@ type
     class function Single<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): T; static;
     /// <summary>Maps at most one remaining row, rejecting multiple rows.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A caller-owned mapped object, or nil for an empty valid result.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Rows remains
+    /// retained by the caller.
     /// </remarks>
     class function SingleOrDefault<T: class, constructor>
       (const Rows: IQueryResult; Options: TQueryMappingOptions = nil)
       : T; static;
     // Never calls Next. Provider row access must reject an unpositioned cursor.
     /// <summary>Maps the current row without calling Next.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result, positioned on the row to map.</param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>A newly created object owned by the caller.</returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Borrows Rows; the caller interface
-    /// reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Rows remains retained by the caller.
     /// </remarks>
     class function MapCurrent<T: class, constructor>(const Rows: IQueryResult;
       Options: TQueryMappingOptions = nil): T; static;
     // Callback objects are borrowed, valid only until the callback returns.
     /// <summary>Maps each remaining row and invokes Callback with a borrowed object.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Callback">
     /// Required callback. Its mapped object is freed when the callback returns, even on exception; do not
     /// free or retain that object.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Consumes all remaining rows unless
-    /// an exception interrupts iteration. Borrows Rows; the caller interface reference is unchanged.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Consumes all remaining rows unless an exception interrupts
+    /// iteration. Rows remains retained by the caller.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Callback is not assigned.</exception>
     class procedure ForEach<T: class, constructor>(const Rows: IQueryResult;
@@ -450,55 +419,48 @@ type
     // Only empty, valid results invoke it. Return its exact reference (or nil)
     // without modifying ownership; only database-mapped objects are caller-owned.
     /// <summary>Maps the next row or invokes Fallback for an empty valid result.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Fallback">
     /// Required callback invoked only for an empty, schema-valid result; its returned reference or nil
     /// retains application-defined ownership.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// A caller-owned database-mapped object, or the exact fallback reference with its existing ownership
     /// (possibly nil).
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next once; additional rows
-    /// are not checked. Borrows Rows; the caller interface reference is unchanged. A nil Fallback is rejected
-    /// before schema/cursor access even if a row exists. Schema and cardinality errors never invoke Fallback.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next once; additional rows are not checked. Rows
+    /// remains retained by the caller. A nil Fallback is rejected before schema/cursor access even if a row
+    /// exists. Schema and cardinality errors never invoke Fallback.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Fallback is not assigned.</exception>
     class function FirstOrElse<T: class, constructor>(const Rows: IQueryResult;
       const Fallback: TFunc<T>; Options: TQueryMappingOptions = nil): T; static;
     /// <summary>Maps at most one remaining row or invokes Fallback for an empty valid result.</summary>
-    /// <param name="Rows">
-    /// Non-nil borrowed row result. Mapping starts after the current position, except MapCurrent, which
-    /// requires a current row.
-    /// </param>
+    /// <param name="Rows">Non-nil borrowed row result; starts after its current cursor position.</param>
     /// <param name="Fallback">
     /// Required callback invoked only for an empty, schema-valid result; its returned reference or nil
     /// retains application-defined ownership.
     /// </param>
     /// <param name="Options">
-    /// Borrowed mapping configuration, kept alive and unchanged for the operation; nil uses built-in
-    /// converters and nmbDefault.
+    /// Borrowed configuration; keep alive and unchanged during the call. Nil uses built-in converters and
+    /// nmbDefault.
     /// </param>
     /// <returns>
     /// A caller-owned database-mapped object, or the exact fallback reference with its existing ownership
     /// (possibly nil).
     /// </returns>
     /// <remarks>
-    /// Schema is validated before cursor access, even for empty results. Mapping requires at least one
-    /// matching property; conversion/provider/setter exceptions propagate. Calls Next at most twice; on a
-    /// second row it raises EQueryMappingException and frees the first mapped object, leaving the cursor on
-    /// the unmapped second row. Borrows Rows; the caller interface reference is unchanged. A nil Fallback is
-    /// rejected before schema/cursor access even if a row exists. Schema and cardinality errors never invoke
-    /// Fallback.
+    /// Requires matching properties and validates schema before cursor access, even for empty results;
+    /// mapping and provider exceptions propagate. Calls Next at most twice; multiple rows raise
+    /// EQueryMappingException and free the mapped object, leaving the cursor on row two. Rows remains
+    /// retained by the caller. A nil Fallback is rejected before schema/cursor access even if a row exists.
+    /// Schema and cardinality errors never invoke Fallback.
     /// </remarks>
     /// <exception cref="EArgumentNilException">Fallback is not assigned.</exception>
     class function SingleOrElse<T: class, constructor>(const Rows: IQueryResult;

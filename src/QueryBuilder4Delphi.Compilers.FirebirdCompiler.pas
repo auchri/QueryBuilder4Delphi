@@ -30,17 +30,11 @@ type
     /// <returns>SQL text representing false.</returns>
     function CompileFalse: string; override;
     /// <summary>Produces the dialect random-order SQL expression.</summary>
-    /// <param name="Seed">Optional random seed; some dialects ignore it.</param>
-    /// <returns>Random function SQL; seed support varies by compiler.</returns>
-    /// <remarks>
-    /// MySQL uses a supplied seed, SQL Server ignores it for NEWID(), and base/Oracle/Firebird
-    /// implementations ignore it.
-    /// </remarks>
+    /// <param name="Seed">Ignored by this compiler.</param>
+    /// <returns>RAND() SQL.</returns>
     function CompileRandom(const Seed: TValue): string; override;
     /// <summary>Quotes one identifier component and escapes its closing quote characters.</summary>
-    /// <param name="Value">
-    /// Identifier text or trusted SQL fragment as required by this method; not a data binding.
-    /// </param>
+    /// <param name="Value">Identifier text to quote.</param>
     /// <returns>Quoted identifier text, or an unchanged asterisk.</returns>
     /// <remarks>
     /// Firebird uppercases the entire quoted identifier, including explicitly supplied quote characters;
