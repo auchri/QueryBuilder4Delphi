@@ -12,7 +12,7 @@ See the [changelog](CHANGELOG.md) for release details.
 
 Add `src` to the Delphi search path. The core needs only the Delphi RTL.
 Import `QueryBuilder4Delphi.Query.Core` and `QueryBuilder4Delphi.Query` to build
-queries; add a compiler unit when you need parameterized SQL and bindings.
+queries and compile parameterized SQL with ordered bindings.
 FireDAC is required only by the optional provider.
 
 ## Quick start: build SQL
@@ -21,26 +21,22 @@ FireDAC is required only by the optional provider.
 uses
   System.SysUtils,
   QueryBuilder4Delphi.Query.Core,
-  QueryBuilder4Delphi.Query,
-  QueryBuilder4Delphi.Compilers.Compiler,
-  QueryBuilder4Delphi.Compilers.Factory;
+  QueryBuilder4Delphi.Query;
 
 procedure ShowBookQuery;
 var
-  Query: IQuery;
-  Compiler: ICompiler;
   Statement: ISqlResult;
 begin
-  Query := TQuery.Create('Books')
+  Statement := TQuery.Create('Books')
     .Select(['Id', 'Title'])
-    .Where('Id', 42);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
-  Statement := Compiler.Compile(Query);
+    .Where('Id', 42)
+    .Compile;
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger); // 42
 end;
 ```
 
+<!-- mssql:QuickStartBooks -->
 **Generated parameterized MSSQL SQL (compiler default `@p` prefix):**
 
 ```sql
@@ -52,10 +48,90 @@ Bindings:
 ```text
 @p0 = 42
 ```
+<!-- /mssql:QuickStartBooks -->
 
-Execute `Statement.Sql` together with its bindings. `Query.ToDebugSql` and
-`Statement.ToString` produce a **SQL preview with values substituted**, intended
-for diagnostics. They are not the parameterized execution path.
+`Compile` returns `ISqlResult` with parameterized SQL and bindings; the default
+dialect is MSSql. Execute `Statement.Sql` together with its bindings through an
+appropriate provider. `IQuery.ToDebugSql(Dialect)` and `Statement.ToString`
+produce a **SQL preview with values substituted**, intended for diagnostics,
+not execution.
+
+## Fluent search with optional filters
+
+A book catalogue can combine author details, optional filters and paging in one
+chain. Using the imports above, build a fresh query for each search:
+
+```delphi
+function SearchBooks(const Title, Author: string; PublishedOnly: Boolean;
+  Page, PageSize: Integer): IQuery;
+begin
+  Result := TQuery.Create('Books as b')
+    .Join('Authors as a', 'a.Id', 'b.AuthorId')
+    .Select(['b.Id', 'b.Title', 'a.Name as AuthorName'])
+    .When(Title <> '',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereContains('b.Title', Title);
+      end)
+    .When(Author <> '',
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereContains('a.Name', Author);
+      end)
+    .When(PublishedOnly,
+      function(Q: IQuery): IQuery
+      begin
+        Result := Q.WhereTrue('b.IsPublished');
+      end)
+    .OrderBy('b.Title').OrderBy('b.Id')
+    .ForPage(Page, PageSize);
+end;
+```
+
+Compile the search using the same imports:
+
+```delphi
+procedure ShowBookSearch;
+var
+  Statement: ISqlResult;
+begin
+  Statement := SearchBooks('Delphi', 'Cantu', True, 2, 10)
+    .Compile(TSqlDialect.MSSql);
+  Writeln(Statement.Sql);
+end;
+```
+
+All three filters are enabled here: title contains `Delphi`, author contains
+`Cantu`, and published books only. Empty text skips its filter; `False` includes
+both published and unpublished books. The unique book Id breaks title ties;
+page 2 skips 10 rows and returns at most 10. No SQL string concatenation is needed.
+
+<!-- mssql:SearchBooks -->
+**Generated parameterized MSSQL SQL (default `@p` prefix; line breaks added):**
+
+```sql
+SELECT [b].[Id], [b].[Title], [a].[Name] AS [AuthorName]
+FROM [Books] AS [b]
+INNER JOIN [Authors] AS [a] ON [a].[Id] = [b].[AuthorId]
+WHERE [b].[Title] like @p0 AND [a].[Name] like @p1
+  AND [b].[IsPublished] = cast(1 as bit)
+ORDER BY [b].[Title], [b].[Id]
+OFFSET @p2 ROWS FETCH NEXT @p3 ROWS ONLY
+```
+
+Ordered bindings (`WhereTrue` emits a SQL Server bit literal):
+
+```text
+@p0 = "%Delphi%"
+@p1 = "%Cantu%"
+@p2 = 10
+@p3 = 10
+```
+<!-- /mssql:SearchBooks -->
+
+Both examples are [checked against the compiler](test/DocumentationExamples.pas).
+See [advanced queries](docs/EXAMPLES.md#advanced-queries) for more JOINs,
+conditional filters and pagination options.
 
 ## Quick start: execute a query
 
@@ -104,28 +180,20 @@ Import `QueryBuilder4Delphi.Mapping` for fluent mapping into ordinary classes
 with writable RTTI properties. With [TBook](test/MappingExamples.pas):
 
 ```delphi
-Book := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
-  .Where('Id', 42).Execute(Executor).FirstOrDefault<TBook>();
+Books := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
+  .OrderBy('Id').Execute(Executor).ToList<TBook>();
 try
-  if Assigned(Book) then
+  for Book in Books do
     Writeln(Book.Title);
 finally
-  Book.Free; // A database-mapped object belongs to the caller.
+  Books.Free; // The list owns and frees every mapped book.
 end;
-
-Book := TQuery.Create('Books').Select(['Id', 'Title as BookTitle'])
-  .Where('Id', 42).Execute(Executor).FirstOrElse<TBook>(
-  function: TBook
-  begin
-    Result := ExistingBook;
-  end);
 ```
 
-The fallback runs only when no row remains. It returns `ExistingBook` unchanged,
-with exactly the same reference and ownership. **Do not free an externally owned
-fallback unless your application explicitly transfers ownership.** Newly mapped
-objects are caller-owned. Fluent calls release their result reference before
-returning or invoking an empty-result fallback; retained copies stay valid.
+Declare `Books: TObjectList<TBook>` and `Book: TBook` (import
+`System.Generics.Collections`). Individually mapped objects are caller-owned;
+lazy fallbacks retain their existing ownership. Fluent terminal calls release
+their result reference before returning; independently retained copies stay valid.
 
 Use `ToList<T>` for an owning list, `First<T>`/`Single<T>` for required rows,
 and `ForEach<T>` to borrow one mapped object per callback. `Single` variants

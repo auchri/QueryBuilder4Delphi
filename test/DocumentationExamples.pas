@@ -37,6 +37,8 @@ function DeleteBook: IQuery;
 function NullPrice: IQuery;
 
 function FilteredBooks(const Search: string; AuthorId: Integer): IQuery;
+function SearchBooks(const Title, Author: string; PublishedOnly: Boolean;
+  Page, PageSize: Integer): IQuery;
 procedure ShowCompilation;
 
 implementation
@@ -61,7 +63,132 @@ type
     procedure DocumentedSqlAndBindings;
     [Test]
     procedure MssqlDocumentation;
+    [TestCase('None', '0')]
+    [TestCase('Title', '1')]
+    [TestCase('Author', '2')]
+    [TestCase('TitleAuthor', '3')]
+    [TestCase('Published', '4')]
+    [TestCase('TitlePublished', '5')]
+    [TestCase('AuthorPublished', '6')]
+    [TestCase('All', '7')]
+    procedure SearchFilters(Mask: Integer);
+    [Test]
+    procedure ReadmeSearchMatchesSource;
   end;
+
+function SearchBooks(const Title, Author: string; PublishedOnly: Boolean;
+  Page, PageSize: Integer): IQuery;
+begin
+  Result := TQuery.Create('Books as b').Join('Authors as a', 'a.Id',
+    'b.AuthorId').Select(['b.Id', 'b.Title', 'a.Name as AuthorName'])
+    .When(Title <> '',
+    function(Q: IQuery): IQuery
+    begin
+      Result := Q.WhereContains('b.Title', Title);
+    end).When(Author <> '',
+    function(Q: IQuery): IQuery
+    begin
+      Result := Q.WhereContains('a.Name', Author);
+    end).When(PublishedOnly,
+    function(Q: IQuery): IQuery
+    begin
+      Result := Q.WhereTrue('b.IsPublished');
+    end).OrderBy('b.Title').OrderBy('b.Id').ForPage(Page, PageSize);
+end;
+
+procedure ShowBookQuery;
+var
+  Statement: ISqlResult;
+begin
+  Statement := TQuery.Create('Books').Select(['Id', 'Title'])
+    .Where('Id', 42).Compile;
+  Writeln(Statement.Sql);
+  Writeln(Statement.Bindings[0].AsInteger); // 42
+end;
+
+procedure ShowBookSearch;
+var
+  Statement: ISqlResult;
+begin
+  Statement := SearchBooks('Delphi', 'Cantu', True, 2, 10)
+    .Compile(TSqlDialect.MSSql);
+  Writeln(Statement.Sql);
+end;
+
+procedure TDocumentationTests.ReadmeSearchMatchesSource;
+var
+  Readme, Source, Example, Body, Name: string;
+begin
+  Readme := TFile.ReadAllText
+    (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '..\..\README.md')));
+  Source := TFile.ReadAllText
+    (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '..\..\test\DocumentationExamples.pas')));
+  Example := TRegEx.Match(Readme, '```delphi\s*(function SearchBooks\b.*?)```',
+    [roSingleLine]).Groups[1].Value;
+  Assert.IsTrue(Example <> '');
+  Body := TRegEx.Match(Source,
+    '(function SearchBooks\b[^\r\n]*\r?\n[^\r\n]*: IQuery;\s*begin.*?\r?\nend;)',
+    [roSingleLine]).Groups[1].Value;
+  Assert.IsTrue(Body <> '');
+  Assert.AreEqual(TRegEx.Replace(Body, '\s+', ''),
+    TRegEx.Replace(Example, '\s+', ''));
+  for Name in TArray<string>.Create('ShowBookQuery', 'ShowBookSearch') do
+  begin
+    Example := TRegEx.Match(Readme, '(procedure ' + Name + ';.*?\r?\nend;)',
+      [roSingleLine]).Groups[1].Value;
+    Body := TRegEx.Match(Source, '(procedure ' + Name + ';.*?\r?\nend;)',
+      [roSingleLine]).Groups[1].Value;
+    Assert.IsTrue(Example <> '', Name);
+    Assert.IsTrue(Body <> '', Name);
+    Assert.AreEqual(TRegEx.Replace(Body, '\s+', ''),
+      TRegEx.Replace(Example, '\s+', ''), Name);
+  end;
+  ShowBookQuery;
+  ShowBookSearch;
+end;
+
+procedure TDocumentationTests.SearchFilters(Mask: Integer);
+var
+  Title, Author: string;
+  S: ISqlResult;
+  Index: Integer;
+begin
+  Title := '';
+  Author := '';
+  if (Mask and 1) <> 0 then
+    Title := 'Delphi';
+  if (Mask and 2) <> 0 then
+    Author := 'Cantu';
+  S := SearchBooks(Title, Author, (Mask and 4) <> 0, 3, 7)
+    .Compile(TSqlDialect.MSSql);
+  Index := 0;
+  if Title <> '' then
+  begin
+    Assert.IsTrue(S.Sql.Contains('[b].[Title] like @p0'));
+    Assert.AreEqual('%Delphi%', S.Bindings[Index].AsString);
+    Inc(Index);
+  end
+  else
+    Assert.IsFalse(S.Sql.Contains('[b].[Title] like'));
+  if Author <> '' then
+  begin
+    Assert.IsTrue(S.Sql.Contains('[a].[Name] like @p' + IntToStr(Index)));
+    Assert.AreEqual('%Cantu%', S.Bindings[Index].AsString);
+    Inc(Index);
+  end
+  else
+    Assert.IsFalse(S.Sql.Contains('[a].[Name] like'));
+  Assert.AreEqual((Mask and 4) <> 0,
+    S.Sql.Contains('[b].[IsPublished] = cast(1 as bit)'));
+  Assert.IsTrue(S.Sql.Contains('ORDER BY [b].[Title], [b].[Id]'));
+  Assert.IsTrue(S.Sql.EndsWith('OFFSET @p' + IntToStr(Index) +
+    ' ROWS FETCH NEXT @p' + IntToStr(Index + 1) + ' ROWS ONLY'));
+  Assert.AreEqual<NativeInt>(Index + 2, S.Bindings.Count);
+  Assert.AreEqual(14, S.Bindings[Index].AsInteger);
+  Assert.AreEqual(7, S.Bindings[Index + 1].AsInteger);
+end;
 
 function AllBooks: IQuery;
 begin
@@ -290,7 +417,9 @@ begin
     OptionalAuthors, AuthorTotals, CountBooks, NestedFilters, AuthorSubquery,
     BooksWithOrders, BooksWithoutOrders, PublishedBooksCte, CombinedBooks,
     AllCombinedBooks, ConditionalBooks, ClonedBooks, RawBooks, InsertBook,
-    InsertBooks, UpdateBook, DeleteBook, NullPrice, FilteredBooks('Delphi', 7));
+    InsertBooks, UpdateBook, DeleteBook, NullPrice, FilteredBooks('Delphi', 7),
+    SearchBooks('Delphi', 'Cantu', True, 2, 10),
+    SearchBooks('', '', False, 1, 10));
   C := TQueryCompilerFactory.CreateCompiler(TSqlDialect(DialectIndex));
   C.ParameterPrefix := ':p';
   for Q in Queries do
@@ -337,9 +466,9 @@ end;
 
 procedure TDocumentationTests.MssqlDocumentation;
 const
-  Names: array [0 .. 6] of string = ('OffsetBooks', 'BooksAndAuthors',
+  Names: array [0 .. 8] of string = ('OffsetBooks', 'BooksAndAuthors',
     'OptionalAuthors', 'AuthorTotals', 'AuthorSubquery', 'BooksWithOrders',
-    'PublishedBooksCte');
+    'PublishedBooksCte', 'QuickStartBooks', 'SearchBooks');
 var
   Queries: TArray<IQuery>;
   C: ICompiler;
@@ -347,7 +476,7 @@ var
   Root: TJSONArray;
   Item, Values: TJSONObject;
   I, J, StartAt, EndAt: Integer;
-  Markdown, Section, SqlText: string;
+  Markdown, Readme, Section, SqlText: string;
   Match: TMatch;
   ExpectedBindings: string;
   function NormalizeSql(const Text: string): string;
@@ -360,16 +489,27 @@ begin
   Markdown := TFile.ReadAllText
     (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
     '..\..\docs\EXAMPLES.md')));
+  Readme := TFile.ReadAllText
+    (TPath.GetFullPath(TPath.Combine(ExtractFilePath(ParamStr(0)),
+    '..\..\README.md')));
   Queries := TArray<IQuery>.Create(OffsetBooks, BooksAndAuthors,
     OptionalAuthors, AuthorTotals, AuthorSubquery, BooksWithOrders,
-    PublishedBooksCte);
+    PublishedBooksCte, TQuery.Create('Books').Select(['Id', 'Title'])
+    .Where('Id', 42), SearchBooks('Delphi', 'Cantu', True, 2, 10));
   C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
   C.ParameterPrefix := ':p';
   Root := TJSONArray.Create;
   try
     for I := 0 to High(Queries) do
     begin
-      S := C.Compile(Queries[I]);
+      if I >= 7 then
+        C.ParameterPrefix := '@p';
+      if I = 7 then
+        S := Queries[I].Compile
+      else if I = 8 then
+        S := Queries[I].Compile(TSqlDialect.MSSql)
+      else
+        S := C.Compile(Queries[I]);
       Item := TJSONObject.Create;
       Root.AddElement(Item);
       Item.AddPair('name', Names[I]);
@@ -378,13 +518,16 @@ begin
       Item.AddPair('bindings', Values);
       for J := 0 to S.Bindings.Count - 1 do
         if S.Bindings[J].Kind in [tkInteger, tkInt64] then
-          Values.AddPair(':p' + IntToStr(J),
+          Values.AddPair(C.ParameterPrefix + IntToStr(J),
             TJSONNumber.Create(S.Bindings[J].AsInt64))
         else
-          Values.AddPair(':p' + IntToStr(J), S.Bindings[J].AsString);
+          Values.AddPair(C.ParameterPrefix + IntToStr(J),
+            S.Bindings[J].AsString);
     end;
     for I := 0 to Root.Count - 1 do
     begin
+      if I >= 7 then
+        Markdown := Readme;
       Item := Root.Items[I] as TJSONObject;
       StartAt := Pos('<!-- mssql:' + Names[I] + ' -->', Markdown);
       EndAt := Pos('<!-- /mssql:' + Names[I] + ' -->', Markdown);
