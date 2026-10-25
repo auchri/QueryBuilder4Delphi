@@ -39,7 +39,8 @@ type
       Mode: TQueryExecutionMode = emAuto): TQueryResult;
     function Clone: IQuery; virtual;
     function NewQuery: IQuery; virtual;
-    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
+    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): ISqlResult;
+    function ToDebugSql(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     function CopyClausesFrom(Source: IQuery): IQuery;
     function Add(const Component: string; Kind: TClauseKind): TClause;
     procedure Remove(const Component, Engine: string);
@@ -619,12 +620,17 @@ begin
   Result := TQueryObject.Create(Table, Comment);
 end;
 
-function TQueryObject.Compile(Dialect: TSqlDialect): string;
+function TQueryObject.Compile(Dialect: TSqlDialect): ISqlResult;
 var
   Compiler: ICompiler;
 begin
   Compiler := TQueryCompilerFactory.CreateCompiler(Dialect);
-  Result := Compiler.Compile(Self).ToString;
+  Result := Compiler.Compile(Self);
+end;
+
+function TQueryObject.ToDebugSql(Dialect: TSqlDialect): string;
+begin
+  Result := Compile(Dialect).ToString;
 end;
 
 function TQueryObject.GetEngineScope: string;

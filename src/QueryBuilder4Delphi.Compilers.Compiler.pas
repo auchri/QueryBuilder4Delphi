@@ -6,23 +6,8 @@ uses System.SysUtils, System.Rtti, System.Generics.Collections,
   QueryBuilder4Delphi.Query.Core;
 
 type
-  ISqlResult = interface
-    ['{451A0775-C8EC-455D-B66A-7480EF77C28C}']
-    function GetRawSql: string;
-    procedure SetRawSql(const Value: string);
-    function GetSql: string;
-    procedure SetSql(const Value: string);
-    function GetBindings: TList<TValue>;
-    function GetNamedBindings: TDictionary<string, TValue>;
-    function GetQuery: IQuery;
-    procedure SetQuery(const Value: IQuery);
-    function ToString: string;
-    property RawSql: string read GetRawSql write SetRawSql;
-    property Sql: string read GetSql write SetSql;
-    property Bindings: TList<TValue> read GetBindings;
-    property NamedBindings: TDictionary<string, TValue> read GetNamedBindings;
-    property Query: IQuery read GetQuery write SetQuery;
-  end;
+  // Preserve existing qualified references to the shared contract.
+  ISqlResult = QueryBuilder4Delphi.Query.Core.ISqlResult;
 
   TSqlResult = class(TInterfacedObject, ISqlResult)
   public

@@ -53,7 +53,7 @@ Bindings:
 @p0 = 42
 ```
 
-Execute `Statement.Sql` together with its bindings. `Query.Compile` and
+Execute `Statement.Sql` together with its bindings. `Query.ToDebugSql` and
 `Statement.ToString` produce a **SQL preview with values substituted**, intended
 for diagnostics. They are not the parameterized execution path.
 

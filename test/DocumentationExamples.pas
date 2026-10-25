@@ -264,17 +264,16 @@ var
   Statement: ISqlResult;
 begin
   Q := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
-  Statement := Compiler.Compile(Q);
+  Statement := Q.Compile; // Defaults to MSSql; returns ISqlResult.
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
-  Statement := Compiler.Compile(Q);
+  Statement := Q.Compile(TSqlDialect.Oracle);
   Writeln(Statement.Sql);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   Compiler.ParameterPrefix := ':item';
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
-  Writeln(Q.Compile); // SQL preview with values; never execute this string.
+  Writeln(Q.ToDebugSql); // SQL preview with values; never execute this string.
 end;
 
 procedure TDocumentationTests.CompileExamples(DialectIndex: Integer);
@@ -317,7 +316,7 @@ begin
   Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0', S.Sql);
   Assert.AreEqual(42, S.Bindings[0].AsInteger);
   Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = 42',
-    Q.Compile);
+    Q.ToDebugSql);
   C := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   S := C.Compile(Q);
   Assert.AreEqual('SELECT "Id", "Title" FROM "Books" WHERE "Id" = :p0', S.Sql);
