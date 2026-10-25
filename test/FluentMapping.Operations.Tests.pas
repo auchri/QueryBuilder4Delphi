@@ -624,7 +624,7 @@ begin
   Options := TQueryMappingOptions.Create;
   Seen := 0;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     case Method of
       0:
         Book := TQuery.Create('Books').Execute(FExecutor)

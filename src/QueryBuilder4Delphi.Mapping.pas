@@ -25,8 +25,6 @@ type
     FNullBehavior: TNullMappingBehavior;
     FNullables: TDictionary<PTypeInfo, TNullableConverter>;
     FConverters: TList<TConverter>;
-    function GetSkipNullAssignment: Boolean;
-    procedure SetSkipNullAssignment(Value: Boolean);
     class function ConvertMappedValue(const Value: TValue; Target: PTypeInfo;
       IsNull: Boolean; Options: TQueryMappingOptions): TValue; static;
     class function NullableConverter<T>: TNullableConverter; static;
@@ -39,9 +37,6 @@ type
     // Configure before use; do not mutate/free during a mapping operation.
     property NullBehavior: TNullMappingBehavior read FNullBehavior
       write FNullBehavior;
-    // Compatibility alias: True selects nmbSkip; False selects nmbThrow.
-    property SkipNullAssignment: Boolean read GetSkipNullAssignment
-      write SetSkipNullAssignment;
   end;
 
   TQueryResultMappingHelper = record helper for TQueryResult
@@ -580,19 +575,6 @@ begin
   FConverters := TList<TConverter>.Create;
 end;
 
-function TQueryMappingOptions.GetSkipNullAssignment: Boolean;
-begin
-  Result := FNullBehavior = nmbSkip;
-end;
-
-procedure TQueryMappingOptions.SetSkipNullAssignment(Value: Boolean);
-begin
-  if Value then
-    FNullBehavior := nmbSkip
-  else
-    FNullBehavior := nmbThrow;
-end;
-
 destructor TQueryMappingOptions.Destroy;
 begin
   FConverters.Free;
@@ -661,6 +643,9 @@ begin
     Exit(Nullable(Value, IsNull, Options));
   if IsNull then
   begin
+    if (Options <> nil) and (Options.NullBehavior = nmbThrow) then
+      raise EQueryMappingException.Create
+        ('SQL NULL rejected by nmbThrow for a non-nullable target');
     if ((Options = nil) or (Options.NullBehavior = nmbDefault)) and
       IsSupportedTarget(Target) then
     begin
@@ -669,7 +654,8 @@ begin
       Exit;
     end;
     raise EQueryMappingException.Create
-      ('SQL NULL requires a nullable target or nmbDefault for a supported type');
+      ('SQL NULL: target type does not support default-value mapping; ' +
+      'use a supported target or register a nullable specialization');
   end;
   Result := ConvertValue(Value, Target);
 end;

@@ -273,7 +273,7 @@ begin
   Book := nil;
   Options := TQueryMappingOptions.Create;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     Options.RegisterConverter<string, string>(
       function(S: string): string
       begin

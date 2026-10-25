@@ -301,7 +301,7 @@ var
 begin
   Options := TQueryMappingOptions.Create;
   try
-    Options.SkipNullAssignment := True;
+    Options.NullBehavior := nmbSkip;
     Item := TQueryMapper.FirstOrDefault<TNullableBook>
       (Rows(['Rating', 'Title'], TRows.Create(TValues.Create(TValue.Empty,
       TValue.Empty))), Options);

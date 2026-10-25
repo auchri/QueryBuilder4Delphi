@@ -391,13 +391,11 @@ provider errors remain errors under every policy.
 **Migration:** SQL NULL previously raised by default. Select `nmbThrow` to keep
 that behavior. `nmbDefault` loses the distinction between SQL NULL and a stored
 type default; use `TNullable<T>` when that distinction matters.
-`SkipNullAssignment` remains source-compatible as an alias for the same policy:
-writing True selects `nmbSkip`; writing False selects `nmbThrow` (the old
-explicit False behavior). Reading it returns whether `NullBehavior = nmbSkip`.
-A newly created options instance uses `nmbDefault` and reads False. The last
-write through either property wins; there are no independent settings. Prefer
-`NullBehavior` in new code. The old ability to skip recognized nullable NULLs is
-intentionally removed to preserve SQL NULL semantics.
+`NullBehavior` is the only configuration property for this policy. An explicit
+`nmbThrow` exception says SQL NULL was rejected by that policy. With the default
+policy, unsupported targets instead report that the type does not support
+default-value mapping. Both errors retain the property, row, column, source and
+target context. Supported nullable targets are handled before either error.
 
 ```delphi
 Options := TQueryMappingOptions.Create;

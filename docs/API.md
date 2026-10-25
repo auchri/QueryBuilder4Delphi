@@ -215,9 +215,9 @@ Delphi default, including overwriting constructor values. `nmbThrow` raises
 supported `TNullable<T>` NULL/present states. Ordinary converters never receive
 SQL NULL and unrelated conversion/provider/setter errors still propagate.
 Options are caller-owned and operation-scoped; configure before mapping and keep
-alive and unchanged until it returns. `SkipNullAssignment` is a compatibility
-alias: True selects skip, explicit False selects throw; its getter tests for skip.
-The last write to either property selects the policy. See
+alive and unchanged until it returns. `NullBehavior` is the only NULL policy
+setting. Explicit `nmbThrow` errors identify the selected policy; errors for an
+unsupported default target explain that default-value mapping is unavailable. See
 [policy details and migration](OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
 
 The existing Query.DataMapper helper

@@ -30,8 +30,11 @@ type
   public
     [Test]
     procedure SupportedDefaultsOverwriteConstructors;
-    [Test]
-    procedure LegacyAliasHasOneSourceOfTruth;
+    [TestCase('OmittedOptionsUnsupported', '0')]
+    [TestCase('DefaultUnsupported', '1')]
+    [TestCase('ThrowSupported', '2')]
+    [TestCase('ThrowUnsupported', '3')]
+    procedure SqlNullDiagnostics(Mode: Integer);
     [TestCase('Default', '0')]
     [TestCase('Throw', '1')]
     [TestCase('Skip', '2')]
@@ -167,27 +170,57 @@ begin
   CheckDefault<TSQLTimeStampOffset>(DateTimeToSQLTimeStampOffset(Now, 2, 0));
 end;
 
-procedure TNullPolicyTests.LegacyAliasHasOneSourceOfTruth;
+procedure TNullPolicyTests.SqlNullDiagnostics(Mode: Integer);
 var
   Options: TQueryMappingOptions;
+  Rows: IQueryResult;
+  Baseline: Integer;
 begin
-  Options := TQueryMappingOptions.Create;
+  Baseline := TMockQueryResult.LiveCount;
+  Options := nil;
   try
-    Assert.AreEqual(nmbDefault, Options.NullBehavior);
-    Assert.IsFalse(Options.SkipNullAssignment);
-    Options.SkipNullAssignment := True;
-    Assert.AreEqual(nmbSkip, Options.NullBehavior);
-    Options.NullBehavior := nmbDefault;
-    Assert.IsFalse(Options.SkipNullAssignment);
-    Options.SkipNullAssignment := False;
-    Assert.AreEqual(nmbThrow, Options.NullBehavior);
-    Options.NullBehavior := nmbSkip;
-    Assert.IsTrue(Options.SkipNullAssignment);
-    Options.NullBehavior := nmbThrow;
-    Assert.IsFalse(Options.SkipNullAssignment);
+    if Mode > 0 then
+    begin
+      Options := TQueryMappingOptions.Create;
+      Assert.AreEqual(nmbDefault, Options.NullBehavior);
+      if Mode >= 2 then
+        Options.NullBehavior := nmbThrow;
+    end;
+    Rows := NullRows;
+    try
+      if Mode = 2 then
+        TQueryMapper.First < TTypedDTO < Integer >> (Rows, Options).Free
+      else
+        TQueryMapper.First < TTypedDTO < TApplicationCode >>
+          (Rows, Options).Free;
+      Assert.Fail('Expected SQL NULL mapping failure');
+    except
+      on E: EQueryMappingException do
+      begin
+        Assert.IsTrue(Pos('row 1', E.Message) > 0, E.Message);
+        Assert.IsTrue(Pos('column "Value" [0]', E.Message) > 0, E.Message);
+        Assert.IsTrue(Pos('source SQL NULL', E.Message) > 0, E.Message);
+        if Mode >= 2 then
+        begin
+          Assert.IsTrue(Pos('rejected by nmbThrow', E.Message) > 0, E.Message);
+          Assert.IsTrue(Pos('does not support default-value mapping',
+            E.Message) = 0);
+        end
+        else
+        begin
+          Assert.IsTrue(Pos('does not support default-value mapping', E.Message)
+            > 0, E.Message);
+          Assert.IsTrue(Pos('nmbThrow', E.Message) = 0);
+        end;
+      end;
+    end;
+    Assert.AreEqual(Baseline + 1, TMockQueryResult.LiveCount,
+      'Static mapping keeps the caller-owned result alive after failure');
   finally
+    Rows := nil;
     Options.Free;
   end;
+  Assert.AreEqual(Baseline, TMockQueryResult.LiveCount);
 end;
 
 procedure TNullPolicyTests.NullableSemantics(Policy: Integer);
