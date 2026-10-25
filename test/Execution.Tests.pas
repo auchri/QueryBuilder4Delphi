@@ -475,7 +475,7 @@ var
 begin
   V := TQueryNull.Create(qtDecimal);
   Assert.AreEqual('INSERT INTO [Books] ([Price]) VALUES (NULL)',
-    TQuery.Create('Books').AsInsert(['Price'], [V]).Compile);
+    TQuery.Create('Books').AsInsert(['Price'], [V]).ToDebugSql);
   Assert.IsFalse(V.IsEmpty);
   Assert.IsTrue(V.AsType<TQueryNull>.ValueType = qtDecimal);
   Assert.WillRaise(

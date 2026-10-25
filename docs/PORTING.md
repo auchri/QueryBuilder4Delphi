@@ -126,7 +126,12 @@ Completed work packages for query compilation:
 Execution replaces the former optional adapter API. See README and API.md for
 provider units, migration, cursor semantics, ownership and provider extension.
 The previous adapter facade and command export helpers have been removed.
-Parameterized compilation remains available through ICompiler/ISqlResult.
+Parameterized compilation is available through both `IQuery.Compile` and
+`ICompiler.Compile`, returning the same `ISqlResult` contract. The historical
+preview shortcut described in work package 22 has been replaced: migrate
+string uses to `IQuery.ToDebugSql`, for debugging/logging only. `ISqlResult`
+now lives in Query.Core with its original identity; the compiler unit retains
+its existing name as a type alias.
 
 The execution contracts are colocated with IQuery to avoid circular units.
 The Fluent Execute member is outside generated sections and survives both
