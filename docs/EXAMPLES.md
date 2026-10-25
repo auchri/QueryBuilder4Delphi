@@ -1334,11 +1334,14 @@ This bridge does not implement connection management, a database driver or an OR
 
 Selected MSSQL SQL blocks and ordered binding lists are also checked directly
 against compiler output by MssqlDocumentation (presentation whitespace only
-is ignored).
+is ignored). This also covers both SQL/binding blocks in the README. Its
+SearchBooks showcase is compiled from DocumentationExamples.pas; a regression
+compares the README function with that source and checks all eight combinations
+of title, author and publication filters, including pagination binding order.
 
 The query functions and ShowCompilation are compiled in
 [test/DocumentationExamples.pas](../test/DocumentationExamples.pas). DUnitX
-compiles 31 example query variants against each of the six dialects, checks
+compiles 33 example query variants against each of the six dialects, checks
 parameter tokens, and asserts the SQL Server/Oracle SQL and write binding order
 shown here. This validates compilation, not live execution against all servers.
 
@@ -1350,7 +1353,7 @@ applications supply their own schema and driver configuration.
 
 [test/Execution.ProviderExample.pas](../test/Execution.ProviderExample.pas)
 compiles in the core project without FireDAC. Its ICommandAdapter is a contract;
-no live external adapter execution is claimed. The two short README snippets
+no live external adapter execution is claimed. The README quick starts
 use the same query/execution operations; these examples are not a schema or
 connection-management framework.
 
