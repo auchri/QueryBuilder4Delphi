@@ -139,7 +139,12 @@ SQL NULL maps to the actual Delphi type default for supported non-nullable
 properties, overwriting constructor values. Pass `TQueryMappingOptions` with
 `NullBehavior := nmbThrow` for strict errors or `nmbSkip` to preserve existing
 values. The default loses the distinction between NULL and zero/False/empty;
-use `TNullable<T>` to retain it. Nullable properties always receive `.Null` for
+use `TNullable<T>` to retain it. The same nullable DTO also works with
+object INSERT, UPDATE, WHERE and HAVING: present values keep their native types,
+including 0, False and empty strings/bytes; absent values become typed SQL NULL.
+NULL predicates use `IS NULL`; NULL UPDATE keys are rejected. See the
+[read/write roundtrip](docs/OBJECT_MAPPING.md#writing-nullable-properties).
+Nullable properties always receive `.Null` for
 SQL NULL under all three policies, and keep non-NULL defaults as present values.
 See [NULL policy and compatibility](docs/OBJECT_MAPPING.md#nullable-properties-and-scoped-options).
 

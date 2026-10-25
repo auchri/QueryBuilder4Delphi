@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-25",
+  "issue": 23,
+  "baseCommit": "1006353",
+  "compiler": "Delphi 12 Community Edition, RAD Studio 23.0",
+  "buildMethod": "IDE Project / Build, Base configuration; tools/build.ps1 -TestsOnly for execution",
+  "integrationDatabase": "FireDAC SQLite :memory: with statically linked driver",
+  "results": [
+    {
+      "suite": "Core",
+      "platform": "Win32",
+      "peMachine": "0x14c",
+      "passed": 925,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "033711ec9f4cdec40c8d8c9bd9bc5e434bcb194a6512150dc0247f5d8ff8342d",
+      "reportSha256": "6c5ad65c743169e1272d5f48e2d9414f2b88dab7d7bd065a3c68e48aff2ca31e"
+    },
+    {
+      "suite": "Core",
+      "platform": "Win64",
+      "peMachine": "0x8664",
+      "passed": 925,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "870da3e6d5b9b86d8f77f3bccfab78e758d0dd4b07d0d38236b9c4c8229e4a98",
+      "reportSha256": "d0e4d94fa96f9e2d3b25d792398c8e9f36459cc2cfc37520f3818015ebba6650"
+    },
+    {
+      "suite": "FireDAC",
+      "platform": "Win32",
+      "peMachine": "0x14c",
+      "passed": 94,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "ffeff255e24e6e49053f3b582f4fd1108a0992dc6462a9329bcd7649aa43ce59",
+      "reportSha256": "94c5baec9904bdcbdd3c40e6de7767c520d81d5140f3d1e14803323ffbbcbd55"
+    },
+    {
+      "suite": "FireDAC",
+      "platform": "Win64",
+      "peMachine": "0x8664",
+      "passed": 94,
+      "failed": 0,
+      "errors": 0,
+      "ignored": 0,
+      "leaked": 0,
+      "executableSha256": "4bb025090b6d351e968c7bfac36f284ff3f673813f1c6f80803bb6949e78f710",
+      "reportSha256": "734a20f62134d8eda343aab5ca4cf40e284bab8f53c16f40fde484914db3f920"
+    }
+  ],
+  "sourceSha256": {
+    "src/QueryBuilder4Delphi.Mapping.pas": "11c9d884d75269ebf78aa8f2a0eaea7df6d9ec4e453dc60cdf32f8fdaf054340",
+    "src/QueryBuilder4Delphi.Query.DataMapper.pas": "3454800b93c639cb678d9ad7c3ff393e4a68a214327a2030818a39db8bd6426c",
+    "src/QueryBuilder4Delphi.Compilers.Compiler.pas": "d4c6a2300cfb99ca0d4ca3955513d340df47ae8ba2edd58cd287ca43fe50dbc1",
+    "src/QueryBuilder4Delphi.Providers.FireDAC.Parameters.pas": "23947c734c1d0964302799fc4b2852b5dcbd25ab22f1a10b958eaafde1f57d93",
+    "test/NullableWriting.Tests.pas": "a67e76e8721387c1dfba003013ee83a51cd58e37984db78eb7c085884a69047b",
+    "test/FireDAC.Tests.pas": "a6e29bbcc8ebd2b4302d6e7741a2a185b7d844eb47c7b547733d7f59a96d6a4b",
+    "test/NullableMappingExamples.pas": "36a30364dac9c7ec5f9cb70b24119645fcf518d912537ee4a21d97cdb7ccb5e9"
+  },
+  "limitations": [
+    "No live SQL Server or Oracle server execution; all six dialects tested for SQL and binding generation.",
+    "Native BCD, GUID and timestamp/timezone values checked at parameter binding; SQLite does not prove server precision or timezone preservation.",
+    "Only the installed Delphi 12 Community Edition compiler was tested."
+  ]
+}

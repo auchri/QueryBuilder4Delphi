@@ -332,7 +332,7 @@ For `TRatedBook` and its nullable Rating, Title and Payload properties in
 
 ```delphi
 Books := TQuery.Create('NullableBooks')
-  .Select(['Rating', 'Title', 'Payload']).OrderBy('Id')
+  .Select(['Id', 'Rating', 'Title', 'Payload']).OrderBy('Id')
   .Execute(Executor).ToList<TRatedBook>();
 try
   for Book in Books do
@@ -355,8 +355,8 @@ immutable during mapping, allowing concurrent lookups without per-row setup.
 It uses compile-time typed callbacks shared with `RegisterNullable<T>` and
 ordinary `TValue.From<TNullable<T>>` construction and RTTI property assignment.
 Compiler aliases sharing a closed specialization are accepted only when their
-inner RTTI identities also match. There is no generic-name parsing, record-layout
-assumption, unsafe pointer construction or provider dependency.
+inner RTTI identities also match. Conversion never infers a generic record layout or reinterprets memory;
+closed generic RTTI names are used only to reject unregistered specializations.
 
 Both fluent and static methods still accept optional `TQueryMappingOptions`.
 Configure options before mapping and keep them alive and unchanged until the
@@ -483,3 +483,68 @@ packages must remain loaded while cached metadata is in use.
 
 This API is an object mapper only: it adds no change tracking, identity map,
 lazy loading or implicit CRUD.
+
+## Writing nullable properties
+
+All built-in specializations listed above work automatically with `AsInsert(Data)`,
+`AsUpdate(Data)`, `Where(Data)` and `Having(Data)`. They share the read mapper's
+immutable registrations and the attribute metadata resolver. No extra unit or
+configuration is required by the write calls. `Create(Value)` extracts exactly
+`TValue.From<T>(Value)`, preserving unsigned ranges, Extended/Currency/BCD precision,
+timestamps, GUIDs and managed-value ownership. `Null` emits `TQueryNull` with an
+inner-type hint; NULL never invokes an outbound custom converter.
+
+NULL is an explicit value, not an omitted property. To omit a column, use a partial
+DTO or `[Ignore]`. `Create(0)`, `Create(False)`, `Create('')` and
+`TNullable<TBytes>.Create(nil)` remain non-NULL. Database rules still apply;
+Oracle, for example, treats an empty character string as NULL.
+
+`Where(Data)` and `Having(Data)` use `IS NULL` for absent nullable properties,
+with no parameter for that predicate. Negation uses `IS NOT NULL`. Other values
+retain existing predicate behavior, including Boolean SQL literals. INSERT/UPDATE
+values remain parameterized; SET bindings precede key WHERE bindings in existing
+property order. `[Column]`, `[Key]`, inherited and readable-only properties and
+`[Ignore]` keep the shared mapping behavior.
+
+Every `[Key]` supplied to an UPDATE must be non-NULL. A NULL key raises
+`EQueryMappingException` before any key predicate or SET clause is changed,
+including when another composite-key member was already read. All getters and
+conversions complete before key callbacks run. Custom callbacks retain their own
+side effects if they throw; the mapper cannot roll back external callback actions.
+DTOs without keys retain existing behavior: callers must provide an appropriate
+WHERE condition for a restricted UPDATE.
+
+The same `TRatedBook` DTO is used throughout this example (see
+[`NullableMappingExamples.pas`](../test/NullableMappingExamples.pas) for the class
+and executable example):
+
+```delphi
+Book := TRatedBook.Create;
+try
+  Book.Id := 10; // [Key('Id')]
+  Book.Title := TNullable<string>.Create('');
+  Book.Rating := TNullable<Integer>.Create(0);
+  TQuery.Create('NullableBooks').AsInsert(Book).Execute(Executor).GetRowsAffected;
+finally
+  Book.Free;
+end;
+Book := TQuery.Create('NullableBooks').Where('Id', 10)
+  .Execute(Executor).Single<TRatedBook>();
+try
+  Book.Rating := TNullable<Integer>.Null;
+  TQuery.Create('NullableBooks').AsUpdate(Book).Execute(Executor).GetRowsAffected;
+finally
+  Book.Free;
+end;
+```
+
+Custom inner records opt in using scoped `TQueryMappingOptions.RegisterNullable<T>`
+and `RegisterConverter<TCustom, TSqlScalar>`. Use
+`TQueryDataMapper.GetPairs(Data, nil, Options)` and pass the returned pairs to
+`AsInsert`, `AsUpdate`, `Where` or `Having`. For pair-based updates add your key
+WHERE condition explicitly, or supply an `OnKey` callback to `GetPairs` (NULL keys
+are rejected when that callback is present). Register a reverse converter when
+reading a custom inner type. Options never alter global built-ins or read-side
+`NullBehavior`. The first registered custom-to-supported-scalar converter is used;
+register a single outbound representation per custom inner type. Unsupported
+unregistered nullable specializations fail before provider execution.

@@ -37,6 +37,7 @@ uses
   DocumentationExamples in 'DocumentationExamples.pas',
   CompilerClasses.Tests in 'CompilerClasses.Tests.pas',
   QueryWrites.Tests in 'QueryWrites.Tests.pas',
+  NullableWriting.Tests in 'NullableWriting.Tests.pas',
   QueryModel.Tests in 'QueryModel.Tests.pas',
   Oracle.Scenarios in 'Oracle.Scenarios.pas',
   QueryBuilder.Tests in 'QueryBuilder.Tests.pas';

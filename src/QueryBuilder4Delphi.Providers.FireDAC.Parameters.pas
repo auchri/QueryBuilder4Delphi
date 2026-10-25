@@ -20,7 +20,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.TypInfo, System.Variants, Data.FmtBcd;
+  System.SysUtils, System.TypInfo, System.Variants, Data.FmtBcd, Data.SqlTimSt;
 
 constructor TFireDACNull.Create(ADataType: TFieldType);
 begin
@@ -126,6 +126,10 @@ begin
     Param.AsCurrency := Value.AsType<Currency>
   else if Value.IsType<TGUID>(False) then
     Param.AsGUID := Value.AsType<TGUID>
+  else if Value.IsType<TSQLTimeStamp>(False) then
+    Param.AsSQLTimeStamp := Value.AsType<TSQLTimeStamp>
+  else if Value.IsType<TSQLTimeStampOffset>(False) then
+    Param.AsSQLTimeStampOffset := Value.AsType<TSQLTimeStampOffset>
   else if Value.IsType<TBcd>(False) then
     Param.AsFMTBCD := Value.AsType<TBcd>
   else if Value.IsType<TBytes>(False) then

@@ -15,7 +15,10 @@ type
 
   TQueryMappingOptions = class
   private type
-    TNullableConverter = TFunc<TValue, Boolean, TQueryMappingOptions, TValue>;
+    TNullableConverter = record
+      ReadValue: TFunc<TValue, Boolean, TQueryMappingOptions, TValue>;
+      WriteValue: TFunc<TValue, TQueryMappingOptions, TValue>;
+    end;
 
     TConverter = record
       Source, Target: PTypeInfo;
@@ -28,10 +31,14 @@ type
     class function ConvertMappedValue(const Value: TValue; Target: PTypeInfo;
       IsNull: Boolean; Options: TQueryMappingOptions): TValue; static;
     class function NullableConverter<T>: TNullableConverter; static;
+    class function ParameterValue(const Value: TValue; InnerType: PTypeInfo;
+      IsNull: Boolean; Options: TQueryMappingOptions): TValue; static;
   public
     constructor Create;
     destructor Destroy; override;
     procedure RegisterNullable<T>;
+    class function ToParameter(const Value: TValue;
+      Options: TQueryMappingOptions = nil): TValue; static;
     procedure RegisterConverter<TSource, TTarget>(const Converter
       : TFunc<TSource, TTarget>);
     // Configure before use; do not mutate/free during a mapping operation.
@@ -591,7 +598,8 @@ end;
 
 class function TQueryMappingOptions.NullableConverter<T>: TNullableConverter;
 begin
-  Result := function(Value: TValue; IsNull: Boolean;
+  Result.ReadValue :=
+      function(Value: TValue; IsNull: Boolean;
       Options: TQueryMappingOptions): TValue
     var
       Inner: TValue;
@@ -602,6 +610,94 @@ begin
       Result := TValue.From < TNullable < T >>
         (TNullable<T>.Create(Inner.AsType<T>));
     end;
+  Result.WriteValue :=
+      function(Value: TValue; Options: TQueryMappingOptions): TValue
+    var
+      Nullable: TNullable<T>;
+    begin
+      Nullable := Value.AsType<TNullable<T>>;
+      if Nullable.HasValue then
+        Result := ParameterValue(TValue.From<T>(Nullable.Value), TypeInfo(T),
+          False, Options)
+      else
+        Result := ParameterValue(TValue.Empty, TypeInfo(T), True, Options);
+    end;
+end;
+
+function ParameterType(Info: PTypeInfo): TQueryValueType;
+begin
+  if Info = TypeInfo(string) then
+    Exit(qtString);
+  if Info = TypeInfo(Boolean) then
+    Exit(qtBoolean);
+  if Info = TypeInfo(TDateTime) then
+    Exit(qtDateTime);
+  if Info = TypeInfo(Currency) then
+    Exit(qtCurrency);
+  if Info = TypeInfo(TBcd) then
+    Exit(qtDecimal);
+  if Info = TypeInfo(TSQLTimeStamp) then
+    Exit(qtTimestamp);
+  if Info = TypeInfo(TSQLTimeStampOffset) then
+    Exit(qtTimestampOffset);
+  if Info = TypeInfo(TGUID) then
+    Exit(qtGuid);
+  if Info = TypeInfo(TBytes) then
+    Exit(qtBinary);
+  if IsIntegerType(Info) then
+  begin
+    if (Info = TypeInfo(Int64)) or (Info = TypeInfo(UInt64)) or
+      (Info = TypeInfo(Cardinal)) then
+      Exit(qtInt64);
+    Exit(qtInteger);
+  end;
+  if IsFloatType(Info) then
+    Exit(qtFloat);
+  Result := qtUnknown;
+end;
+
+class function TQueryMappingOptions.ParameterValue(const Value: TValue;
+  InnerType: PTypeInfo; IsNull: Boolean; Options: TQueryMappingOptions): TValue;
+var
+  Item: TConverter;
+  Hint: TQueryValueType;
+begin
+  Hint := ParameterType(InnerType);
+  if (Hint = qtUnknown) and (Options <> nil) then
+    for Item in Options.FConverters do
+      if (Item.Source = InnerType) and (ParameterType(Item.Target) <> qtUnknown)
+      then
+      begin
+        // NULL needs only the output type, never a dummy custom value.
+        if IsNull then
+          Exit(TValue.From<TQueryNull>
+            (TQueryNull.Create(ParameterType(Item.Target))));
+        Exit(Item.Convert(Value));
+      end;
+  if Hint = qtUnknown then
+    raise EQueryMappingException.Create
+      ('Nullable inner type requires an outbound converter to a supported SQL type');
+  if IsNull then
+    Result := TValue.From<TQueryNull>(TQueryNull.Create(Hint))
+  else
+    Result := Value;
+end;
+
+class function TQueryMappingOptions.ToParameter(const Value: TValue;
+  Options: TQueryMappingOptions): TValue;
+var
+  Nullable: TNullableConverter;
+begin
+  if (Options <> nil) and Options.FNullables.TryGetValue(Value.TypeInfo,
+    Nullable) then
+    Exit(Nullable.WriteValue(Value, Options));
+  if BuiltInNullables.TryGetValue(Value.TypeInfo, Nullable) then
+    Exit(Nullable.WriteValue(Value, Options));
+  if (Value.TypeInfo <> nil) and (Pos('TNullable<', string(Value.TypeInfo.Name)
+    ) > 0) then
+    raise EQueryMappingException.Create
+      ('Register the custom nullable specialization before writing');
+  Result := Value;
 end;
 
 procedure TQueryMappingOptions.RegisterConverter<TSource, TTarget>
@@ -632,7 +728,7 @@ var
   Item: TQueryMappingOptions.TConverter;
 begin
   if (Options <> nil) and Options.FNullables.TryGetValue(Target, Nullable) then
-    Exit(Nullable(Value, IsNull, Options));
+    Exit(Nullable.ReadValue(Value, IsNull, Options));
   // Preserve exact converters returning the complete destination, including
   // nullable records. SQL NULL always follows nullable construction/policy.
   if not IsNull and (Options <> nil) then
@@ -640,7 +736,7 @@ begin
       if (Item.Source = Value.TypeInfo) and (Item.Target = Target) then
         Exit(Item.Convert(Value));
   if BuiltInNullables.TryGetValue(Target, Nullable) then
-    Exit(Nullable(Value, IsNull, Options));
+    Exit(Nullable.ReadValue(Value, IsNull, Options));
   if IsNull then
   begin
     if (Options <> nil) and (Options.NullBehavior = nmbThrow) then
