@@ -31,6 +31,25 @@ type
   end;
 
   IQuery = interface;
+
+  ISqlResult = interface
+    ['{451A0775-C8EC-455D-B66A-7480EF77C28C}']
+    function GetRawSql: string;
+    procedure SetRawSql(const Value: string);
+    function GetSql: string;
+    procedure SetSql(const Value: string);
+    function GetBindings: TList<TValue>;
+    function GetNamedBindings: TDictionary<string, TValue>;
+    function GetQuery: IQuery;
+    procedure SetQuery(const Value: IQuery);
+    function ToString: string;
+    property RawSql: string read GetRawSql write SetRawSql;
+    property Sql: string read GetSql write SetSql;
+    property Bindings: TList<TValue> read GetBindings;
+    property NamedBindings: TDictionary<string, TValue> read GetNamedBindings;
+    property Query: IQuery read GetQuery write SetQuery;
+  end;
+
   TQueryExecutionMode = (emAuto, emRows, emCommand);
 
   // Cursor starts before the first row; indices are zero based.
@@ -150,7 +169,10 @@ type
     function GetVariables: TDictionary<string, TValue>;
     function Clone: IQuery;
     function NewQuery: IQuery;
-    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
+    // Parameterized SQL and bindings, suitable for execution.
+    function Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): ISqlResult;
+    // Substituted values for debugging/logging only; not for SQL execution.
+    function ToDebugSql(Dialect: TSqlDialect = TSqlDialect.MSSql): string;
     function CopyClausesFrom(Source: IQuery): IQuery;
     function Add(const Component: string; Kind: TClauseKind): TClause;
     procedure Remove(const Component, Engine: string);

@@ -605,6 +605,10 @@ type
     [Test]
     procedure SqlResultRetainsOriginalQuery;
     [Test]
+    procedure FluentResultRetainsAndReleasesQuery;
+    [Test]
+    procedure FluentPreviewAndFailuresReleaseQueries;
+    [Test]
     procedure CompilerAndResultReleaseAtScopeExit;
     [TestCase('sqlsrv', 'sqlsrv')]
     [TestCase('postgres', 'postgres')]
@@ -855,6 +859,52 @@ procedure TQueryBuilderTests.SqlResultRetainsOriginalQuery;
     Assert.IsTrue(R.Query.HasConditions);
     Assert.AreEqual(7, R.Bindings[0].AsInteger);
     Assert.AreEqual('SELECT * FROM "Books" WHERE "Id" = 7', R.ToString);
+  end;
+
+begin
+  Exercise;
+  Assert.AreEqual(0, LiveQueries);
+end;
+
+procedure TQueryBuilderTests.FluentResultRetainsAndReleasesQuery;
+  procedure Exercise;
+  var
+    R, Shared: ISqlResult;
+    function CompileTemporary: ISqlResult;
+    begin
+      Result := TrackedQuery.&From('Books').Where('Id', 7).Compile;
+    end;
+
+  begin
+    R := CompileTemporary;
+    Shared := R;
+    R := nil;
+    Assert.AreEqual(1, LiveQueries);
+    Assert.AreEqual(7, Shared.Query.GetOne('where', '').Value.AsInteger);
+    Assert.AreEqual(7, Shared.Bindings[0].AsInteger);
+    Assert.AreEqual('SELECT * FROM [Books] WHERE [Id] = 7', Shared.ToString);
+  end;
+
+begin
+  Exercise;
+  Assert.AreEqual(0, LiveQueries);
+end;
+
+procedure TQueryBuilderTests.FluentPreviewAndFailuresReleaseQueries;
+  procedure Exercise;
+  begin
+    Assert.AreEqual('SELECT * FROM [Books] WHERE [Id] = 7',
+      TrackedQuery.&From('Books').Where('Id', 7).ToDebugSql);
+    Assert.WillRaise(
+      procedure
+      begin
+        TrackedQuery.&From('Books').WhereRaw('Id = ?', []).Compile;
+      end, EQueryException);
+    Assert.WillRaise(
+      procedure
+      begin
+        TrackedQuery.&From('Books').WhereRaw('Id = ?', []).ToDebugSql;
+      end, EQueryException);
   end;
 
 begin

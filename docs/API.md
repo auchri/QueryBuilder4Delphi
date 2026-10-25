@@ -238,9 +238,27 @@ returns `IQuery`; fluent methods modify that instance and return it. Use Clone
 for an independent variant. Delphi keywords use an `&` prefix, for example
 `&From`, `&With`, `&As` and `&Not`.
 
-`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): string` produces a
-preview with substituted values. `ICompiler.Compile(Query): ISqlResult`
-returns parameterized SQL and ordered/named bindings.
+`IQuery.Compile(Dialect: TSqlDialect = TSqlDialect.MSSql): ISqlResult` returns
+parameterized SQL in `Sql`, ordered `Bindings`, `NamedBindings`, and the existing
+result functionality. It delegates to the existing compiler factory and compiler.
+`ICompiler.Compile(Query): ISqlResult` remains unchanged; use it when configuring
+compiler options such as `ParameterPrefix` or legacy pagination.
+
+`IQuery.ToDebugSql(Dialect: TSqlDialect = TSqlDialect.MSSql): string` delegates
+to `Compile(Dialect).ToString` for a readable preview with values substituted.
+Use it only for debugging and logging, never for parameterized SQL execution.
+Preview text can contain sensitive values.
+
+`ISqlResult` is declared beside `IQuery` in `QueryBuilder4Delphi.Query.Core`,
+which has no dependency on compiler implementations. The original
+`QueryBuilder4Delphi.Compilers.Compiler.ISqlResult` name is a type alias to the
+same interface, retaining its GUID and members. Existing compiler consumers
+can keep their imports and qualified type names.
+
+**Migration:** assign `Query.Compile` to an `ISqlResult` and execute `Sql` with
+its bindings. Replace old string/preview uses with `Query.ToDebugSql`. Both
+fluent methods default to MSSql.
+
 `TQueryCompilerFactory.CreateCompiler(Dialect)`
 in `QueryBuilder4Delphi.Compilers.Factory` supports MSSql, MySql, PostgreSql,
 Sqlite, Oracle and Firebird. Its static method defaults to MSSql and replaces

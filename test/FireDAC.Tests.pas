@@ -668,7 +668,7 @@ var
   Sql: string;
 begin
   Q := TQuery.Create('Books').OrderBy('Id');
-  Sql := Q.Compile;
+  Sql := Q.ToDebugSql;
   A := Q.Execute(FExecutor);
   Assert.IsTrue(A.Next);
   B := Q.Execute(FExecutor);
@@ -676,7 +676,7 @@ begin
   Assert.IsTrue(A.Next);
   Assert.AreEqual('Beta', A.GetValue('Title').AsString);
   Assert.AreEqual('Alpha', B.GetValue('Title').AsString);
-  Assert.AreEqual(Sql, Q.Compile);
+  Assert.AreEqual(Sql, Q.ToDebugSql);
 end;
 
 procedure TFireDACExecutionTests.NullAndBinary;

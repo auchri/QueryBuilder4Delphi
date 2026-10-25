@@ -24,7 +24,15 @@ type
     [Test]
     procedure CompilePropagatesErrors;
     [Test]
-    procedure CompileInlinesValues;
+    procedure DebugSqlInlinesValues;
+    [Test]
+    procedure CompileReturnsSqlAndBindings;
+    [Test]
+    procedure CompilePreservesSpecialValues;
+    [Test]
+    procedure CompilationDoesNotMutateQueryOrEarlierResults;
+    [Test]
+    procedure SqlResultContractKeepsIdentity;
     [Test]
     procedure ClonePreservesSubclassAndIndependentState;
     [Test]
@@ -44,7 +52,7 @@ type
 implementation
 
 uses
-  System.SysUtils, System.Rtti, System.TypInfo,
+  System.SysUtils, System.Rtti, System.TypInfo, System.Variants,
   QueryBuilder4Delphi.Query.Core, QueryBuilder4Delphi.Query,
   QueryBuilder4Delphi.Compilers.Compiler,
   QueryBuilder4Delphi.Compilers.SqlServerCompiler,
@@ -82,8 +90,8 @@ end;
 
 procedure TQueryModelTests.CompileDefaultsToMSSql;
 begin
-  Assert.AreEqual('SELECT [Title] FROM [Books]', TQuery.Create('Books')
-    .Select('Title').Compile);
+  Assert.AreEqual('SELECT [Title] FROM [Books] WHERE [Id] = @p0',
+    TQuery.Create('Books').Select('Title').Where('Id', 42).Compile.Sql);
 end;
 
 procedure TQueryModelTests.CompileSelectsDialect(DialectIndex: Integer);
@@ -94,7 +102,8 @@ var
   Dialect, EngineDialect: TSqlDialect;
   Query: IQuery;
   Compiler: ICompiler;
-  Expected: string;
+  Expected, Actual: ISqlResult;
+  I: Integer;
 begin
   Dialect := TSqlDialect(DialectIndex);
   case Dialect of
@@ -121,9 +130,21 @@ begin
       begin
         Result := Q.SelectRaw(IntToStr(Ord(EngineDialect)));
       end);
-  Expected := Compiler.Compile(Query).ToString;
-  Assert.AreEqual(Expected, Query.Compile(Dialect));
-  Assert.AreEqual(Expected, Query.Compile(Dialect));
+  Expected := Compiler.Compile(Query);
+  Actual := Query.Compile(Dialect);
+  Assert.AreEqual(Expected.Sql, Actual.Sql);
+  Assert.AreEqual(Expected.RawSql, Actual.RawSql);
+  Assert.AreEqual(Expected.Bindings.Count, Actual.Bindings.Count);
+  Assert.AreEqual(Expected.NamedBindings.Count, Actual.NamedBindings.Count);
+  for I := 0 to Expected.Bindings.Count - 1 do
+  begin
+    Assert.AreEqual(Expected.Bindings[I].ToString, Actual.Bindings[I].ToString);
+    Assert.AreEqual(Expected.NamedBindings[Compiler.ParameterPrefix +
+      IntToStr(I)].ToString, Actual.NamedBindings[Compiler.ParameterPrefix +
+      IntToStr(I)].ToString);
+  end;
+  Assert.AreEqual(Expected.Sql, Query.Compile(Dialect).Sql);
+  Assert.AreEqual(Expected.ToString, Query.ToDebugSql(Dialect));
   Assert.AreEqual('', Query.EngineScope);
   Assert.AreEqual<NativeInt>(7, Length(Query.GetComponents('select')));
 end;
@@ -135,17 +156,117 @@ begin
     begin
       TQuery.Create('Books').WhereRaw('Id = ?', []).Compile;
     end, EQueryException);
+  Assert.WillRaise(
+    procedure
+    begin
+      TQuery.Create('Books').WhereRaw('Id = ?', []).ToDebugSql;
+    end, EQueryException);
 end;
 
-procedure TQueryModelTests.CompileInlinesValues;
+procedure TQueryModelTests.DebugSqlInlinesValues;
 begin
   Assert.AreEqual
     ('SELECT * FROM [Books] WHERE [Title] = ''O''''Reilly'' AND [Id] = 42',
-    TQuery.Create('Books').Where('Title', 'O''Reilly').Where('Id', 42).Compile);
+    TQuery.Create('Books').Where('Title', 'O''Reilly').Where('Id', 42)
+    .ToDebugSql);
   Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (''New Book'')',
-    TQuery.Create('Books').AsInsert(['Title'], ['New Book']).Compile);
+    TQuery.Create('Books').AsInsert(['Title'], ['New Book']).ToDebugSql);
   Assert.AreEqual('INSERT INTO [Books] ([Title]) VALUES (NULL)',
-    TQuery.Create('Books').AsInsert(['Title'], [TValue.Empty]).Compile);
+    TQuery.Create('Books').AsInsert(['Title'], [TValue.Empty]).ToDebugSql);
+end;
+
+procedure TQueryModelTests.CompileReturnsSqlAndBindings;
+var
+  Statement: QueryBuilder4Delphi.Query.Core.ISqlResult;
+begin
+  Statement := TQuery.Create('Books').Select(['Id', 'Title']).Where('Id', 42)
+    .Where('Title', 'O''Reilly').Compile;
+  Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = @p0 ' +
+    'AND [Title] = @p1', Statement.Sql);
+  Assert.AreEqual('SELECT [Id], [Title] FROM [Books] WHERE [Id] = ? ' +
+    'AND [Title] = ?', Statement.RawSql);
+  Assert.AreEqual<NativeInt>(2, Statement.Bindings.Count);
+  Assert.AreEqual<NativeInt>(2, Statement.NamedBindings.Count);
+  Assert.AreEqual(42, Statement.Bindings[0].AsInteger);
+  Assert.AreEqual('O''Reilly', Statement.Bindings[1].AsString);
+  Assert.AreEqual(42, Statement.NamedBindings['@p0'].AsInteger);
+  Assert.AreEqual('O''Reilly', Statement.NamedBindings['@p1'].AsString);
+end;
+
+procedure TQueryModelTests.CompilePreservesSpecialValues;
+const
+  Text = 'O''Reilly ? @p0 \ path' + #13#10 + #$00E4 + #$4E66;
+var
+  Q: IQuery;
+  Statement: ISqlResult;
+  TypedNull: TValue;
+  I: Integer;
+begin
+  TypedNull := TQueryNull.Create(qtString);
+  Q := TQuery.Create('Books').AsInsert(['Text', 'Empty', 'TypedNull',
+    'VariantNull', 'Enabled', 'Disabled', 'Price', 'Date'],
+    [Text, TValue.Empty, TypedNull, TValue.From<Variant>(Null), True, False,
+    TValue.From<Double>(12.5), TValue.From<TDateTime>(EncodeDate(2026,
+    10, 25))]);
+  Statement := Q.Compile;
+  Assert.AreEqual('INSERT INTO [Books] ([Text], [Empty], [TypedNull], ' +
+    '[VariantNull], [Enabled], [Disabled], [Price], [Date]) VALUES ' +
+    '(@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7)', Statement.Sql);
+  Assert.AreEqual<NativeInt>(8, Statement.Bindings.Count);
+  Assert.AreEqual<NativeInt>(8, Statement.NamedBindings.Count);
+  for I := 0 to 7 do
+    Assert.IsTrue(Statement.NamedBindings.ContainsKey('@p' + IntToStr(I)));
+  Assert.AreEqual(Text, Statement.Bindings[0].AsString);
+  Assert.IsTrue(Statement.Bindings[1].IsEmpty);
+  Assert.IsTrue(Statement.Bindings[2].AsType<TQueryNull>.ValueType = qtString);
+  Assert.IsTrue(VarIsNull(Statement.Bindings[3].AsVariant));
+  Assert.IsTrue(Statement.Bindings[4].AsBoolean);
+  Assert.IsFalse(Statement.Bindings[5].AsBoolean);
+  Assert.IsTrue(Statement.Bindings[6].TypeInfo = TypeInfo(Double));
+  Assert.IsTrue(Statement.Bindings[7].TypeInfo = TypeInfo(TDateTime));
+  Assert.AreEqual('INSERT INTO [Books] ([Text], [Empty], [TypedNull], ' +
+    '[VariantNull], [Enabled], [Disabled], [Price], [Date]) VALUES (' +
+    QuotedStr(Text) + ', NULL, NULL, NULL, true, false, 12.5, ''2026-10-25'')',
+    Q.ToDebugSql);
+  Assert.AreEqual(Statement.ToString, Q.ToDebugSql);
+end;
+
+procedure TQueryModelTests.CompilationDoesNotMutateQueryOrEarlierResults;
+var
+  Q: IQuery;
+  First, Second: ISqlResult;
+begin
+  Q := TQuery.Create('Books').Where('Id', 42);
+  First := Q.Compile;
+  Assert.AreEqual('SELECT * FROM [Books] WHERE [Id] = 42', Q.ToDebugSql);
+  Second := Q.Compile;
+  Assert.IsTrue(First <> Second);
+  Second.Bindings[0] := 99;
+  Second.NamedBindings['@p0'] := 99;
+  Assert.AreEqual(42, First.Bindings[0].AsInteger);
+  Assert.AreEqual(42, First.NamedBindings['@p0'].AsInteger);
+  Assert.AreEqual(42, Q.GetOne('where', '').Value.AsInteger);
+  Q.Where('Title', 'New');
+  Second := Q.Compile;
+  Assert.AreEqual<NativeInt>(1, First.Bindings.Count);
+  Assert.AreEqual<NativeInt>(2, Second.Bindings.Count);
+  Assert.AreEqual('SELECT * FROM [Books] WHERE [Id] = @p0', First.Sql);
+  Assert.AreEqual('SELECT * FROM [Books] WHERE [Id] = 42', First.ToString);
+end;
+
+procedure TQueryModelTests.SqlResultContractKeepsIdentity;
+var
+  Shared: QueryBuilder4Delphi.Query.Core.ISqlResult;
+  Legacy: QueryBuilder4Delphi.Compilers.Compiler.ISqlResult;
+  Queried: QueryBuilder4Delphi.Query.Core.ISqlResult;
+  OriginalId: TGUID;
+begin
+  Shared := TQuery.Create('Books').Compile;
+  Legacy := Shared;
+  Shared := Legacy;
+  OriginalId := StringToGUID('{451A0775-C8EC-455D-B66A-7480EF77C28C}');
+  Assert.IsTrue(Supports(Legacy, OriginalId, Queried));
+  Assert.IsTrue(Shared = Queried);
 end;
 
 procedure TQueryModelTests.ClonePreservesSubclassAndIndependentState;

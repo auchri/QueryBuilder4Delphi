@@ -5,6 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `IQuery.Compile` now returns `ISqlResult` with parameterized SQL and bindings.
+  Use `ToDebugSql` for the previous substituted preview behavior. Both default
+  to MSSql and use the existing compiler pipeline. The `ISqlResult` contract
+  now lives in Query.Core with its original GUID; the compiler unit retains
+  a type alias for existing consumers. `ICompiler.Compile` is unchanged.
+
 ### Fixed
 
 - Unified read/write property attribute resolution. Object writes now reject

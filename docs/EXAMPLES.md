@@ -683,17 +683,16 @@ begin
   Q := TQuery.Create('Books')
     .Select(['Id', 'Title'])
     .Where('Id', 42);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.MSSql);
-  Statement := Compiler.Compile(Q);
+  Statement := Q.Compile; // Defaults to MSSql; returns ISqlResult.
   Writeln(Statement.Sql);
   Writeln(Statement.Bindings[0].AsInteger);
-  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
-  Statement := Compiler.Compile(Q);
+  Statement := Q.Compile(TSqlDialect.Oracle);
   Writeln(Statement.Sql);
+  Compiler := TQueryCompilerFactory.CreateCompiler(TSqlDialect.Oracle);
   Compiler.ParameterPrefix := ':item';
   Statement := Compiler.Compile(Q);
   Writeln(Statement.Sql);
-  Writeln(Q.Compile); // SQL preview with values; never execute this string.
+  Writeln(Q.ToDebugSql); // SQL preview with values; never execute this string.
 end;
 ```
 
@@ -733,15 +732,17 @@ Bindings:
 :item0 = 42
 ```
 
-The final `Q.Compile` call is a **debug SQL preview (values substituted)**:
+The final `Q.ToDebugSql` call is a **debug SQL preview (values substituted)**:
 
 ```sql
 SELECT [Id], [Title] FROM [Books] WHERE [Id] = 42
 ```
 
-`IQuery.Compile` returns a string with values substituted. `ISqlResult.ToString`
-is another preview. Never execute either preview as a replacement for SQL plus
-bindings. Preview text is diagnostic and can expose sensitive values in logs.
+`IQuery.Compile` returns `ISqlResult`, using the existing compiler factory.
+`IQuery.ToDebugSql` delegates to `ISqlResult.ToString` for a preview with values
+substituted. Both fluent methods default to MSSql. Never execute either preview
+as a replacement for SQL plus bindings. Preview text is diagnostic and can
+expose sensitive values in logs.
 `ISqlResult.Sql` is the parameterized statement; RawSql is its intermediate
 question-mark form. Iterate Bindings by index, not dictionary enumeration order.
 
