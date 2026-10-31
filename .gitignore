@@ -85,3 +85,7 @@ __pycache__/
 tools/oracle/bin/
 tools/oracle/obj/
 build/
+website/node_modules/
+website/dist/
+website/test-results/
+website/playwright-report/

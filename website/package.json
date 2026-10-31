@@ -1,0 +1,29 @@
+{
+  "name": "querybuilder4delphi-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test test/converter.test.mjs test/numbers.test.mjs test/conversion-state.test.mjs test/delphi-smoke.test.mjs test/delphi-tokens.test.mjs",
+    "test:browser": "playwright test",
+    "smoke:generate": "node generate-smoke.mjs",
+    "test:site": "node --test test/site.test.mjs",
+    "preview": "node preview.mjs"
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "@lezer/highlight": "^1.2.5",
+    "github-slugger": "^2.0.0",
+    "highlight.js": "^11.12.0",
+    "marked": "^18.1.2",
+    "node-sql-parser": "^5.4.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "esbuild": "^0.28.2"
+  }
+}
