@@ -1,4 +1,41 @@
-# Validation: October 25, 2026
+# Validation
+
+## v2.0.0 release validation (2026-10-31)
+
+The release changes documentation and website release metadata on top of
+`4b87528` (main, including PR #30). Library and test sources are unchanged.
+
+The existing Delphi 12 Community Edition executables were rerun with
+`tools/build.ps1 -Suite Core/FireDAC -Platform Both -TestsOnly`:
+
+| Suite | Win32 passed | Win64 passed | Failed/errors/ignored/leaked |
+| --- | ---: | ---: | --- |
+| Core without FireDAC | 940 | 940 | 0/0/0/0 |
+| FireDAC / SQLite | 94 | 94 | 0/0/0/0 |
+
+These are reruns of the October 25 IDE builds, not fresh release builds.
+The existing JSON validation records below describe their original feature
+snapshots; they have not been relabeled as release-build evidence.
+Database integration uses SQLite in memory and FireDAC memory fields;
+no live validation against the other five database servers is claimed.
+
+Additional release checks passed:
+
+- All 67 JavaScript converter, numeric, state, token and smoke-fixture tests.
+- Static website build and all generated local links and heading anchors.
+- All 10 Playwright browser tests using installed Microsoft Edge, including
+  keyboard/copy behavior and layouts from 320 to 1920 pixels.
+- Both generator `--check` commands (including 69 paired Oracle scenarios),
+  all 15 Python generator tests and the public XML documentation audit
+  (zero errors).
+- `git diff --check`.
+
+Generated converter smoke projects are covered by JavaScript fixture checks.
+Full native compilation/execution
+of all four generated projects on both platforms remains unverified; the
+local artifacts contain only a MySQL Win32 executable.
+
+## Previous validation: October 25, 2026
 
 ## SQL NULL mapping policy (issue #20)
 

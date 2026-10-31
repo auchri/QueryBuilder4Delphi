@@ -1,5 +1,8 @@
 # API reference and limitations
 
+This reference describes v2.0.0. For changes to `Compile` and `Execute`, see
+the [migration guide from v1.0.0](MIGRATION.md).
+
 ## Execution and optional FireDAC provider
 
 The query describes the operation; the compiler generates parameterized SQL;

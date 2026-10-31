@@ -10,6 +10,8 @@ export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const site = path.join(root, 'website');
 export const output = path.join(site, 'dist');
 const repo = 'https://github.com/auchri/QueryBuilder4Delphi';
+const release = (await readFile(path.join(root, 'README.md'), 'utf8')).match(/Current release: \*\*\[(v\d+\.\d+\.\d+)\]/)?.[1];
+if (!release) throw new Error('README.md must declare the current release.');
 const escape = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 export const documents = ['README.md', 'CHANGELOG.md', ...(await readdir(path.join(root, 'docs'))).filter(f => f.endsWith('.md')).map(f => `docs/${f}`)];
 const target = source => source === 'README.md' ? 'index.html' : source.replace(/\.md$/, '.html');
@@ -24,6 +26,7 @@ const menu = [
   ['README.md', 'Overview'], ['converter.html', 'SQL → Delphi'],
   ['docs/EXAMPLES.md', 'Examples'], ['docs/API.md', 'API reference'],
   ['docs/OBJECT_MAPPING.md', 'Object mapping'], ['docs/PORTING.md', 'Porting'],
+  ['docs/MIGRATION.md', 'Upgrade to v2'],
   ['docs/VALIDATION.md', 'Validation'], ['docs/XML_DOCUMENTATION.md', 'XML documentation'],
   ['docs/MAPPING_PERFORMANCE.md', 'Mapping performance'], ['CHANGELOG.md', 'Changelog'],
   ['docs/WEBSITE.md', 'Website maintenance'],
@@ -41,7 +44,7 @@ function shell(title, body, source, toc = []) {
 <link rel="stylesheet" href="${prefix}/assets/style.css"><link rel="icon" href="${prefix}/assets/favicon.svg" type="image/svg+xml"></head>
 <body id="top"><a class="skip" href="#main">Skip to content</a><header><a class="brand" href="${relative('index.html')}"><span class="logo">Q<span>›</span></span>QueryBuilder<span class="muted">4Delphi</span></a><a href="${repo}">GitHub ↗</a></header>
 <div class="layout"><aside class="sidebar"><p class="eyebrow">DEVELOPER GUIDE</p><div class="nav-scroll"><nav aria-label="Documentation">${menu.slice(0, 5).map(navLink).join('')}<details class="advanced-nav"${expanded ? ' open' : ''}><summary aria-expanded="${expanded}">Advanced</summary><div class="advanced-links">${advanced.map(navLink).join('')}</div></details></nav></div><div class="sidebar-note">Delphi 12+<br>Win32 & Win64<br><span>Six SQL dialects. One fluent API.</span></div></aside>
-<main id="main" class="${source === 'converter.html' ? 'converter-page' : 'documentation'}">${body}<footer>QueryBuilder4Delphi · <a href="${repo}/blob/main/LICENSE">MIT license</a> · <a href="${prefix}/assets/third-party-licenses.txt">Third-party licenses</a>${source.endsWith('.md') ? ` · <a href="${repo}/blob/main/${source}">View Markdown source ↗</a>` : ''}</footer></main>
+<main id="main" class="${source === 'converter.html' ? 'converter-page' : 'documentation'}">${body}<footer>QueryBuilder4Delphi · <a href="${repo}/releases/tag/${release}">${release}</a> · <a href="${repo}/blob/main/LICENSE">MIT license</a> · <a href="${prefix}/assets/third-party-licenses.txt">Third-party licenses</a>${source.endsWith('.md') ? ` · <a href="${repo}/blob/main/${source}">View Markdown source ↗</a>` : ''}</footer></main>
 ${toc.length ? `<aside class="toc"><p class="eyebrow">ON THIS PAGE</p><nav aria-label="On this page">${toc.map(h => `<a href="#${h.id}">${h.text}</a>`).join('')}</nav></aside>` : ''}</div>
 <a class="back-to-top" href="#top" aria-label="Back to top" hidden><span aria-hidden="true">↑</span> Back to top</a>
 <script type="module" src="${prefix}/assets/navigation.js"></script></body></html>`;

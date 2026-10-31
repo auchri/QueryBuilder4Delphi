@@ -5,8 +5,17 @@ QueryBuilder4Delphi is a fluent SQL query builder for Delphi 12 and later. It su
 Supported targets: **Windows, Win32 and Win64**. Build SQL without a database,
 or execute it through the optional FireDAC provider or your own provider.
 
-Current release: **[v1.0.0](https://github.com/auchri/QueryBuilder4Delphi/releases/tag/v1.0.0)**.
-See the [changelog](CHANGELOG.md) for release details.
+Current release: **[v2.0.0](https://github.com/auchri/QueryBuilder4Delphi/releases/tag/v2.0.0)**.
+See the [changelog](CHANGELOG.md) for release details and the
+[migration guide](docs/MIGRATION.md) when upgrading from v1.0.0.
+
+**[Documentation website](https://auchri.github.io/QueryBuilder4Delphi/)** ·
+**[SQL → Delphi converter](https://auchri.github.io/QueryBuilder4Delphi/converter.html)**
+
+Version 2 adds fluent object mapping, nullable read/write DTOs and explicit SQL
+NULL policies. `Compile` now returns parameterized SQL and bindings;
+`ToDebugSql` provides the diagnostic preview. The browser-local converter turns
+supported SELECT queries into fluent Delphi code for four input dialects.
 
 ## Installation
 
