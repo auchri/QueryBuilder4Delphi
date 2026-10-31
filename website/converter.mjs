@@ -1,4 +1,5 @@
 // The parser only reads SQL. Generated code uses the library's parameterized API.
+import { numericLiteral, pagingLiteral } from './numbers.mjs';
 const dialects = {
   MySQL: () => import('node-sql-parser/build/mysql.js'),
   PostgreSQL: () => import('node-sql-parser/build/postgresql.js'),
@@ -36,18 +37,15 @@ function table(node) {
 }
 function literal(node, literals) {
   if (!node) unsupported('Missing values');
+  if (node.type === 'number' || node.type === 'unary_expr') {
+    return numericLiteral(numericText(node, literals));
+  }
   check(node, ['type', 'value', 'loc'], 'Value');
   if (['single_quote_string', 'string'].includes(node.type)) {
-    if (!literals.has(node.value)) unsupported('This string literal syntax');
-    return delphiString(literals.get(node.value));
+    if (!literals.strings.has(node.value)) unsupported('This string literal syntax');
+    return delphiString(literals.strings.get(node.value));
   }
   if (['bool', 'boolean'].includes(node.type)) return node.value ? 'True' : 'False';
-  if (node.type === 'number') {
-    const value = Number(node.value);
-    if (!Number.isFinite(value) || Math.abs(value) > Number.MAX_SAFE_INTEGER || String(node.value).replace(/[^0-9]/g, '').replace(/^0+/, '').length > 15) unsupported('Numbers requiring more than 15 significant digits');
-    if (Number.isInteger(value) && (value > 2147483647 || value < -2147483648)) return `Int64(${value})`;
-    return String(value);
-  }
   unsupported('Parameters, NULL values in lists, or non-scalar values (use literal values for conversion)');
 }
 const comparisons = ['=', '!=', '<>', '<', '>', '<=', '>='];
@@ -81,7 +79,7 @@ function predicate(node, method = 'Where', indent = '    ', depth = 0, literals)
     // Validate the scalar before choosing an idiomatic string helper. These
     // helpers add only their boundary wildcards and do not escape the value.
     literal(node.right, literals);
-    const pattern = literals.get(node.right.value);
+    const pattern = literals.strings.get(node.right.value);
     if (typeof pattern !== 'string') unsupported('LIKE with a non-string pattern');
     const simple = pattern.match(/^(%?)([^%_\\[\]]+)(%?)$/);
     let suffix = 'Like';
@@ -94,9 +92,21 @@ function predicate(node, method = 'Where', indent = '    ', depth = 0, literals)
   }
   return `${indent}.${method}(${col}, ${delphiString(op.toLowerCase())}, ${literal(node.right, literals)})`;
 }
-function integer(node, max) {
-  if (node?.type !== 'number' || !Number.isSafeInteger(Number(node.value)) || Number(node.value) < 0 || Number(node.value) > max) unsupported('Non-literal or out-of-range paging values');
-  return Number(node.value);
+function numericText(node, literals) {
+  if (node?.type === 'unary_expr' && ['+', '-'].includes(node.operator)) {
+    check(node, ['type', 'operator', 'expr', 'parentheses', 'loc'], 'Signed number');
+    const text = numericText(node.expr, literals);
+    return node.operator === '+' ? text : text.startsWith('-') ? text.slice(1) : '-' + text;
+  }
+  if (node?.type !== 'number') unsupported('Non-literal numeric values');
+  check(node, ['type', 'value', 'loc'], 'Number');
+  // The parser only sees small unique integer slots, never the user's numbers.
+  const text = literals.numbers.get(String(Math.abs(node.value)));
+  if (text == null) unsupported('Unrecognized numeric syntax');
+  return (node.value < 0 ? '-' : '') + text;
+}
+function integer(node, max, literals) {
+  return pagingLiteral(numericText(node, literals), max);
 }
 export async function convert(sql, dialect = 'MySQL') {
   if (!dialects[dialect]) unsupported('This SQL dialect');
@@ -107,20 +117,19 @@ export async function convert(sql, dialect = 'MySQL') {
   let ast;
   // Preserve SQL literal values ourselves: the parser decodes backslash escapes
   // even in dialects where backslashes are ordinary characters.
-  const literals = new Map();
-  sql = sql.replace(/--[^\r\n]*|#[^\r\n]*|\/\*[\s\S]*?\*\/|"(?:""|[^"])*"|`(?:``|[^`])*`|\[(?:\]\]|[^\]])*\]|'(?:''|[^'])*'|(?:\b\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/g, (token, offset) => {
+  const literals = { strings: new Map(), numbers: new Map() };
+  sql = sql.replace(/--[^\r\n]*|#[^\r\n]*|\/\*[\s\S]*?\*\/|"(?:""|[^"])*"|`(?:``|[^`])*`|\[(?:\]\]|[^\]])*\]|'(?:''|[^'])*'|[A-Za-z_][A-Za-z0-9_$]*|(?:\b\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/g, (token, offset) => {
     if (dialect === 'MySQL' && token.startsWith('/*!')) unsupported('MySQL executable comments');
     if (/^(?:\d|\.\d)/.test(token)) {
-      const significant = token.split(/[eE]/)[0].replace('.', '').replace(/^0+/, '');
-      if (significant.length > 15) unsupported('Numbers requiring more than 15 significant digits');
-      if (Number(token) === 0 && /[1-9]/.test(significant)) unsupported('Numbers below the supported numeric range');
-      return token;
+      const slot = String(7000000 + literals.numbers.size);
+      literals.numbers.set(slot, token);
+      return slot;
     }
     if (!token.startsWith("'")) return token;
     if (offset > 0 && /[A-Za-z0-9_$]/.test(sql[offset - 1])) unsupported('Prefixed string literals');
     if (dialect === 'MySQL' && token.includes('\\')) unsupported('MySQL string literals with backslash escapes (SQL mode dependent)');
-    const marker = `QBD-LITERAL-${literals.size}`;
-    literals.set(marker, token.slice(1, -1).replaceAll("''", "'"));
+    const marker = `QBD-LITERAL-${literals.strings.size}`;
+    literals.strings.set(marker, token.slice(1, -1).replaceAll("''", "'"));
     return `'${marker}'`;
   });
   // PostgreSQL folds unquoted identifiers to lowercase. Preserve quoted tokens,
@@ -174,19 +183,19 @@ export async function convert(sql, dialect = 'MySQL') {
   if (ast.top) {
     check(ast.top, ['value', 'percent', 'with_ties'], 'TOP');
     if (ast.top.percent || ast.top.with_ties) unsupported('TOP PERCENT/WITH TIES');
-    const count = integer({ type: 'number', value: ast.top.value }, 2147483647);
-    if (count === 0) unsupported('TOP 0 (the library treats Limit(0) as unlimited)');
-    lines.push(`    .Limit(${count})`);
+    const count = integer({ type: 'number', value: ast.top.value }, 2147483647n, literals);
+    if (count.value === 0n) unsupported('TOP 0 (the library treats Limit(0) as unlimited)');
+    lines.push(`    .Limit(${count.code})`);
   }
   if (ast.limit?.offset || ast.limit?.fetch) {
     check(ast.limit, ['offset', 'fetch'], 'Paging');
     if (ast.top) unsupported('TOP combined with OFFSET/FETCH');
     if (ast.limit.fetch) {
-      const count = integer(ast.limit.fetch.value, 2147483647);
-      if (!count) unsupported('FETCH 0');
-      lines.push(`    .Limit(${count})`);
+      const count = integer(ast.limit.fetch.value, 2147483647n, literals);
+      if (count.value === 0n) unsupported('FETCH 0');
+      lines.push(`    .Limit(${count.code})`);
     }
-    if (ast.limit.offset) lines.push(`    .Offset(${integer(ast.limit.offset.value, Number.MAX_SAFE_INTEGER)})`);
+    if (ast.limit.offset) lines.push(`    .Offset(${integer(ast.limit.offset.value, 9223372036854775807n, literals).code})`);
   } else if (meaningful(ast.limit)) {
     check(ast.limit, ['value', 'seperator'], 'Paging');
     const values = ast.limit.value;
@@ -194,10 +203,10 @@ export async function convert(sql, dialect = 'MySQL') {
     const offsetFirst = ast.limit.seperator === ',';
     const count = values[offsetFirst ? 1 : 0];
     const offset = values.length === 2 ? values[offsetFirst ? 0 : 1] : null;
-    const limit = integer(count, 2147483647);
-    if (limit === 0) unsupported('LIMIT 0 (the library treats Limit(0) as unlimited)');
-    lines.push(`    .Limit(${limit})`);
-    if (offset) lines.push(`    .Offset(${integer(offset, Number.MAX_SAFE_INTEGER)})`);
+    const limit = integer(count, 2147483647n, literals);
+    if (limit.value === 0n) unsupported('LIMIT 0 (the library treats Limit(0) as unlimited)');
+    lines.push(`    .Limit(${limit.code})`);
+    if (offset) lines.push(`    .Offset(${integer(offset, 9223372036854775807n, literals).code})`);
   }
   return `uses\n  QueryBuilder4Delphi.Query.Core,\n  QueryBuilder4Delphi.Query;\n\nfunction BuildQuery: IQuery;\nbegin\n${lines.join('\n')};\nend;\n`;
 }

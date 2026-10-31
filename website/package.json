@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test/converter.test.mjs",
+    "test": "node --test test/converter.test.mjs test/numbers.test.mjs test/conversion-state.test.mjs test/delphi-smoke.test.mjs",
+    "smoke:generate": "node generate-smoke.mjs",
     "test:site": "node --test test/site.test.mjs",
     "preview": "node preview.mjs"
   },

@@ -8,6 +8,7 @@ on:
       - 'CHANGELOG.md'
       - 'docs/**'
       - 'src/**'
+      - 'test/QueryBuilder.Tests.dproj'
       - 'website/**'
       - '.github/workflows/pages.yml'
   pull_request:
@@ -16,6 +17,7 @@ on:
       - 'CHANGELOG.md'
       - 'docs/**'
       - 'src/**'
+      - 'test/QueryBuilder.Tests.dproj'
       - 'website/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:

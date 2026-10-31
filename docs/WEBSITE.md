@@ -88,17 +88,108 @@ JOIN predicates, placeholders, unusual identifiers, window clauses, locking
 clauses, DISTINCT ON and TOP PERCENT/WITH TIES. MySQL backslash string escapes
 are rejected because they depend on SQL mode. Use SQL-standard doubled quotes.
 Identifiers currently use ASCII letters, digits, underscore and dollar signs,
-and cannot begin with a digit. Numeric literals are limited to 15 significant
-digits and JavaScript's safe integer range. Paging counts must fit a Delphi
-Integer. Zero row limits are rejected because the library's `Limit(0)` means
+and cannot begin with a digit. Zero row limits are rejected because the library's `Limit(0)` means
 unlimited. SQL dialects and database collations can still affect comparisons;
 review generated code against your application's schema and dialect.
+
+### Numeric values and SQL types
+
+The converter saves numeric tokens as original text before parsing SQL. Only
+small placeholder integers enter the JavaScript SQL parser; user values never
+pass through JavaScript floating point.
+
+- Integer literals use exact `BigInt` range checks. Delphi `Integer` is used
+  within its signed 32-bit range, and explicit `Int64(...)` outside it, up to
+  `9223372036854775807`. Negative type boundaries use `Low(Integer)` and
+  `Low(Int64)` so their Delphi types are explicit. Integers
+  outside signed 64-bit range are rejected, including unsigned-only values.
+- Ordinary decimals generate natural Delphi literals: `19.99` stays `19.99`,
+  `.125` becomes `0.125`, `0001.2300` becomes `1.23`, and `1.` or `1.000`
+  becomes `1.0`. The decimal point retains floating-point intent for
+  integer-valued decimals. No BCD machinery, wrappers or extra imports are
+  generated. The compiler resolves the natural literal through TValue's
+  standard Double/Extended conversions; binding type can vary by platform.
+- The default decimal policy accepts at most 15 significant digits, ignoring
+  leading and insignificant trailing zeros, and excludes overflow and
+  subnormal values outside the normal IEEE Double range. Range checks compare
+  the original decimal against the exact bounds using integer arithmetic;
+  JavaScript does not parse or round the decimal. These deliberately
+  conservative limits apply even if Win32 Extended could hold more digits.
+  High-precision/out-of-range values are rejected with a manual-type-selection
+  hint, rather than truncating the input. Scientific notation remains unsupported.
+- Paging requires integer tokens: counts fit signed 32-bit `Integer`, and
+  offsets fit non-negative signed `Int64`. Fractional or scientific paging
+  literals are rejected even when their mathematical value is an integer.
+
+The converter prioritizes readable Delphi code while avoiding known unsafe
+conversions. **Binary floating point is approximate and does not guarantee
+exact SQL DECIMAL semantics.** Original decimal digits reach the Delphi
+compiler without JavaScript reformatting; the compiler then applies ordinary
+floating-point rounding. Insignificant trailing zeros and SQL decimal scale
+are not preserved. Exact parameter types cannot be inferred without schema
+and server information. Choose an appropriate Delphi type manually when
+needed, such as Currency or TBcd for exact decimal parameters, or explicit
+`TValue.From<Double>(...)` when a stable Double binding type is required.
+There is no automatic BCD mode. Database/provider coercions and limits still
+apply; inspect parameterized `Compile.Sql` and its bindings for your application.
 
 ## Validation
 
 `npm test` checks conversion across all four dialects, aliases and JOIN argument
 order, condition grouping, string escaping, NULL handling, paging, rejected
-constructs, and emitted method names against the Delphi interface.
+constructs, emitted method names against the Delphi interface, exact numeric
+boundaries, generated smoke fixtures and overlapping asynchronous conversions.
 `npm run test:site`, after building, checks local links, heading anchors, assets
 and compatibility with a project URL subpath. Delphi compilation is a separate
 check and requires an available Delphi compiler.
+
+### Generated Delphi compilation smoke tests
+
+From the repository root, run:
+
+```powershell
+./tools/test_converter_smoke.ps1 -Platform Both
+```
+
+This regenerates four console projects under `build/converter-smoke/` through
+the production converter, then compiles and executes them using Delphi's
+`dcc32` and `dcc64`. Supply `-BdsRoot` if the compiler is not on PATH. It covers
+basic SELECT/WHERE, joins and aliases, nested anonymous callbacks, IN/BETWEEN/
+LIKE/NULL, GROUP BY/HAVING, ordering, paging, integer boundaries and ordinary floating-point
+bindings for every input dialect. Runtime assertions check SQL generation,
+binding counts, Integer/Int64 types and values, and Double/Extended binding
+types and approximate values. The floating-point check prints the actual
+binding type and uses a relative tolerance of 1E-14; it does not assert exact
+decimal arithmetic or a specific platform-dependent real-literal overload.
+No database connection or FireDAC is needed for these checks.
+
+The fixtures are generated from `website/smoke-cases.mjs`, not copied examples.
+To generate them without compiling, run `npm run smoke:generate` in `website/`.
+The generated files are ignored build artifacts. JavaScript tests exercise the
+generation on CI; the GitHub Pages workflow does not require Delphi and does
+not claim to validate Delphi compilation.
+
+With Community Edition, open each generated `.dproj` in the Delphi IDE and
+build for Windows 32-bit and Windows 64-bit.
+
+The executables are written to the `Win32/` and `Win64/` subdirectories of
+`build/converter-smoke/`. Project files derive from the repository's working
+`test/QueryBuilder.Tests.dproj`, retaining its Base configuration groups,
+sanitized project name, IDE metadata and target/UserTools imports. Only project
+identity, relative paths and test-specific unit references are adapted. Compiler
+options (`DCC_*`) are placed in the conditional Base property group: Delphi's
+IDE needs this configuration scope to resolve the executable when pressing F9,
+even though MSBuild also accepts unconditional compiler options. Generated
+sources and project files use Windows CRLF line endings. No
+debugger host-application override is used for these console executables.
+Reload the project in the IDE after regenerating it. Then run:
+
+```powershell
+./tools/test_converter_smoke.ps1 -Platform Both -TestsOnly
+```
+
+This verifies that the fixture sources still match current converter output
+and refuses executables older than their source or the library units. A missing
+executable, rejected compilation, or failed runtime assertion fails the command.
+When the installed license rejects command-line compilation, generating fixtures
+and passing JavaScript checks alone is **not** proof of Delphi compilation.
