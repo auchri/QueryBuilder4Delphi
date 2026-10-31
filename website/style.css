@@ -2,12 +2,26 @@
 /* Shared palette and page layout. */
 :root {
   color-scheme: dark;
-  --bg: #111714;
-  --panel: #18201b;
-  --line: #303d33;
-  --text: #e5ece5;
-  --muted: #a0b2a3;
+  --bg: #111315;
+  --panel: #1b1f23;
+  --surface-hover: #262c33;
+  --line: #343a40;
+  --text: #e6edf3;
+  --text-secondary: #c4ccd5;
+  --muted: #a6afb9;
   --accent: #b3ef91;
+  --accent-hover: #d5ffc1;
+  --on-accent: #162012;
+  --code-bg: #161a1e;
+  --code-inline-bg: #262c33;
+  --gutter-bg: #191d21;
+  --gutter-text: #858f9b;
+  --active-line: #20262d;
+  --selection: #29384b;
+  --header-bg: rgb(17 19 21 / 88%);
+  --nav-bg: rgb(17 19 21 / 96%);
+  --floating-bg: rgb(27 31 35 / 95%);
+  --error: #ffa89a;
   font-family:
     Inter,
     Segoe UI,
@@ -29,7 +43,7 @@ a {
   text-underline-offset: 4px;
 }
 a:hover {
-  color: #d5ffc1;
+  color: var(--accent-hover);
 }
 header {
   height: 82px;
@@ -55,7 +69,7 @@ header > a:last-child {
 }
 .logo {
   background: var(--accent);
-  color: #172317;
+  color: var(--on-accent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +112,7 @@ header > a:last-child {
 }
 .sidebar nav a:hover,
 .sidebar nav a[aria-current] {
-  background: #263629;
+  background: var(--surface-hover);
   color: var(--accent);
 }
 .eyebrow {
@@ -157,7 +171,7 @@ p {
 }
 .documentation p,
 .documentation li {
-  color: #c1cec2;
+  color: var(--text-secondary);
 }
 .documentation strong {
   color: var(--text);
@@ -192,17 +206,17 @@ code {
 p code,
 li code,
 td code {
-  background: #263129;
+  background: var(--code-inline-bg);
   padding: 2px 5px;
   border-radius: 4px;
-  color: #ceeabb;
+  color: var(--text);
 }
 .code-block {
   border: 1px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
   margin: 20px 0;
-  background: #141c17;
+  background: var(--code-bg);
 }
 .code-language {
   display: block;
@@ -331,7 +345,7 @@ summary:focus-visible {
   border: 1px solid var(--line);
   border-radius: 9px;
   overflow: hidden;
-  background: #141c17;
+  background: var(--code-bg);
   min-width: 0;
 }
 .panel-heading {
@@ -370,7 +384,7 @@ summary:focus-visible {
 }
 .primary {
   background: var(--accent);
-  color: #14220f;
+  color: var(--on-accent);
   font-weight: 650;
   border-color: var(--accent);
   white-space: nowrap;
@@ -379,7 +393,7 @@ summary:focus-visible {
   margin-left: 20px;
 }
 .convert-actions .error {
-  color: #ffa89a;
+  color: var(--error);
 }
 .support {
   border-top: 1px solid var(--line);
@@ -399,7 +413,7 @@ summary:focus-visible {
   top: -60px;
   left: 12px;
   background: var(--accent);
-  color: #111;
+  color: var(--on-accent);
   padding: 8px;
   z-index: 2;
 }
@@ -510,7 +524,7 @@ summary:focus-visible {
 }
 .advanced-nav summary:hover {
   color: var(--accent);
-  background: #263629;
+  background: var(--surface-hover);
 }
 .advanced-links {
   display: flex;
@@ -537,8 +551,8 @@ summary:focus-visible {
 }
 .code-editor .cm-editor {
   height: var(--editor-height);
-  background: #141c17;
-  color: #d6ebcd;
+  background: var(--code-bg);
+  color: var(--text);
 }
 .code-editor .cm-editor.cm-focused {
   outline: none;
@@ -558,17 +572,17 @@ summary:focus-visible {
   padding: 0 16px;
 }
 .code-editor .cm-gutters {
-  background: #141c17;
-  color: #718575;
+  background: var(--gutter-bg);
+  color: var(--gutter-text);
   border-right: 1px solid var(--line);
 }
 .code-editor .cm-activeLine {
-  background: rgb(179 239 145 / 4%);
+  background: var(--active-line);
 }
 .code-editor .cm-selectionBackground,
 .code-editor .cm-focused .cm-selectionBackground,
 .code-editor .cm-content ::selection {
-  background: #355139 !important;
+  background: var(--selection) !important;
 }
 .code-editor .cm-cursor {
   border-left-color: var(--accent);
@@ -663,7 +677,7 @@ header {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgb(17 23 20 / 88%);
+  background: var(--header-bg);
   backdrop-filter: blur(16px);
   box-shadow: 0 6px 24px rgb(0 0 0 / 8%);
 }
@@ -707,14 +721,14 @@ button,
 }
 
 .toc a:hover {
-  background: rgb(179 239 145 / 5%);
+  background: var(--surface-hover);
   color: var(--text);
 }
 
 .toc a[aria-current="location"] {
   color: var(--accent);
   border-left-color: var(--accent);
-  background: rgb(179 239 145 / 7%);
+  background: var(--surface-hover);
 }
 
 main {
@@ -735,9 +749,9 @@ main {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  border: 1px solid #4d6348;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: rgb(30 44 32 / 95%);
+  background: var(--floating-bg);
   backdrop-filter: blur(12px);
   box-shadow: 0 8px 28px rgb(0 0 0 / 25%);
   color: var(--accent);
@@ -756,7 +770,7 @@ main {
 }
 
 .back-to-top:hover {
-  background: #30452d;
+  background: var(--surface-hover);
   border-color: var(--accent);
   box-shadow: 0 8px 28px rgb(0 0 0 / 35%);
 }
@@ -799,7 +813,7 @@ main {
     max-height: none;
     overflow: visible;
     z-index: 9;
-    background: rgb(17 23 20 / 96%);
+    background: var(--nav-bg);
     backdrop-filter: blur(12px);
   }
 

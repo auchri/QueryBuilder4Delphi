@@ -9,9 +9,9 @@ import { delphiTokens } from './delphi-tokens.mjs';
 
 const colors = HighlightStyle.define([
   { tag: tags.keyword, color: '#ffab99' },
-  { tag: tags.string, color: '#b3ef91' },
+  { tag: tags.string, color: '#a5d6ff' },
   { tag: tags.number, color: '#91c9ff' },
-  { tag: tags.comment, color: '#91a58e', fontStyle: 'italic' },
+  { tag: tags.comment, color: '#a0aab5', fontStyle: 'italic' },
   { tag: tags.operator, color: '#ddd4a1' },
   { tag: tags.typeName, color: '#95d9ce' },
   { tag: tags.function(tags.variableName), color: '#d6b5fa' },
