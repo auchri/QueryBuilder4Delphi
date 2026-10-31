@@ -1,5 +1,34 @@
 // Native anchor navigation keeps URLs, keyboard access and browser history intact.
 // CSS provides smooth scrolling, with an immediate fallback for reduced motion.
+const documentationNav = document.querySelector('.sidebar nav');
+const navFrame = document.querySelector('.nav-scroll');
+const advanced = document.querySelector('.advanced-nav');
+const mobile = matchMedia('(max-width: 680px)');
+let navScheduled = false;
+function updateOverflow() {
+  navScheduled = false;
+  navFrame.classList.toggle('has-more', mobile.matches && documentationNav.scrollWidth - documentationNav.clientWidth - documentationNav.scrollLeft > 2);
+}
+function scheduleOverflow() {
+  if (!navScheduled) { navScheduled = true; requestAnimationFrame(updateOverflow); }
+}
+function revealActive() {
+  if (mobile.matches) {
+    const active = documentationNav.querySelector('[aria-current="page"]');
+    if (active) documentationNav.scrollLeft += active.getBoundingClientRect().left - documentationNav.getBoundingClientRect().left - (documentationNav.clientWidth - active.offsetWidth) / 2;
+  }
+  scheduleOverflow();
+}
+advanced.addEventListener('toggle', () => {
+  advanced.querySelector('summary').setAttribute('aria-expanded', String(advanced.open));
+  scheduleOverflow();
+});
+documentationNav.addEventListener('scroll', scheduleOverflow, { passive: true });
+new ResizeObserver(scheduleOverflow).observe(documentationNav);
+mobile.addEventListener('change', revealActive);
+window.addEventListener('pageshow', revealActive);
+revealActive();
+
 const backToTop = document.querySelector('.back-to-top');
 const links = [...document.querySelectorAll('.toc nav a')];
 const sections = links.map(link => ({

@@ -22,7 +22,7 @@ export function linkTo(href, source) {
 }
 const menu = [
   ['README.md', 'Overview'], ['converter.html', 'SQL → Delphi'],
-  ['docs/EXAMPLES.md', 'Examples'], ['docs/API.md', 'API & limitations'],
+  ['docs/EXAMPLES.md', 'Examples'], ['docs/API.md', 'API reference'],
   ['docs/OBJECT_MAPPING.md', 'Object mapping'], ['docs/PORTING.md', 'Porting'],
   ['docs/VALIDATION.md', 'Validation'], ['docs/XML_DOCUMENTATION.md', 'XML documentation'],
   ['docs/MAPPING_PERFORMANCE.md', 'Mapping performance'], ['CHANGELOG.md', 'Changelog'],
@@ -32,12 +32,15 @@ function shell(title, body, source, toc = []) {
   const filename = target(source);
   const prefix = path.posix.relative(path.posix.dirname(filename), '.') || '.';
   const relative = to => path.posix.relative(path.posix.dirname(filename), to);
+  const navLink = ([file, label]) => `<a ${file === source ? 'aria-current="page"' : ''} href="${relative(target(file))}">${label}</a>`;
+  const advanced = menu.slice(5);
+  const expanded = advanced.some(([file]) => file === source);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)} · QueryBuilder4Delphi</title><meta name="description" content="Fluent, parameterized SQL for Delphi. Documentation and a browser-local SQL to Delphi converter.">
 <link rel="stylesheet" href="${prefix}/assets/style.css"><link rel="icon" href="${prefix}/assets/favicon.svg" type="image/svg+xml"></head>
 <body id="top"><a class="skip" href="#main">Skip to content</a><header><a class="brand" href="${relative('index.html')}"><span class="logo">Q<span>›</span></span>QueryBuilder<span class="muted">4Delphi</span></a><a href="${repo}">GitHub ↗</a></header>
-<div class="layout"><aside class="sidebar"><p class="eyebrow">DEVELOPER GUIDE</p><nav aria-label="Documentation">${menu.map(([file, label]) => `<a ${file === source ? 'aria-current="page"' : ''} href="${relative(target(file))}">${label}</a>`).join('')}</nav><div class="sidebar-note">Delphi 12+<br>Win32 & Win64<br><span>Six SQL dialects. One fluent API.</span></div></aside>
+<div class="layout"><aside class="sidebar"><p class="eyebrow">DEVELOPER GUIDE</p><div class="nav-scroll"><nav aria-label="Documentation">${menu.slice(0, 5).map(navLink).join('')}<details class="advanced-nav"${expanded ? ' open' : ''}><summary aria-expanded="${expanded}">Advanced</summary><div class="advanced-links">${advanced.map(navLink).join('')}</div></details></nav></div><div class="sidebar-note">Delphi 12+<br>Win32 & Win64<br><span>Six SQL dialects. One fluent API.</span></div></aside>
 <main id="main" class="${source === 'converter.html' ? 'converter-page' : 'documentation'}">${body}<footer>QueryBuilder4Delphi · <a href="${repo}/blob/main/LICENSE">MIT license</a> · <a href="${prefix}/assets/third-party-licenses.txt">Third-party licenses</a>${source.endsWith('.md') ? ` · <a href="${repo}/blob/main/${source}">View Markdown source ↗</a>` : ''}</footer></main>
 ${toc.length ? `<aside class="toc"><p class="eyebrow">ON THIS PAGE</p><nav aria-label="On this page">${toc.map(h => `<a href="#${h.id}">${h.text}</a>`).join('')}</nav></aside>` : ''}</div>
 <a class="back-to-top" href="#top" aria-label="Back to top" hidden><span aria-hidden="true">↑</span> Back to top</a>
@@ -74,10 +77,14 @@ await cp(path.join(site, 'style.css'), path.join(output, 'assets/style.css'));
 await cp(path.join(site, 'favicon.svg'), path.join(output, 'assets/favicon.svg'));
 await cp(path.join(site, 'node_modules/highlight.js/styles/github-dark.css'), path.join(output, 'assets/highlight.css'));
 const licenses = [];
-for (const name of ['node-sql-parser', 'big-integer', 'highlight.js']) {
-  const dependency = path.join(site, 'node_modules', name);
+const lock = JSON.parse(await readFile(path.join(site, 'package-lock.json'), 'utf8'));
+for (const [location, entry] of Object.entries(lock.packages)) {
+  if (!location || entry.dev) continue;
+  const dependency = path.join(site, location);
   const pkg = JSON.parse(await readFile(path.join(dependency, 'package.json'), 'utf8'));
-  licenses.push(`${name} ${pkg.version}\n${await readFile(path.join(dependency, 'LICENSE'), 'utf8')}`);
+  const license = (await readdir(dependency)).find(file => /^license(?:\.(?:txt|md))?$/i.test(file));
+  if (!license) throw new Error(`Missing license file: ${pkg.name}`);
+  licenses.push(`${pkg.name} ${pkg.version}\n${await readFile(path.join(dependency, license), 'utf8')}`);
 }
 await writeFile(path.join(output, 'assets/third-party-licenses.txt'), licenses.join('\n\n---\n\n'));
 await writeFile(path.join(output, '.nojekyll'), '');

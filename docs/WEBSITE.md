@@ -33,6 +33,36 @@ The build bundles all browser dependencies locally; no CDN, backend, database,
 AI API, or analytics service is required. Only the selected dialect's parser is
 loaded. SQL input is processed in memory and is neither uploaded nor persisted.
 
+The converter uses CodeMirror 6, with dialect-specific SQL highlighting and a
+small Delphi lexical highlighter (`website/delphi-tokens.mjs`). The generic
+legacy Pascal mode was evaluated; it does not distinguish Delphi types and
+calls, and treats line-leading `#` character codes as preprocessor text.
+The Delphi highlighter handles generated code, doubled-quote strings, character
+codes and multiline comments; it is not a complete Delphi parser or validator.
+The output editor is read-only and supports selection and copying. Ctrl+Enter
+(or ⌘Enter) converts; Tab indents SQL, and Escape followed by Tab leaves the
+editor. Input remains limited to 50,000 characters.
+
+Primary documentation links stay visible. Secondary pages live in a native
+**Advanced** details group that opens automatically for its active page. On
+mobile, this remains a single horizontally scrolling row; a right-edge fade
+indicates hidden links and disappears at the end. The current page scrolls into
+view on load without moving the document vertically.
+
+Browser interaction and responsive checks run with:
+
+```sh
+npm run build
+npx playwright install chromium  # Linux/macOS; Windows uses installed Edge
+npm run test:browser
+```
+
+These tests start a separate local server at port 4174 and mount the site at
+`/QueryBuilder4Delphi/`. They cover editing, read-only output, copy/fallback,
+conversion shortcuts, invalidation/errors, navigation groups, mobile overflow,
+focus and reduced motion at 1920, 1366, 768, 320, 375 and 390 pixels. CI uses
+Chromium. Browser tooling is development-only; it is not shipped to visitors.
+
 ## GitHub Pages deployment
 
 1. Merge the website files and `.github/workflows/pages.yml` into `main`.

@@ -1,5 +1,6 @@
 import { convert } from './converter.mjs';
 import { createConversionController } from './conversion-state.mjs';
+import { createEditors } from './editors.mjs';
 const $ = id => document.getElementById(id);
 const examples = {
   basic: 'SELECT Id, Title\nFROM Books\nWHERE AuthorId = 42\nORDER BY Title;',
@@ -7,39 +8,39 @@ const examples = {
   group: "SELECT Id, Title\nFROM Books\nWHERE (AuthorId = 42 OR AuthorId = 7)\n  AND Price BETWEEN 10 AND 50\n  AND DeletedAt IS NULL\nORDER BY Title DESC;",
   paging: 'SELECT Id, Title\nFROM Books\nORDER BY Title, Id\nLIMIT 20 OFFSET 40;',
 };
+const editors = createEditors({
+  sqlHost: $('sql'), delphiHost: $('delphi'), initialSql: $('initial-sql').textContent,
+  dialect: $('dialect').value, onChange: () => invalidate(), onConvert: () => run(),
+});
 const { invalidate, run } = createConversionController({
   convert,
-  readInput: () => ({ sql: $('sql').value, dialect: $('dialect').value }),
+  readInput: () => ({ sql: editors.readSql(), dialect: $('dialect').value }),
   render: ({ busy, code, message, error }) => {
     $('convert').disabled = busy;
-    $('delphi').value = code;
+    editors.setOutput(code);
     $('copy').disabled = busy || !code;
     $('status').textContent = message;
     $('status').className = error ? 'error' : '';
   },
 });
 $('convert').addEventListener('click', run);
-$('sql').addEventListener('input', invalidate);
-$('dialect').addEventListener('change', invalidate);
+$('dialect').addEventListener('change', () => { editors.setDialect($('dialect').value); invalidate(); });
 $('load-example').addEventListener('click', () => {
-  $('sql').value = $('example').value === 'paging' && $('dialect').value === 'TransactSQL'
-    ? 'SELECT TOP 20 Id, Title\nFROM Books\nORDER BY Title, Id;' : examples[$('example').value];
+  editors.setSql($('example').value === 'paging' && $('dialect').value === 'TransactSQL'
+    ? 'SELECT TOP 20 Id, Title\nFROM Books\nORDER BY Title, Id;' : examples[$('example').value]);
   invalidate();
 });
 $('copy').addEventListener('click', async () => {
-  const code = $('delphi').value;
+  const code = editors.readOutput();
   if (!code || $('copy').disabled) return;
-  const stillCurrent = () => $('delphi').value === code && !$('copy').disabled;
+  const stillCurrent = () => editors.readOutput() === code && !$('copy').disabled;
   try {
     await navigator.clipboard.writeText(code);
     if (stillCurrent()) $('status').textContent = 'Delphi code copied.';
   } catch {
     if (!stillCurrent()) return;
-    $('delphi').focus(); $('delphi').select();
+    editors.selectOutput();
     $('status').textContent = 'Select the output and copy it with Ctrl+C (or ⌘C).';
   }
-});
-$('sql').addEventListener('keydown', event => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); run(); }
 });
 run();
