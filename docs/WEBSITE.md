@@ -12,6 +12,13 @@ point back to GitHub. The generated pages include syntax highlighting, an
 on-page contents list, and a link to their original Markdown source.
 The generated `website/dist/` directory is ignored by Git.
 
+The start page (`index.html`) is a short landing page built from
+`website/index.html`. Its code example and generated SQL are read from the
+README's `SearchBooks` example, so they stay checked against the compiler. The
+README itself becomes `guide.html` (**Getting started**). README content that
+only makes sense on GitHub, such as links to this website, is wrapped in
+`<!-- website:skip -->` … `<!-- /website:skip -->` and left out of the guide.
+
 The footer on every page links to the current GitHub release. Its version is
 read from the `Current release` declaration in `README.md`, so updating that
 declaration also updates the website. The changelog and

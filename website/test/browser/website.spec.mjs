@@ -60,7 +60,9 @@ test('copy fallback selects the read-only output', async ({ page }) => {
 test('navigation has one active page and a keyboard-accessible Advanced group', async ({ page }) => {
   await page.goto('index.html');
   const nav = page.getByRole('navigation', { name: 'Documentation', exact: true });
-  await expect(nav.locator('[aria-current="page"]')).toHaveText('Overview');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('Home');
+  await nav.getByRole('link', { name: 'Getting started', exact: true }).click();
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('Getting started');
   await expect(nav.locator('details')).not.toHaveAttribute('open');
   const summary = nav.locator('summary');
   await summary.focus();
@@ -119,6 +121,38 @@ for (const width of [1920, 1366, 768, 320, 375, 390]) {
     await page.screenshot({ path: `test-results/converter-${width}.png`, fullPage: true });
   });
 }
+
+test('landing page leads to the guide and the converter at every width', async ({ page }) => {
+  for (const width of [1920, 1366, 768, 375, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('index.html');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Write queries');
+    await expect(page.locator('main')).toHaveCSS('opacity', '1');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const blocks = await page.locator('.showcase .code-block').all();
+    const first = await blocks[0].boundingBox(), second = await blocks[1].boundingBox();
+    if (width > 1150) expect(second.x).toBeGreaterThan(first.x + first.width);
+    else expect(second.y).toBeGreaterThan(first.y + first.height);
+  }
+  await page.getByRole('link', { name: 'Get started' }).click();
+  await expect(page).toHaveURL(/guide\.html#installation$/);
+  await page.goto('index.html');
+  await page.getByRole('main').getByRole('link', { name: 'Open the converter' }).click();
+  await expect(page.getByRole('textbox', { name: 'Generated Delphi code' })).toContainText('BuildQuery');
+});
+
+test('convert button sits between SQL input and Delphi output', async ({ page }) => {
+  for (const width of [1920, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('converter.html');
+    const input = await page.locator('.editor-panel').first().boundingBox();
+    const button = await page.getByRole('button', { name: 'Convert to Delphi' }).boundingBox();
+    const output = await page.locator('.editor-panel').nth(1).boundingBox();
+    expect(button.y).toBeGreaterThan(input.y + input.height);
+    if (width > 1150) expect(button.x + button.width).toBeLessThan(output.x);
+    else expect(button.y + button.height).toBeLessThan(output.y);
+  }
+});
 
 test('reduced motion and editor keyboard focus', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });

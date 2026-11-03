@@ -6,6 +6,8 @@ const examples = {
   basic: 'SELECT Id, Title\nFROM Books\nWHERE AuthorId = 42\nORDER BY Title;',
   join: "SELECT b.Id, b.Title, a.Name AS AuthorName\nFROM Books AS b\nLEFT JOIN Authors AS a ON a.Id = b.AuthorId\nWHERE b.Price >= 10\nORDER BY b.Title;",
   group: "SELECT Id, Title\nFROM Books\nWHERE (AuthorId = 42 OR AuthorId = 7)\n  AND Price BETWEEN 10 AND 50\n  AND DeletedAt IS NULL\nORDER BY Title DESC;",
+  aggregate: 'SELECT AuthorId, COUNT(*) AS BookCount, AVG(Price) AS AveragePrice\nFROM Books\nWHERE DeletedAt IS NULL\nGROUP BY AuthorId\nHAVING COUNT(*) >= 5\nORDER BY BookCount DESC;',
+  subquery: "SELECT Id, Title\nFROM Books\nWHERE AuthorId IN (SELECT Id FROM Authors WHERE Country = 'AT')\n  AND NOT EXISTS (SELECT 1 FROM Orders o WHERE o.BookId = Books.Id);",
   paging: 'SELECT Id, Title\nFROM Books\nORDER BY Title, Id\nLIMIT 20 OFFSET 40;',
 };
 const editors = createEditors({
