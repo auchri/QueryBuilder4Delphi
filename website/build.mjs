@@ -13,7 +13,7 @@ const repo = 'https://github.com/auchri/QueryBuilder4Delphi';
 const release = (await readFile(path.join(root, 'README.md'), 'utf8')).match(/Current release: \*\*\[(v\d+\.\d+\.\d+)\]/)?.[1];
 if (!release) throw new Error('README.md must declare the current release.');
 const escape = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-export const documents = ['README.md', 'CHANGELOG.md', ...(await readdir(path.join(root, 'docs'))).filter(f => f.endsWith('.md')).map(f => `docs/${f}`)];
+export const documents = ['README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', ...(await readdir(path.join(root, 'docs'))).filter(f => f.endsWith('.md')).map(f => `docs/${f}`)];
 // index.html is the hand-written landing page; the README becomes the guide.
 const target = source => source === 'README.md' ? 'guide.html' : source.replace(/\.md$/, '.html');
 export function linkTo(href, source) {
@@ -26,10 +26,9 @@ export function linkTo(href, source) {
 const menu = [
   ['index.html', 'Home'], ['README.md', 'Getting started'], ['converter.html', 'SQL → Delphi'],
   ['docs/EXAMPLES.md', 'Examples'], ['docs/API.md', 'API reference'],
-  ['docs/OBJECT_MAPPING.md', 'Object mapping'], ['docs/PORTING.md', 'Porting'],
-  ['docs/MIGRATION.md', 'Upgrade to v2'],
-  ['docs/VALIDATION.md', 'Validation'], ['docs/XML_DOCUMENTATION.md', 'XML documentation'],
-  ['docs/MAPPING_PERFORMANCE.md', 'Mapping performance'], ['CHANGELOG.md', 'Changelog'],
+  ['docs/OBJECT_MAPPING.md', 'Object mapping'],
+  ['docs/MIGRATION.md', 'Upgrade to v2'], ['docs/MAPPING_PERFORMANCE.md', 'Mapping performance'],
+  ['CHANGELOG.md', 'Changelog'], ['CONTRIBUTING.md', 'Contributing'],
   ['docs/WEBSITE.md', 'Website maintenance'],
 ];
 function shell(title, body, source, toc = []) {

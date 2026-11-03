@@ -366,9 +366,8 @@ through `ICompiler`.
 - Explicit arrays provide stable column/value order; RTTI property and
   dictionary enumeration order should not be assumed.
 
-[Examples](EXAMPLES.md) show usage. [Contributor notes](PORTING.md) retain
-technical history and reference-test provenance; [validation](VALIDATION.md)
-records what was compiled and executed.
+[Examples](EXAMPLES.md) show usage. [Contributing](../CONTRIBUTING.md) explains
+generated code and the SqlKata reference tests.
 
 ### Nullable object parameters
 

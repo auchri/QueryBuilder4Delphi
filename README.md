@@ -278,10 +278,8 @@ After IDE builds, run:
 ```
 
 Command-line builds through `tools/build.ps1` require an edition that supports
-command-line compilation. [Validation notes](docs/VALIDATION.md) distinguish
-compiled examples, compiler regression checks and actual database execution.
-[Contributor and reference notes](docs/PORTING.md) cover generated code and test
-provenance.
+command-line compilation. See [Contributing](CONTRIBUTING.md) for generated
+code, the SqlKata reference tests and documentation checks.
 
 ## License
 

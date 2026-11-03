@@ -68,9 +68,9 @@ test('navigation has one active page and a keyboard-accessible Advanced group', 
   await summary.focus();
   await summary.press('Enter');
   await expect(summary).toHaveAttribute('aria-expanded', 'true');
-  await nav.getByRole('link', { name: 'Porting', exact: true }).click();
+  await nav.getByRole('link', { name: 'Upgrade to v2', exact: true }).click();
   await expect(nav.locator('details')).toHaveAttribute('open', '');
-  await expect(nav.locator('[aria-current="page"]')).toHaveText('Porting');
+  await expect(nav.locator('[aria-current="page"]')).toHaveText('Upgrade to v2');
   await expect(nav.locator('summary')).toHaveAttribute('aria-expanded', 'true');
 });
 
