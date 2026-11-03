@@ -14,7 +14,8 @@ const release = (await readFile(path.join(root, 'README.md'), 'utf8')).match(/Cu
 if (!release) throw new Error('README.md must declare the current release.');
 const escape = s => String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 export const documents = ['README.md', 'CHANGELOG.md', ...(await readdir(path.join(root, 'docs'))).filter(f => f.endsWith('.md')).map(f => `docs/${f}`)];
-const target = source => source === 'README.md' ? 'index.html' : source.replace(/\.md$/, '.html');
+// index.html is the hand-written landing page; the README becomes the guide.
+const target = source => source === 'README.md' ? 'guide.html' : source.replace(/\.md$/, '.html');
 export function linkTo(href, source) {
   if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return href;
   const match = href.match(/^([^?#]*)(.*)$/);
@@ -23,7 +24,7 @@ export function linkTo(href, source) {
   return path.posix.relative(path.posix.dirname(target(source)), target(resolved)) + match[2];
 }
 const menu = [
-  ['README.md', 'Overview'], ['converter.html', 'SQL → Delphi'],
+  ['index.html', 'Home'], ['README.md', 'Getting started'], ['converter.html', 'SQL → Delphi'],
   ['docs/EXAMPLES.md', 'Examples'], ['docs/API.md', 'API reference'],
   ['docs/OBJECT_MAPPING.md', 'Object mapping'], ['docs/PORTING.md', 'Porting'],
   ['docs/MIGRATION.md', 'Upgrade to v2'],
@@ -36,22 +37,23 @@ function shell(title, body, source, toc = []) {
   const prefix = path.posix.relative(path.posix.dirname(filename), '.') || '.';
   const relative = to => path.posix.relative(path.posix.dirname(filename), to);
   const navLink = ([file, label]) => `<a ${file === source ? 'aria-current="page"' : ''} href="${relative(target(file))}">${label}</a>`;
-  const advanced = menu.slice(5);
+  const advanced = menu.slice(6);
   const expanded = advanced.some(([file]) => file === source);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escape(title)} · QueryBuilder4Delphi</title><meta name="description" content="Fluent, parameterized SQL for Delphi. Documentation and a browser-local SQL to Delphi converter.">
 <link rel="stylesheet" href="${prefix}/assets/style.css"><link rel="icon" href="${prefix}/assets/favicon.svg" type="image/svg+xml"></head>
 <body id="top"><a class="skip" href="#main">Skip to content</a><header><a class="brand" href="${relative('index.html')}"><span class="logo">Q<span>›</span></span>QueryBuilder<span class="muted">4Delphi</span></a><a href="${repo}">GitHub ↗</a></header>
-<div class="layout"><aside class="sidebar"><p class="eyebrow">DEVELOPER GUIDE</p><div class="nav-scroll"><nav aria-label="Documentation">${menu.slice(0, 5).map(navLink).join('')}<details class="advanced-nav"${expanded ? ' open' : ''}><summary aria-expanded="${expanded}">Advanced</summary><div class="advanced-links">${advanced.map(navLink).join('')}</div></details></nav></div><div class="sidebar-note">Delphi 12+<br>Win32 & Win64<br><span>Six SQL dialects. One fluent API.</span></div></aside>
-<main id="main" class="${source === 'converter.html' ? 'converter-page' : 'documentation'}">${body}<footer>QueryBuilder4Delphi · <a href="${repo}/releases/tag/${release}">${release}</a> · <a href="${repo}/blob/main/LICENSE">MIT license</a> · <a href="${prefix}/assets/third-party-licenses.txt">Third-party licenses</a>${source.endsWith('.md') ? ` · <a href="${repo}/blob/main/${source}">View Markdown source ↗</a>` : ''}</footer></main>
+<div class="layout"><aside class="sidebar"><p class="eyebrow">DEVELOPER GUIDE</p><div class="nav-scroll"><nav aria-label="Documentation">${menu.slice(0, 6).map(navLink).join('')}<details class="advanced-nav"${expanded ? ' open' : ''}><summary aria-expanded="${expanded}">Advanced</summary><div class="advanced-links">${advanced.map(navLink).join('')}</div></details></nav></div><div class="sidebar-note">Delphi 12+<br>Win32 & Win64<br><span>Six SQL dialects. One fluent API.</span></div></aside>
+<main id="main" class="${{ 'converter.html': 'converter-page', 'index.html': 'landing' }[source] || 'documentation'}">${body}<footer>QueryBuilder4Delphi · <a href="${repo}/releases/tag/${release}">${release}</a> · <a href="${repo}/blob/main/LICENSE">MIT license</a> · <a href="${prefix}/assets/third-party-licenses.txt">Third-party licenses</a>${source.endsWith('.md') ? ` · <a href="${repo}/blob/main/${source}">View Markdown source ↗</a>` : ''}</footer></main>
 ${toc.length ? `<aside class="toc"><p class="eyebrow">ON THIS PAGE</p><nav aria-label="On this page">${toc.map(h => `<a href="#${h.id}">${h.text}</a>`).join('')}</nav></aside>` : ''}</div>
 <a class="back-to-top" href="#top" aria-label="Back to top" hidden><span aria-hidden="true">↑</span> Back to top</a>
 <script type="module" src="${prefix}/assets/navigation.js"></script></body></html>`;
 }
 await mkdir(path.join(output, 'assets'), { recursive: true });
 for (const source of documents) {
-  const markdown = await readFile(path.join(root, source), 'utf8');
+  // Website-only pages replace README content marked with website:skip, such as links to this site.
+  const markdown = (await readFile(path.join(root, source), 'utf8')).replace(/<!-- website:skip -->[\s\S]*?<!-- \/website:skip -->\r?\n?/g, '');
   const slugger = new GithubSlugger();
   const toc = [];
   const marked = new Marked({ renderer: {
@@ -74,6 +76,20 @@ for (const source of documents) {
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, shell(title, body, source, toc));
 }
+// The landing page example comes from the README, whose generated SQL is checked
+// against the compiler; the page only adds layout around it.
+const readme = await readFile(path.join(root, 'README.md'), 'utf8');
+function readmeBlock(after, language) {
+  const start = readme.indexOf(after);
+  const code = start < 0 ? null : readme.slice(start).match(new RegExp('```' + language + '\\r?\\n([\\s\\S]*?)```'))?.[1];
+  if (!code) throw new Error(`README.md must contain a ${language} block after ${after}`);
+  return hljs.highlight(code.replace(/\r\n/g, '\n').trimEnd(), { language }).value;
+}
+const landing = (await readFile(path.join(site, 'index.html'), 'utf8'))
+  .replaceAll('{{repo}}', repo).replaceAll('{{release}}', release)
+  .replace('{{example-delphi}}', readmeBlock('## Fluent search with optional filters', 'delphi'))
+  .replace('{{example-sql}}', readmeBlock('<!-- mssql:SearchBooks -->', 'sql'));
+await writeFile(path.join(output, 'index.html'), shell('Fluent, parameterized SQL for Delphi', landing, 'index.html'));
 const converter = await readFile(path.join(site, 'converter.html'), 'utf8');
 await writeFile(path.join(output, 'converter.html'), shell('SQL to Delphi', converter, 'converter.html'));
 await cp(path.join(site, 'style.css'), path.join(output, 'assets/style.css'));

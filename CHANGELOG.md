@@ -5,6 +5,30 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- SQL → Delphi converter: `A OR B AND C` was converted as `(A OR B) AND C` for
+  MySQL, PostgreSQL and SQLite input, because the parser groups AND/OR left to
+  right. The converter now restores SQL precedence (AND before OR) and keeps
+  explicit parentheses.
+
+### Added
+
+- Website landing page with an example, highlights, installation steps and a
+  link to the converter. The README is now the **Getting started** guide.
+- Converter support for COUNT/SUM/AVG/MIN/MAX (`SelectCount` and so on),
+  aggregates in HAVING and ORDER BY (`HavingRaw`, `OrderByRaw`), subqueries in
+  IN, NOT IN, EXISTS, NOT EXISTS and comparisons, and `NOT (…)` groups.
+
+### Changed
+
+- The converter emits flat fluent chains for AND or OR sequences and nests a
+  callback only where the operator changes.
+- Converter error messages quote the unsupported SQL fragment and suggest the
+  fluent or raw method to use instead, without internal parser terms.
+- The convert button sits between the SQL input and the Delphi output. Page
+  transitions no longer fade content in from transparent.
+
 ## [2.0.0] - 2026-10-31
 
 Object mapping, nullable DTO round trips, parameterized fluent compilation and

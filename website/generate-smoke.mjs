@@ -45,7 +45,7 @@ begin
     raise Exception.Create(Name + ': empty SQL');
   if Result.Bindings.Count <> ExpectedBindings then
     raise Exception.Create(Name + ': wrong binding count');
-  Writeln(Name + ': compiled SQL and checked bindings');
+  Writeln(Name + ': ' + Result.Sql);
 end;
 
 procedure CheckInteger(const Value: TValue; const Expected: string; IsInt64: Boolean);

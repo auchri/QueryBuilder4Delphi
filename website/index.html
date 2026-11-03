@@ -1,0 +1,30 @@
+<section class="hero">
+<p class="eyebrow">FLUENT SQL FOR DELPHI 12+</p>
+<h1>Write queries, <span class="accent">not SQL strings.</span></h1>
+<p class="lead">QueryBuilder4Delphi builds parameterized SQL for six databases from one fluent Delphi API. Values become bindings, never concatenated text. A port of the .NET library SqlKata.</p>
+<div class="hero-actions"><a class="button primary" href="guide.html#installation">Get started <span aria-hidden="true">→</span></a><a class="button" href="converter.html">Convert existing SQL</a><a class="button" href="{{repo}}">GitHub ↗</a></div>
+<p class="release"><a href="CHANGELOG.html">{{release}}</a> adds object mapping, nullable DTOs and explicit NULL policies.</p>
+</section>
+<section class="showcase" aria-labelledby="showcase-title">
+<h2 id="showcase-title" class="visually-hidden">Example</h2>
+<div class="code-block"><span class="code-language">Delphi · optional filters and paging</span><pre><code class="hljs">{{example-delphi}}</code></pre></div>
+<div class="code-block"><span class="code-language">Generated SQL · SQL Server dialect</span><pre><code class="hljs">{{example-sql}}</code></pre></div>
+</section>
+<section class="features" aria-label="Highlights">
+<article><h2>Parameterized by default</h2><p><code>Compile</code> returns SQL with placeholders plus ordered bindings. A diagnostic preview with substituted values is a separate, explicit call.</p></article>
+<article><h2>Six dialects, one API</h2><p>SQL Server, PostgreSQL, MySQL, SQLite, Oracle and Firebird. Quoting, placeholders and paging follow the selected compiler.</p></article>
+<article><h2>Objects in, objects out</h2><p>Map rows to classes with <code>ToList</code>, <code>First</code> or <code>Single</code>, write DTOs back, and execute through FireDAC or your own provider.</p></article>
+</section>
+<section class="install" aria-labelledby="install-title">
+<h2 id="install-title">Up and running in three steps</h2>
+<ol>
+<li><strong>Add <code>src</code> to the Delphi search path.</strong> The core needs only the RTL; FireDAC is optional.</li>
+<li><strong>Use two units:</strong> <code>QueryBuilder4Delphi.Query.Core</code> and <code>QueryBuilder4Delphi.Query</code>.</li>
+<li><strong>Build, compile, execute.</strong> Pass the SQL and bindings to your data access layer, or call <code>Execute</code> with a provider.</li>
+</ol>
+<p><a href="guide.html#installation">Read the full guide →</a></p>
+</section>
+<section class="cta">
+<div><h2>Already have SQL?</h2><p>Paste a SELECT query and get fluent Delphi code. It runs entirely in your browser.</p></div>
+<a class="button primary" href="converter.html">Open the converter <span aria-hidden="true">→</span></a>
+</section>

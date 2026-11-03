@@ -9,8 +9,10 @@ Current release: **[v2.0.0](https://github.com/auchri/QueryBuilder4Delphi/releas
 See the [changelog](CHANGELOG.md) for release details and the
 [migration guide](docs/MIGRATION.md) when upgrading from v1.0.0.
 
+<!-- website:skip -->
 **[Documentation website](https://auchri.github.io/QueryBuilder4Delphi/)** ·
 **[SQL → Delphi converter](https://auchri.github.io/QueryBuilder4Delphi/converter.html)**
+<!-- /website:skip -->
 
 Version 2 adds fluent object mapping, nullable read/write DTOs and explicit SQL
 NULL policies. `Compile` now returns parameterized SQL and bindings;
