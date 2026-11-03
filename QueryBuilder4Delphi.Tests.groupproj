@@ -1,0 +1,48 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{3F0B6C5E-8A41-4E7D-9C2B-6D1E4A7F2B90}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="test\QueryBuilder.Tests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="test\QueryBuilder.FireDAC.Tests.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="QueryBuilder_Tests">
+        <MSBuild Projects="test\QueryBuilder.Tests.dproj"/>
+    </Target>
+    <Target Name="QueryBuilder_Tests:Clean">
+        <MSBuild Projects="test\QueryBuilder.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="QueryBuilder_Tests:Make">
+        <MSBuild Projects="test\QueryBuilder.Tests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="QueryBuilder_FireDAC_Tests">
+        <MSBuild Projects="test\QueryBuilder.FireDAC.Tests.dproj"/>
+    </Target>
+    <Target Name="QueryBuilder_FireDAC_Tests:Clean">
+        <MSBuild Projects="test\QueryBuilder.FireDAC.Tests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="QueryBuilder_FireDAC_Tests:Make">
+        <MSBuild Projects="test\QueryBuilder.FireDAC.Tests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="QueryBuilder_Tests;QueryBuilder_FireDAC_Tests"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="QueryBuilder_Tests:Clean;QueryBuilder_FireDAC_Tests:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="QueryBuilder_Tests:Make;QueryBuilder_FireDAC_Tests:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -8,6 +8,38 @@ import { smokeCases, smokeDialects } from './smoke-cases.mjs';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const smokeOutput = path.join(root, 'build/converter-smoke');
 export const smokeProjectTemplate = path.join(root, 'test/QueryBuilder.Tests.dproj');
+// A Delphi IDE project group, so all smoke projects build with Project > Build All.
+export function groupProject(guid, projects) {
+  const target = project => path.win32.basename(project, '.dproj').replaceAll('.', '_');
+  const targets = suffix => projects.map(project => target(project) + suffix).join(';');
+  return `<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>${guid}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+${projects.map(project => `        <Projects Include="${project}">\n            <Dependencies/>\n        </Projects>`).join('\n')}
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+${projects.map(project => ['', ':Clean', ':Make'].map(suffix => `    <Target Name="${target(project)}${suffix}">\n        <MSBuild Projects="${project}"${suffix ? ` Targets="${suffix.slice(1)}"` : ''}/>\n    </Target>`).join('\n')).join('\n')}
+    <Target Name="Build">
+        <CallTarget Targets="${targets('')}"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="${targets(':Clean')}"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="${targets(':Make')}"/>
+    </Target>
+    <Import Project="$(BDS)\\Bin\\CodeGear.Group.Targets" Condition="Exists('$(BDS)\\Bin\\CodeGear.Group.Targets')"/>
+</Project>
+`;
+}
 export async function generateSmokeProjects() {
   const files = new Map();
   // Reuse the IDE-tested console project's complete configuration/inheritance
@@ -117,6 +149,8 @@ end.
       .replace(/(<SanitizedProjectName>[^<]+<\/SanitizedProjectName>\r?\n)/, `$1${compilerOptions}`);
     files.set(`${name}.dproj`, project);
   }
+  files.set('ConverterSmoke.groupproj', groupProject('{5B1D7E42-C3A9-4F86-8E0D-2A6B9C4F1E37}',
+    Object.keys(smokeDialects).map(dialect => `ConverterSmoke${dialect}.dproj`)));
   // These are Windows Delphi IDE artifacts. Avoid IDE line-ending conversion
   // prompts and keep regeneration/checks identical on Windows and CI.
   return new Map([...files].map(([name, source]) => [name, source.replace(/\r?\n/g, '\r\n')]));

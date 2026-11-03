@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateSmokeProjects, smokeProjectTemplate } from '../generate-smoke.mjs';
-import { readFile } from 'node:fs/promises';
+import { generateSmokeProjects, groupProject, smokeProjectTemplate } from '../generate-smoke.mjs';
+import { readFile, readdir } from 'node:fs/promises';
 import { smokeCases, smokeDialects } from '../smoke-cases.mjs';
 test('Delphi smoke fixtures are regenerated from every supported dialect and feature case', async () => {
   const files = await generateSmokeProjects();
-  assert.equal(files.size, Object.keys(smokeDialects).length * 2);
+  assert.equal(files.size, Object.keys(smokeDialects).length * 2 + 1);
+  const group = files.get('ConverterSmoke.groupproj');
+  for (const dialect of Object.keys(smokeDialects)) assert.ok(group.includes(`<Projects Include="ConverterSmoke${dialect}.dproj">`), dialect);
   for (const dialect of Object.keys(smokeDialects)) {
     const program = files.get(`ConverterSmoke${dialect}.dpr`);
     for (const fixture of smokeCases) {
@@ -60,4 +62,11 @@ test('smoke project configuration retains the working console project structure'
     assert.ok(!project.includes('DUnitX'));
     assert.ok(!project.includes('<DCCReference'));
   }
+});
+test('the test project group contains every Delphi test project', async () => {
+  const root = new URL('../../', import.meta.url);
+  const group = (await readFile(new URL('QueryBuilder4Delphi.Tests.groupproj', root), 'utf8')).replace(/\r\n/g, '\n');
+  const projects = (await readdir(new URL('test/', root))).filter(file => file.endsWith('.dproj')).sort().reverse().map(file => 'test\\' + file);
+  const guid = group.match(/<ProjectGuid>([^<]+)<\/ProjectGuid>/)[1];
+  assert.equal(group, groupProject(guid, projects));
 });

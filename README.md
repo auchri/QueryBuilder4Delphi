@@ -264,8 +264,9 @@ provider extensions and limitations.
 
 ## Build and test
 
-Open `test/QueryBuilder.Tests.dproj` in Delphi 12+ and use **Project > Build**
-for Windows 32-bit and Windows 64-bit. Run the separate optional
+Open the project group `QueryBuilder4Delphi.Tests.groupproj` in Delphi 12+ and
+use **Project > Build All Projects** for Windows 32-bit and Windows 64-bit. It
+contains `test/QueryBuilder.Tests.dproj` and the optional
 `test/QueryBuilder.FireDAC.Tests.dproj` for SQLite in-memory integration tests.
 DUnitX sources bundled with Delphi are used only by tests.
 

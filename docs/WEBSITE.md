@@ -211,8 +211,9 @@ The generated files are ignored build artifacts. JavaScript tests exercise the
 generation on CI; the GitHub Pages workflow does not require Delphi and does
 not claim to validate Delphi compilation.
 
-With Community Edition, open each generated `.dproj` in the Delphi IDE and
-build for Windows 32-bit and Windows 64-bit.
+With Community Edition, open the generated project group
+`build/converter-smoke/ConverterSmoke.groupproj` in the Delphi IDE and use
+**Build All Projects** for Windows 32-bit and Windows 64-bit.
 
 The executables are written to the `Win32/` and `Win64/` subdirectories of
 `build/converter-smoke/`. Project files derive from the repository's working
