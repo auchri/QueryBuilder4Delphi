@@ -1,7 +1,7 @@
 # Documentation website and SQL converter
 
 The website is a static GitHub Pages application. **Documentation stays in
-`README.md`, `CHANGELOG.md`, and `docs/*.md`.** The build reads these files
+`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` and `docs/*.md`.** The build reads these files
 directly; do not copy their contents into website templates. Every Markdown
 file immediately inside `docs/` becomes a page. Add navigation entries in
 `website/build.mjs` when introducing a new guide.

@@ -1359,8 +1359,8 @@ no live external adapter execution is claimed. The README quick starts
 use the same query/execution operations; these examples are not a schema or
 connection-management framework.
 
-See [validation](VALIDATION.md) for actual run results, [API details](API.md) for
-contracts, and [LICENSE](../LICENSE) for retained copyright and permission terms.
+See [API details](API.md) for contracts, and [LICENSE](../LICENSE) for retained
+copyright and permission terms.
 
 ## One nullable DTO for INSERT, SELECT and UPDATE
 

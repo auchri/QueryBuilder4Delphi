@@ -22,6 +22,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Contributor guidance moved into `CONTRIBUTING.md`: SqlKata origin, generated
+  code, reference tests and XML documentation conventions. The porting log,
+  dated validation records and XML documentation audit (`docs/PORTING.md`,
+  `docs/VALIDATION.md`, `docs/XML_DOCUMENTATION.md`, the validation JSON files
+  and `tools/record_validation.py`) were removed; they remain in the v2.0.0 tag.
 - The converter emits flat fluent chains for AND or OR sequences and nests a
   callback only where the operator changes.
 - Converter error messages quote the unsupported SQL fragment and suggest the
@@ -96,7 +101,7 @@ a documentation website with a browser-local SQL-to-Delphi converter.
 ### Validation
 
 - Release checks and their scope are recorded in
-  [validation details](docs/VALIDATION.md#v200-release-validation-2026-10-31).
+  [validation details](https://github.com/auchri/QueryBuilder4Delphi/blob/v2.0.0/docs/VALIDATION.md#v200-release-validation-2026-10-31).
 - Existing Delphi executables rerun: 940 Core and 94 FireDAC tests passed on
   each of Win32 and Win64, with zero failures, errors, ignored tests or leaks.
   These are reruns of the October 25 IDE builds, not fresh release builds.
@@ -148,7 +153,7 @@ Delphi 12 and later on Windows (Win32 and Win64).
 - All four suites reported zero failures, errors, ignored tests or test leaks.
 - Database integration was verified with SQLite in memory. Other dialects were
   covered by SQL compilation and binding tests; server-specific execution was
-  not tested. See [validation details](docs/VALIDATION.md).
+  not tested. See [validation details](https://github.com/auchri/QueryBuilder4Delphi/blob/v1.0.0/docs/VALIDATION.md).
 
 [Unreleased]: https://github.com/auchri/QueryBuilder4Delphi/compare/v2.0.0...HEAD
 [2.0.0]: https://github.com/auchri/QueryBuilder4Delphi/releases/tag/v2.0.0
